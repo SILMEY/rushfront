@@ -10,6 +10,14 @@ function userIdOf(socket: Socket) {
 }
 
 export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: Socket, gameManager: GameManager) {
+  socket.on("game:leave", async (payload: { gameId: string }) => {
+    try {
+      await socket.leave(`game:${payload.gameId}`);
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
   socket.on("game:get_state", async (payload: { gameId: string }) => {
     try {
       const instance = gameManager.getActive(payload.gameId);

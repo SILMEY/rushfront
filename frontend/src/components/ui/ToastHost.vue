@@ -21,7 +21,28 @@ function push(message: string) {
 const lastError = computed(() => game.lastError ?? lobby.lastError ?? null);
 watch(lastError, (msg) => {
   if (!msg) return;
-  push(msg);
+  // Avoid spamming toasts while painting claims (lots of expected rejections).
+  const suppressedDuringPaint = new Set([
+    "not_adjacent",
+    "already_owned",
+    "water",
+    "tile_blocked",
+    "out_of_bounds",
+    "occupied",
+    "must_own_tile",
+    "tile_has_building",
+    "invalid_tile"
+  ]);
+
+  if (game.isPainting && suppressedDuringPaint.has(msg)) {
+    if (game.lastError) game.lastError = null;
+    return;
+  }
+
+  // De-dupe repeated messages for a short window.
+  const last = toasts.value[toasts.value.length - 1];
+  if (!last || last.message !== msg) push(msg);
+
   if (game.lastError) game.lastError = null;
   if (lobby.lastError) lobby.lastError = null;
 });
@@ -49,4 +70,3 @@ watch(lastError, (msg) => {
     </div>
   </div>
 </template>
-

@@ -11,6 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "tile-click", pos: Vec2): void;
   (e: "tile-hover", pos: Vec2 | null): void;
+  (e: "paint-active", active: boolean): void;
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
@@ -97,6 +98,7 @@ function onPointerDown(e: PointerEvent) {
   dragMoved = 0;
   dragMode = e.button === 2 || e.button === 1 ? "pan" : "paint";
   lastPainted = null;
+  if (dragMode === "paint") emit("paint-active", true);
 }
 
 function onPointerMove(e: PointerEvent) {
@@ -134,6 +136,7 @@ function onPointerUp(e: PointerEvent) {
     const tile = toTile(e.clientX, e.clientY);
     if (tile) emit("tile-click", tile);
   }
+  if (dragMode === "paint") emit("paint-active", false);
   dragMode = null;
   lastPainted = null;
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import GameCanvas from "../components/game/GameCanvas.vue";
 import BuildPanel from "../components/game/BuildPanel.vue";
@@ -15,6 +15,13 @@ onMounted(async () => {
   await game.connect(gameId.value);
   await game.getState(gameId.value);
 });
+
+watch(
+  () => gameId.value,
+  async (id) => {
+    await game.getState(id);
+  }
+);
 </script>
 
 <template>
@@ -32,7 +39,12 @@ onMounted(async () => {
 
     <div class="grid grid-cols-12 gap-4">
       <div class="col-span-10 rounded-xl border border-white/10 bg-slate-950/40">
-        <GameCanvas class="h-[calc(100vh-180px)] min-h-[720px] w-full" :state="game.state" @tile-click="game.onTileClick" />
+        <GameCanvas
+          class="h-[calc(100vh-180px)] min-h-[720px] w-full"
+          :state="game.state"
+          @tile-click="game.onTileClick"
+          @paint-active="game.setPainting"
+        />
       </div>
       <div class="col-span-2 grid gap-4">
         <BuildPanel :state="game.state" :selected="game.selectedBuilding" @select="game.selectedBuilding = $event" />

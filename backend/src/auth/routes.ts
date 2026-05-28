@@ -73,6 +73,12 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   app.post("/auth/logout", async (_req, reply) => {
-    reply.clearCookie("tr_session", { path: "/" }).send({ ok: true });
+    reply
+      .clearCookie("tr_session", {
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax"
+      })
+      .send({ ok: true });
   });
 }
