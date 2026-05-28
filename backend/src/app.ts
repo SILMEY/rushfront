@@ -6,7 +6,8 @@ import { jwtPlugin } from "./auth/jwt.js";
 import { authRoutes } from "./auth/routes.js";
 
 export function buildApp() {
-  const app = Fastify({ logger: true });
+  // Railway/Reverse proxies: trust X-Forwarded-* so cookies + redirects are correct.
+  const app = Fastify({ logger: true, trustProxy: true });
 
   const allowedOrigins = new Set(
     [

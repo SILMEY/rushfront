@@ -12,7 +12,14 @@ function cookieOptionsForRequest(params: { webOrigin: string; reqHost?: string; 
   }
   // Modern browsers require Secure when SameSite=None.
   const secure = sameSite === "none" ? true : Boolean(isHttps);
-  return { httpOnly: true as const, sameSite, secure, path: "/" as const };
+  const domain = process.env.COOKIE_DOMAIN?.trim();
+  return {
+    httpOnly: true as const,
+    sameSite,
+    secure,
+    path: "/" as const,
+    ...(domain ? { domain } : {})
+  };
 }
 
 export async function authRoutes(app: FastifyInstance) {
