@@ -10,9 +10,8 @@ RUN npm install -g serve
 COPY frontend frontend
 
 WORKDIR /app/frontend
-RUN npm run build
 
 EXPOSE 3000
 
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD sh -c "npm run build && serve -s dist -l 3000"
 
