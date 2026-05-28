@@ -1,6 +1,20 @@
 import type { FastifyInstance } from "fastify";
 import { createGoogleClient, upsertUserFromGoogle } from "./google.js";
 
+function cookieOptionsForRequest(params: { webOrigin: string; reqHost?: string; isHttps?: boolean }) {
+  const { webOrigin, reqHost, isHttps } = params;
+  let sameSite: "lax" | "none" = "lax";
+  try {
+    const webHost = new URL(webOrigin).hostname;
+    if (reqHost && webHost && webHost !== reqHost) sameSite = "none";
+  } catch {
+    // fallback to lax
+  }
+  // Modern browsers require Secure when SameSite=None.
+  const secure = sameSite === "none" ? true : Boolean(isHttps);
+  return { httpOnly: true as const, sameSite, secure, path: "/" as const };
+}
+
 export async function authRoutes(app: FastifyInstance) {
   app.get("/auth/google/start", async (_req, reply) => {
     let client;
@@ -45,11 +59,14 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     const jwt = await reply.jwtSign({ userId: user.id });
+    const cookieOpts = cookieOptionsForRequest({
+      webOrigin: process.env.WEB_ORIGIN!,
+      reqHost: req.hostname,
+      isHttps: (req.headers["x-forwarded-proto"] ?? "").toString().includes("https")
+    });
     reply
       .setCookie("tr_session", jwt, {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/"
+        ...cookieOpts
       })
       .redirect(process.env.WEB_ORIGIN!);
   });
@@ -75,9 +92,11 @@ export async function authRoutes(app: FastifyInstance) {
   app.post("/auth/logout", async (_req, reply) => {
     reply
       .clearCookie("tr_session", {
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax"
+        ...cookieOptionsForRequest({
+          webOrigin: process.env.WEB_ORIGIN!,
+          reqHost: undefined,
+          isHttps: true
+        })
       })
       .send({ ok: true });
   });
