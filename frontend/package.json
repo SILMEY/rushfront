@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "vue-tsc -p tsconfig.json --noEmit && vite build",
     "preview": "vite preview",
-    "serve": "http-server dist -p 3000 -a 0.0.0.0"
+    "serve": "http-server dist -p ${PORT:-3000} -a 0.0.0.0"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
