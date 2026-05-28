@@ -1,0 +1,2 @@
+-- This migration was generated accidentally during local bootstrap.
+-- No-op: schema is fully created by `0001_init`.

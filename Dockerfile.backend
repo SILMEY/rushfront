@@ -1,0 +1,20 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install deps using workspaces (needs root lockfile)
+COPY package.json package-lock.json ./
+COPY backend/package.json backend/package.json
+RUN npm ci
+
+COPY backend backend
+
+RUN npm --workspace backend run prisma:generate
+
+COPY backend/docker/start.sh /usr/local/bin/tr-backend-start
+RUN chmod +x /usr/local/bin/tr-backend-start
+
+WORKDIR /app/backend
+EXPOSE 3000
+
+CMD ["/usr/local/bin/tr-backend-start"]

@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "windows", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GameStatus {
+  LOBBY
+  PLACING
+  ACTIVE
+  FINISHED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  googleId  String   @unique
+  email     String   @unique
+  name      String
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  gamesHosted Game[]       @relation("HostedGames")
+  gamePlayers GamePlayer[]
+}
+
+model Game {
+  id         String     @id @default(cuid())
+  status     GameStatus @default(LOBBY)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  hostUserId String
+  hostUser   User       @relation("HostedGames", fields: [hostUserId], references: [id])
+
+  players    GamePlayer[]
+}
+
+model GamePlayer {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  gameId        String
+  game          Game     @relation(fields: [gameId], references: [id])
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+
+  color         String
+  isReady       Boolean  @default(false)
+  hasChosenStart Boolean @default(false)
+  baseX         Int?
+  baseY         Int?
+
+  @@unique([gameId, userId])
+}

@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: territory_rush_postgres
+    environment:
+      POSTGRES_USER: territory
+      POSTGRES_PASSWORD: territory
+      POSTGRES_DB: territory_rush
+      # Dev-only convenience: avoids auth issues on some local setups.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: territory_rush_backend
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      WEB_ORIGIN: http://localhost:5173
+      JWT_SECRET: change_me_dev_secret
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: http://localhost:3000/auth/google/callback
+      DATABASE_URL: postgresql://territory:territory@postgres:5432/territory_rush?schema=public&sslmode=disable
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: territory_rush_frontend
+    environment:
+      VITE_API_URL: http://localhost:3000
+      VITE_SOCKET_URL: http://localhost:3000
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  pgdata:
