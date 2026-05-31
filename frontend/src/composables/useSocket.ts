@@ -1,5 +1,6 @@
 import { io, type Socket } from "socket.io-client";
 import { apiFetch } from "../api/http";
+import { useAuthStore } from "../stores/authStore";
 
 let socket: Socket | null = null;
 let connecting: Promise<Socket> | null = null;
@@ -9,7 +10,8 @@ export async function getSocket(): Promise<Socket> {
   if (connecting) return connecting;
 
   connecting = (async () => {
-    const { token } = await apiFetch<{ token: string }>("/socket/token");
+    const auth = useAuthStore();
+    const token = auth.accessToken ?? (await apiFetch<{ token: string }>("/socket/token")).token;
     const url = (import.meta.env.VITE_SOCKET_URL as string) ?? (import.meta.env.VITE_API_URL as string);
     socket = io(url, {
       transports: ["websocket"],
@@ -33,4 +35,3 @@ export function disconnectSocket() {
   socket?.disconnect();
   socket = null;
 }
-

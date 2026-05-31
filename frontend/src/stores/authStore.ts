@@ -4,12 +4,14 @@ import type { User } from "../types/user";
 import { disconnectSocket } from "../composables/useSocket";
 
 let fetchMePromise: Promise<void> | null = null;
+const TOKEN_KEY = "tr_access_token";
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     user: null as User | null,
     ready: false,
-    loading: false
+    loading: false,
+    accessToken: (localStorage.getItem(TOKEN_KEY) as string | null) ?? null
   }),
   actions: {
     async fetchMe() {
@@ -27,11 +29,17 @@ export const useAuthStore = defineStore("auth", {
       })();
       return fetchMePromise;
     },
+    setAccessToken(token: string | null) {
+      this.accessToken = token;
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      else localStorage.removeItem(TOKEN_KEY);
+    },
     loginWithGoogle() {
       window.location.href = `${apiOrigin()}/auth/google/start`;
     },
     async logout() {
       await apiFetch("/auth/logout", { method: "POST" });
+      this.setAccessToken(null);
       this.user = null;
       disconnectSocket();
       window.location.href = "/login";

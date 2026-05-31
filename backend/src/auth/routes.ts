@@ -1,14 +1,27 @@
 import type { FastifyInstance } from "fastify";
 import { createGoogleClient, upsertUserFromGoogle } from "./google.js";
 
-function cookieOptionsForRequest() {
+function cookieOptionsForRequest(params: { webOrigin: string; reqHost?: string; isHttps?: boolean }) {
+  const { webOrigin, reqHost, isHttps } = params;
   const isProd = process.env.NODE_ENV === "production";
+
+  let sameSite: "lax" | "none" = isProd ? "none" : "lax";
+  try {
+    const webHost = new URL(webOrigin).hostname;
+    if (reqHost && webHost && webHost === reqHost) sameSite = "lax";
+  } catch {
+    // keep default
+  }
+
+  const secure = sameSite === "none" ? true : Boolean(isHttps);
+  const domain = process.env.COOKIE_DOMAIN?.trim();
 
   return {
     httpOnly: true as const,
-    sameSite: isProd ? "none" as const : "lax" as const,
-    secure: isProd,
+    sameSite,
+    secure,
     path: "/" as const,
+    ...(domain ? { domain } : {})
   };
 }
 
@@ -56,10 +69,20 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     const jwt = await reply.jwtSign({ userId: user.id });
-     reply
-    .setCookie("tr_session", jwt, cookieOptionsForRequest())
-    .redirect(process.env.WEB_ORIGIN!);
+    const webOrigin = process.env.WEB_ORIGIN!;
+    const cookieOpts = cookieOptionsForRequest({
+      webOrigin,
+      reqHost: req.hostname,
+      isHttps: (req.headers["x-forwarded-proto"] ?? "").toString().includes("https")
     });
+
+    // Fallback for cross-site deployments (Railway front/back on different hosts):
+    // browsers may block third-party cookies, so we also pass a token via the redirect URL.
+    const redirectUrl =
+      cookieOpts.sameSite === "none" ? `${webOrigin}/?tr_token=${encodeURIComponent(jwt)}` : webOrigin;
+
+    reply.setCookie("tr_session", jwt, cookieOpts).redirect(redirectUrl);
+  });
 
   app.get("/auth/me", async (req, reply) => {
     try {
@@ -79,9 +102,17 @@ export async function authRoutes(app: FastifyInstance) {
     });
   });
 
-app.post("/auth/logout", async (_req, reply) => {
-  reply
-    .clearCookie("tr_session", cookieOptionsForRequest())
-    .send({ ok: true });
-});
+  app.post("/auth/logout", async (req, reply) => {
+    const webOrigin = process.env.WEB_ORIGIN!;
+    reply
+      .clearCookie(
+        "tr_session",
+        cookieOptionsForRequest({
+          webOrigin,
+          reqHost: req.hostname,
+          isHttps: (req.headers["x-forwarded-proto"] ?? "").toString().includes("https")
+        })
+      )
+      .send({ ok: true });
+  });
 }

@@ -6,7 +6,16 @@ import ToastHost from "./components/ui/ToastHost.vue";
 import { useAuthStore } from "./stores/authStore";
 
 const auth = useAuthStore();
-onMounted(() => auth.fetchMe());
+onMounted(async () => {
+  const url = new URL(window.location.href);
+  const token = url.searchParams.get("tr_token");
+  if (token) {
+    auth.setAccessToken(token);
+    url.searchParams.delete("tr_token");
+    window.history.replaceState({}, "", url.toString());
+  }
+  await auth.fetchMe();
+});
 
 const route = useRoute();
 const router = useRouter();
