@@ -121,6 +121,9 @@ export function useGameRenderer() {
     }
 
     // Optimistic claims (client-only) for immediate feedback.
+    const myPlayerId = game.mePlayer?.id ?? null;
+    const myColor = myPlayerId ? colorByPlayer.get(myPlayerId) ?? null : null;
+
     for (const key of game.optimisticClaims) {
       const [xStr, yStr] = key.split(",");
       const x = Number(xStr);
@@ -129,9 +132,9 @@ export function useGameRenderer() {
       if (x < x0 || x > x1 || y < y0 || y > y1) continue;
       const sx = x * tileSize * scale + camera.x;
       const sy = y * tileSize * scale + camera.y;
-      ctx.fillStyle = rgba("#ffffff", 0.08);
+      ctx.fillStyle = myColor ? lighten(myColor, 0.45) : rgba("#ffffff", 0.08);
       ctx.fillRect(sx, sy, ts, ts);
-      ctx.strokeStyle = rgba("#ffffff", 0.12);
+      ctx.strokeStyle = myColor ? rgba(myColor, 0.35) : rgba("#ffffff", 0.12);
       ctx.strokeRect(sx + 0.5, sy + 0.5, ts - 1, ts - 1);
     }
 

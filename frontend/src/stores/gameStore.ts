@@ -3,6 +3,7 @@ import type { GameStateSnapshot, Vec2 } from "../types/game";
 import { BuildingType } from "../types/game";
 import { getSocket } from "../composables/useSocket";
 import { useAuthStore } from "./authStore";
+import { tileIndex } from "../utils/tileUtils";
 
 export const useGameStore = defineStore("game", {
   state: () => ({
@@ -52,10 +53,20 @@ export const useGameStore = defineStore("game", {
       socket.emit("game:choose_start", { gameId, x: pos.x, y: pos.y });
     },
     async claimTile(gameId: string, pos: Vec2) {
+      if (this.state) {
+        const i = tileIndex(pos.x, pos.y, this.state.width);
+        if (this.state.tiles.owners[i] == null) this.optimisticClaims.add(`${pos.x},${pos.y}`);
+      }
       const socket = await getSocket();
       socket.emit("game:claim_tile", { gameId, x: pos.x, y: pos.y });
     },
     async claimTiles(gameId: string, tiles: Vec2[]) {
+      if (this.state) {
+        for (const t of tiles) {
+          const i = tileIndex(t.x, t.y, this.state.width);
+          if (this.state.tiles.owners[i] == null) this.optimisticClaims.add(`${t.x},${t.y}`);
+        }
+      }
       const socket = await getSocket();
       socket.emit("game:claim_tiles", { gameId, tiles });
     },
