@@ -3,7 +3,7 @@ import { buildCost, claimCost, idx, inBounds, orthogonalNeighbors, withinRadius 
 
 type RuntimePlayer = {
   id: string;
-  resources: { expansion: number; wood: number; stone: number };
+  resources: { villagers: number; soldiers: number; wood: number; stone: number };
 };
 
 type TurnInput = {
@@ -65,7 +65,7 @@ export function resolveTurn(input: TurnInput) {
   }
 
   // Local expansion: each barracks gives +3 local points per turn, usable within radius 10.
-  // Design choice: for claims in range, spend local points first, then global expansion.
+  // Design choice: for claims in range, spend local points first, then global soldiers.
   const localPoints = new Map<string, number>();
   const barracksByPlayer = new Map<string, Vec2[]>();
   for (const p of players) {
@@ -105,12 +105,12 @@ export function resolveTurn(input: TurnInput) {
       localPoints.set(pid, local);
       const remaining = cost - spendLocal;
       if (remaining > 0) {
-        if (player.resources.expansion < remaining) continue;
-        player.resources.expansion -= remaining;
+        if (player.resources.soldiers < remaining) continue;
+        player.resources.soldiers -= remaining;
       }
     } else {
-      if (player.resources.expansion < cost) continue;
-      player.resources.expansion -= cost;
+      if (player.resources.soldiers < cost) continue;
+      player.resources.soldiers -= cost;
     }
 
     tileOwners[tileIndex] = pid;
@@ -155,7 +155,14 @@ export function resolveTurn(input: TurnInput) {
     for (let i = 0; i < tileBuildings.length; i++) {
       if (tileOwners[i] === player.id && tileBuildings[i] === BuildingType.FishingHut) fishingHuts++;
     }
-    player.resources.expansion += 5 + Math.floor(ownedTiles / 5) + fishingHuts;
+
+    const recruitFromVillagers = Math.floor(player.resources.villagers / 3);
+    const recruitFromTerritory = 2 + Math.floor(ownedTiles / 5) + fishingHuts;
+    player.resources.soldiers += recruitFromVillagers + recruitFromTerritory;
+
+    // Passive economy from villagers (small baseline so the split matters even early-game).
+    player.resources.wood += Math.floor(player.resources.villagers / 4);
+    player.resources.stone += Math.floor(player.resources.villagers / 8);
 
     let woodGain = 0;
     for (let i = 0; i < tileBuildings.length; i++) {

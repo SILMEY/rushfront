@@ -24,7 +24,8 @@ export type Tile = {
 };
 
 export type PlayerResources = {
-  expansion: number;
+  villagers: number;
+  soldiers: number;
   wood: number;
   stone: number;
 };

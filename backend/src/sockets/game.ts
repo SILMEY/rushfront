@@ -90,6 +90,25 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     }
   });
 
+  socket.on("game:set_composition", async (payload: { gameId: string; soldiers: number }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = gameManager.getActive(payload.gameId);
+      if (!instance) throw new Error("game_not_active");
+      const player = instance.getPlayerByUserId(userId);
+      if (!player) throw new Error("not_in_game");
+
+      const total = player.resources.villagers + player.resources.soldiers;
+      const soldiers = Math.max(0, Math.min(total, Math.floor(payload.soldiers)));
+      player.resources.soldiers = soldiers;
+      player.resources.villagers = total - soldiers;
+
+      io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
   socket.on("game:brouillage", async (payload: { gameId: string; tiles: Array<{ x: number; y: number }> }) => {
     try {
       const userId = userIdOf(socket);

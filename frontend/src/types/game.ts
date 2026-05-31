@@ -17,7 +17,8 @@ export enum BuildingType {
 export type Vec2 = { x: number; y: number };
 
 export type PlayerResources = {
-  expansion: number;
+  villagers: number;
+  soldiers: number;
   wood: number;
   stone: number;
 };

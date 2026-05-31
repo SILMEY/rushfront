@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { createGoogleClient, upsertUserFromGoogle } from "./google.js";
+import { z } from "zod";
 
 function cookieOptionsForRequest(params: { webOrigin: string; reqHost?: string; isHttps?: boolean }) {
   const { webOrigin, reqHost, isHttps } = params;
@@ -97,9 +98,53 @@ export async function authRoutes(app: FastifyInstance) {
         id: user.id,
         email: user.email,
         name: user.name,
+        pseudo: user.pseudo,
         avatarUrl: user.avatarUrl
       }
     });
+  });
+
+  const PseudoSchema = z
+    .string()
+    .trim()
+    .min(3, "pseudo_too_short")
+    .max(20, "pseudo_too_long")
+    .regex(/^[a-zA-Z0-9][a-zA-Z0-9 _-]*[a-zA-Z0-9]$/, "pseudo_invalid");
+
+  app.put("/profile/pseudo", async (req, reply) => {
+    try {
+      await req.jwtVerify();
+    } catch {
+      return reply.code(401).send({ error: "unauthorized" });
+    }
+
+    const body = (req.body ?? {}) as any;
+    const parsed = PseudoSchema.safeParse(body.pseudo);
+    if (!parsed.success) {
+      const msg = parsed.error.issues[0]?.message ?? "invalid_pseudo";
+      return reply.code(400).send({ error: msg });
+    }
+
+    const pseudo = parsed.data;
+    try {
+      const user = await app.prisma.user.update({
+        where: { id: req.user.userId },
+        data: { pseudo }
+      });
+      return reply.send({
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          pseudo: user.pseudo,
+          avatarUrl: user.avatarUrl
+        }
+      });
+    } catch (e: any) {
+      // Prisma unique violation
+      if (e?.code === "P2002") return reply.code(409).send({ error: "pseudo_taken" });
+      throw e;
+    }
   });
 
   app.post("/auth/logout", async (req, reply) => {

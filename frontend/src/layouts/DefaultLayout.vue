@@ -3,7 +3,22 @@ import { computed } from "vue";
 import { useAuthStore } from "../stores/authStore";
 
 const auth = useAuthStore();
-const initials = computed(() => auth.user?.name?.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase());
+const displayName = computed(() => auth.displayName);
+const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase());
+
+async function changePseudo() {
+  const current = auth.user?.pseudo ?? "";
+  const next = window.prompt("Choisis ton pseudo (3-20 caractères)", current);
+  if (next == null) return;
+  const pseudo = next.trim();
+  if (!pseudo) return;
+  try {
+    await auth.setPseudo(pseudo);
+  } catch (e: any) {
+    const msg = e?.message || "Erreur";
+    window.alert(msg.includes("pseudo_taken") ? "Pseudo déjà pris" : msg);
+  }
+}
 </script>
 
 <template>
@@ -19,7 +34,13 @@ const initials = computed(() => auth.user?.name?.split(" ").map((p) => p[0]).joi
           <div v-else class="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-xs">
             {{ initials }}
           </div>
-          <div class="hidden text-sm text-slate-200 sm:block">{{ auth.user.name }}</div>
+          <button class="hidden text-sm text-slate-200 hover:underline sm:block" @click="changePseudo()">{{ displayName }}</button>
+          <button
+            class="rounded-md bg-white/5 px-3 py-1.5 text-sm ring-1 ring-white/10 hover:bg-white/10"
+            @click="changePseudo()"
+          >
+            Pseudo
+          </button>
           <button
             class="rounded-md bg-white/5 px-3 py-1.5 text-sm ring-1 ring-white/10 hover:bg-white/10"
             @click="auth.logout()"

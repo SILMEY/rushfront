@@ -27,7 +27,7 @@ export class GameManager {
       players: g.players.map((p) => ({
         id: p.id,
         userId: p.userId,
-        name: p.user.name,
+        name: p.user.pseudo ?? p.user.name,
         avatarUrl: p.user.avatarUrl,
         color: p.color,
         isReady: p.isReady

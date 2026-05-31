@@ -13,7 +13,7 @@ export const useGameStore = defineStore("game", {
     hoveredTile: null as Vec2 | null,
     selectedBuilding: null as BuildingType | null,
     currentGameId: null as string | null,
-    optimisticClaims: new Set<string>() as Set<string>
+    optimisticClaims: {} as Record<string, true>
   }),
   getters: {
     mePlayer(state) {
@@ -29,7 +29,7 @@ export const useGameStore = defineStore("game", {
         this.state = snapshot;
         this.currentGameId = snapshot.gameId;
         // Clear optimistic overlays on authoritative updates.
-        this.optimisticClaims = new Set();
+        this.optimisticClaims = {};
       });
       socket.on("game:error", ({ error }: { error: string }) => {
         this.lastError = error;
@@ -44,7 +44,7 @@ export const useGameStore = defineStore("game", {
         this.state = null;
         this.selectedBuilding = null;
         this.hoveredTile = null;
-        this.optimisticClaims = new Set();
+        this.optimisticClaims = {};
       }
       socket.emit("game:get_state", { gameId });
     },
@@ -55,7 +55,9 @@ export const useGameStore = defineStore("game", {
     async claimTile(gameId: string, pos: Vec2) {
       if (this.state) {
         const i = tileIndex(pos.x, pos.y, this.state.width);
-        if (this.state.tiles.owners[i] == null) this.optimisticClaims.add(`${pos.x},${pos.y}`);
+        if (this.state.tiles.owners[i] == null) {
+          this.optimisticClaims[`${pos.x},${pos.y}`] = true;
+        }
       }
       const socket = await getSocket();
       socket.emit("game:claim_tile", { gameId, x: pos.x, y: pos.y });
@@ -64,7 +66,9 @@ export const useGameStore = defineStore("game", {
       if (this.state) {
         for (const t of tiles) {
           const i = tileIndex(t.x, t.y, this.state.width);
-          if (this.state.tiles.owners[i] == null) this.optimisticClaims.add(`${t.x},${t.y}`);
+          if (this.state.tiles.owners[i] == null) {
+            this.optimisticClaims[`${t.x},${t.y}`] = true;
+          }
         }
       }
       const socket = await getSocket();
@@ -72,12 +76,16 @@ export const useGameStore = defineStore("game", {
     },
     async cancelClaim(gameId: string, pos: Vec2) {
       const socket = await getSocket();
-      this.optimisticClaims.delete(`${pos.x},${pos.y}`);
+      delete this.optimisticClaims[`${pos.x},${pos.y}`];
       socket.emit("game:cancel_claim", { gameId, x: pos.x, y: pos.y });
     },
     async build(gameId: string, pos: Vec2, building: BuildingType) {
       const socket = await getSocket();
       socket.emit("game:build", { gameId, x: pos.x, y: pos.y, building });
+    },
+    async setComposition(gameId: string, soldiers: number) {
+      const socket = await getSocket();
+      socket.emit("game:set_composition", { gameId, soldiers });
     },
     setHovered(pos: Vec2 | null) {
       this.hoveredTile = pos;

@@ -49,13 +49,13 @@ export class GameInstance {
     this.players = game.players.map((p) => ({
       id: p.id,
       userId: p.userId,
-      name: p.user.name,
+      name: p.user.pseudo ?? p.user.name,
       avatarUrl: p.user.avatarUrl,
       color: p.color,
       isReady: p.isReady,
       hasChosenStart: p.hasChosenStart,
       basePosition: p.baseX != null && p.baseY != null ? { x: p.baseX, y: p.baseY } : null,
-      resources: { expansion: 0, wood: 0, stone: 0 }
+      resources: { villagers: 0, soldiers: 0, wood: 0, stone: 0 }
     }));
 
     const map = generateMap();
@@ -155,7 +155,7 @@ export class GameInstance {
 
     player.hasChosenStart = true;
     player.basePosition = pos;
-    player.resources = { expansion: 10, wood: 5, stone: 0 };
+    player.resources = { villagers: 10, soldiers: 0, wood: 5, stone: 0 };
     this.tileOwners[index] = player.id;
     this.tileBuildings[index] = BuildingType.Base;
 

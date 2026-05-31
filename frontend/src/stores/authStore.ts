@@ -13,6 +13,11 @@ export const useAuthStore = defineStore("auth", {
     loading: false,
     accessToken: (localStorage.getItem(TOKEN_KEY) as string | null) ?? null
   }),
+  getters: {
+    displayName(state) {
+      return state.user?.pseudo?.trim() || state.user?.name || "";
+    }
+  },
   actions: {
     async fetchMe() {
       if (fetchMePromise) return fetchMePromise;
@@ -43,6 +48,13 @@ export const useAuthStore = defineStore("auth", {
       this.user = null;
       disconnectSocket();
       window.location.href = "/login";
+    },
+    async setPseudo(pseudo: string) {
+      const res = await apiFetch<{ user: User }>("/profile/pseudo", {
+        method: "PUT",
+        body: JSON.stringify({ pseudo })
+      });
+      this.user = res.user;
     }
   }
 });

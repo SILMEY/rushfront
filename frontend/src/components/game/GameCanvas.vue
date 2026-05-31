@@ -15,11 +15,11 @@ const emit = defineEmits<{
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-const tileSize = 20;
+const tileSize = 36;
 
 const { camera, screenToWorld, pan, zoomAt } = useCamera();
 const { render } = useGameRenderer();
-useGameStore();
+const game = useGameStore();
 
 const hovered = ref<Vec2 | null>(null);
 
@@ -68,6 +68,10 @@ watch(
 );
 watch(
   () => [camera.x, camera.y, camera.zoom],
+  () => scheduleDraw()
+);
+watch(
+  () => Object.keys(game.optimisticClaims).length,
   () => scheduleDraw()
 );
 

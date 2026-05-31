@@ -13,7 +13,7 @@ const items: Array<{ type: BuildingType | null; name: string; cost: string; rule
   {
     type: null,
     name: "Revendiquer (⚑)",
-    cost: "1–2 armée",
+    cost: "1–2 militaires",
     rule: "Clique une case neutre adjacente"
   },
   {
