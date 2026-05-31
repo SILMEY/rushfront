@@ -146,7 +146,7 @@ export class GameInstance {
     if (type !== TileType.Plain) throw new Error("start_must_be_plain");
     if (this.tileOwners[index]) throw new Error("occupied");
 
-    const minDist = 16;
+    const minDist = 12;
     for (const other of this.players) {
       if (!other.basePosition) continue;
       const d = Math.abs(other.basePosition.x - pos.x) + Math.abs(other.basePosition.y - pos.y);

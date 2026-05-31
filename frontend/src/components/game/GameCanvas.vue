@@ -12,15 +12,14 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "tile-click", pos: Vec2): void;
   (e: "tile-hover", pos: Vec2 | null): void;
-  (e: "paint-active", active: boolean): void;
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-const tileSize = 14;
+const tileSize = 20;
 
 const { camera, screenToWorld, pan, zoomAt } = useCamera();
 const { render } = useGameRenderer();
-const game = useGameStore();
+useGameStore();
 
 const hovered = ref<Vec2 | null>(null);
 
@@ -75,8 +74,6 @@ watch(
 let dragging = false;
 let dragStart: { x: number; y: number } | null = null;
 let dragMoved = 0;
-let dragMode: "paint" | "pan" | null = null;
-let lastPainted: string | null = null;
 
 function toTile(clientX: number, clientY: number): Vec2 | null {
   const canvas = canvasRef.value;
@@ -98,9 +95,6 @@ function onPointerDown(e: PointerEvent) {
   dragging = true;
   dragStart = { x: e.clientX, y: e.clientY };
   dragMoved = 0;
-  dragMode = e.button === 2 || e.button === 1 ? "pan" : "paint";
-  lastPainted = null;
-  if (dragMode === "paint") emit("paint-active", true);
 }
 
 function onPointerMove(e: PointerEvent) {
@@ -114,44 +108,18 @@ function onPointerMove(e: PointerEvent) {
   const dy = e.clientY - dragStart.y;
   dragMoved += Math.abs(dx) + Math.abs(dy);
   dragStart = { x: e.clientX, y: e.clientY };
-
-  if (dragMode === "pan") {
-    pan(dx, dy);
-    return;
-  }
-
-  // Paint claims while dragging left-click: emit once per tile crossed.
-  if (dragMode === "paint" && tile) {
-    const key = `${tile.x},${tile.y}`;
-    if (key !== lastPainted) {
-      lastPainted = key;
-      // Immediate local feedback: optimistic claim
-      if (props.state?.status === "ACTIVE" && game.selectedBuilding == null) {
-        void game.claimTile(props.state.gameId, tile);
-      } else {
-        emit("tile-click", tile);
-      }
-    }
-  }
+  // Drag always pans the camera (no "painting" mode).
+  pan(dx, dy);
 }
 
 function onPointerUp(e: PointerEvent) {
   if (!hasState.value) return;
   dragging = false;
   (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-  if (dragMoved < 6 && dragMode === "paint") {
+  if (dragMoved < 6) {
     const tile = toTile(e.clientX, e.clientY);
-    if (tile) {
-      if (props.state?.status === "ACTIVE" && game.selectedBuilding == null) {
-        void game.claimTile(props.state.gameId, tile);
-      } else {
-        emit("tile-click", tile);
-      }
-    }
+    if (tile) emit("tile-click", tile);
   }
-  if (dragMode === "paint") emit("paint-active", false);
-  dragMode = null;
-  lastPainted = null;
 }
 
 function onWheel(e: WheelEvent) {

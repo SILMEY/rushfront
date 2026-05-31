@@ -12,7 +12,6 @@ export const useGameStore = defineStore("game", {
     hoveredTile: null as Vec2 | null,
     selectedBuilding: null as BuildingType | null,
     currentGameId: null as string | null,
-    isPainting: false,
     optimisticClaims: new Set<string>() as Set<string>
   }),
   getters: {
@@ -54,12 +53,10 @@ export const useGameStore = defineStore("game", {
     },
     async claimTile(gameId: string, pos: Vec2) {
       const socket = await getSocket();
-      this.optimisticClaims.add(`${pos.x},${pos.y}`);
       socket.emit("game:claim_tile", { gameId, x: pos.x, y: pos.y });
     },
     async claimTiles(gameId: string, tiles: Vec2[]) {
       const socket = await getSocket();
-      for (const t of tiles) this.optimisticClaims.add(`${t.x},${t.y}`);
       socket.emit("game:claim_tiles", { gameId, tiles });
     },
     async cancelClaim(gameId: string, pos: Vec2) {
@@ -73,9 +70,6 @@ export const useGameStore = defineStore("game", {
     },
     setHovered(pos: Vec2 | null) {
       this.hoveredTile = pos;
-    },
-    setPainting(isPainting: boolean) {
-      this.isPainting = isPainting;
     },
     async onTileClick(pos: Vec2) {
       if (!this.state) return;

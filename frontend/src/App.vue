@@ -2,7 +2,6 @@
 import { onMounted, watch } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 import DefaultLayout from "./layouts/DefaultLayout.vue";
-import ToastHost from "./components/ui/ToastHost.vue";
 import { useAuthStore } from "./stores/authStore";
 
 const auth = useAuthStore();
@@ -28,7 +27,6 @@ watch(
 </script>
 
 <template>
-  <ToastHost />
   <DefaultLayout>
     <RouterView />
   </DefaultLayout>

@@ -1,7 +1,7 @@
 import { BuildingType, TileType, type Vec2 } from "./types.js";
 
 export const MAP_WIDTH = 140;
-export const MAP_HEIGHT = 140;
+export const MAP_HEIGHT = 70;
 export const TURN_SECONDS = 10;
 export const MAX_PLAYERS = 10;
 
