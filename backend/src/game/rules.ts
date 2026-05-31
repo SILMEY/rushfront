@@ -1,21 +1,22 @@
 import { BuildingType, TileType, type Vec2 } from "./types.js";
 
-export const MAP_WIDTH = 200;
-export const MAP_HEIGHT = 200;
+export const MAP_WIDTH = 140;
+export const MAP_HEIGHT = 140;
 export const TURN_SECONDS = 10;
 export const MAX_PLAYERS = 10;
 
+// Lobby/player colors (avoid terrain-like greens/blues/greys).
 export const PLAYER_COLORS = [
-  "#60a5fa",
-  "#f87171",
-  "#34d399",
-  "#fbbf24",
-  "#a78bfa",
-  "#22d3ee",
-  "#fb7185",
-  "#4ade80",
-  "#e879f9",
-  "#f97316"
+  "#3b82f6", // blue
+  "#ef4444", // red
+  "#a855f7", // purple
+  "#fde047", // light yellow
+  "#f97316", // orange
+  "#ffffff", // white
+  "#22c55e", // green (allowed as player color, distinct from dark forest)
+  "#f472b6", // pink
+  "#06b6d4", // cyan
+  "#e11d48" // rose
 ];
 
 export function claimCost(tileType: TileType): number {

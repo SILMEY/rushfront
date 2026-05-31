@@ -64,7 +64,11 @@ export const useLobbyStore = defineStore("lobby", {
       await this.ensureConnected();
       const socket = await getSocket();
       socket.emit("lobby:start", { gameId });
+    },
+    async setColor(gameId: string, color: string) {
+      await this.ensureConnected();
+      const socket = await getSocket();
+      socket.emit("lobby:set_color", { gameId, color });
     }
   }
 });
-

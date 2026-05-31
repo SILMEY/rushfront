@@ -1,6 +1,7 @@
 import type { GameStateSnapshot } from "../types/game";
 import { BuildingType, TileType } from "../types/game";
 import { lighten, rgba } from "../utils/colors";
+import { useGameStore } from "../stores/gameStore";
 
 type RenderParams = {
   ctx: CanvasRenderingContext2D;
@@ -23,6 +24,8 @@ const TILE_COLORS: Record<number, string> = {
 const GRID = rgba("#94a3b8", 0.08);
 
 export function useGameRenderer() {
+  const game = useGameStore();
+
   function render(params: RenderParams) {
     const { ctx, state, widthPx, heightPx, tileSize, camera } = params;
     ctx.clearRect(0, 0, widthPx, heightPx);
@@ -115,6 +118,21 @@ export function useGameRenderer() {
         ctx.fillRect(sx, sy, ts, ts);
       }
       ctx.globalAlpha = 1;
+    }
+
+    // Optimistic claims (client-only) for immediate feedback.
+    for (const key of game.optimisticClaims) {
+      const [xStr, yStr] = key.split(",");
+      const x = Number(xStr);
+      const y = Number(yStr);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      if (x < x0 || x > x1 || y < y0 || y > y1) continue;
+      const sx = x * tileSize * scale + camera.x;
+      const sy = y * tileSize * scale + camera.y;
+      ctx.fillStyle = rgba("#ffffff", 0.08);
+      ctx.fillRect(sx, sy, ts, ts);
+      ctx.strokeStyle = rgba("#ffffff", 0.12);
+      ctx.strokeRect(sx + 0.5, sy + 0.5, ts - 1, ts - 1);
     }
 
     // Pending builds: show a chantier icon so player understands it's queued/paid.

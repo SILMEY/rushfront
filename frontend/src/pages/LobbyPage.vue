@@ -14,6 +14,19 @@ const current = computed(() => lobby.lobbies.find((l) => l.id === gameId.value) 
 const me = computed(() => current.value?.players.find((p) => p.userId === auth.user?.id) ?? null);
 const isHost = computed(() => current.value?.hostUserId === auth.user?.id);
 
+const COLORS = [
+  "#3b82f6",
+  "#ef4444",
+  "#a855f7",
+  "#fde047",
+  "#f97316",
+  "#ffffff",
+  "#22c55e",
+  "#f472b6",
+  "#06b6d4",
+  "#e11d48"
+];
+
 onMounted(async () => {
   await lobby.ensureConnected();
   await lobby.joinLobby(gameId.value);
@@ -61,6 +74,22 @@ watch(
       </div>
 
       <div class="mt-5 flex flex-wrap items-center gap-3">
+        <div v-if="me" class="mr-auto flex flex-wrap items-center gap-2">
+          <div class="text-xs text-slate-400">Couleur</div>
+          <button
+            v-for="c in COLORS"
+            :key="c"
+            class="h-7 w-7 rounded-md ring-1 ring-white/15 transition hover:scale-105"
+            :style="{ background: c }"
+            :title="c"
+            :disabled="(current?.players ?? []).some((p) => p.color === c && p.userId !== auth.user?.id)"
+            :class="[
+              (current?.players ?? []).some((p) => p.color === c && p.userId !== auth.user?.id) ? 'opacity-25' : 'opacity-100',
+              me.color === c ? 'ring-2 ring-emerald-300' : ''
+            ]"
+            @click="lobby.setColor(gameId, c)"
+          />
+        </div>
         <button
           v-if="me"
           class="rounded-lg bg-white/5 px-4 py-2 font-semibold ring-1 ring-white/10 hover:bg-white/10"

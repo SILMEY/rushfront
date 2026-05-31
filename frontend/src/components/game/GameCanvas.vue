@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { GameStateSnapshot, Vec2 } from "../../types/game";
 import { useCamera } from "../../composables/useCamera";
 import { useGameRenderer } from "../../composables/useGameRenderer";
+import { useGameStore } from "../../stores/gameStore";
 
 const props = defineProps<{
   state: GameStateSnapshot | null;
@@ -15,10 +16,11 @@ const emit = defineEmits<{
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-const tileSize = 10;
+const tileSize = 14;
 
 const { camera, screenToWorld, pan, zoomAt } = useCamera();
 const { render } = useGameRenderer();
+const game = useGameStore();
 
 const hovered = ref<Vec2 | null>(null);
 
@@ -123,7 +125,12 @@ function onPointerMove(e: PointerEvent) {
     const key = `${tile.x},${tile.y}`;
     if (key !== lastPainted) {
       lastPainted = key;
-      emit("tile-click", tile);
+      // Immediate local feedback: optimistic claim
+      if (props.state?.status === "ACTIVE" && game.selectedBuilding == null) {
+        void game.claimTile(props.state.gameId, tile);
+      } else {
+        emit("tile-click", tile);
+      }
     }
   }
 }
@@ -134,7 +141,13 @@ function onPointerUp(e: PointerEvent) {
   (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
   if (dragMoved < 6 && dragMode === "paint") {
     const tile = toTile(e.clientX, e.clientY);
-    if (tile) emit("tile-click", tile);
+    if (tile) {
+      if (props.state?.status === "ACTIVE" && game.selectedBuilding == null) {
+        void game.claimTile(props.state.gameId, tile);
+      } else {
+        emit("tile-click", tile);
+      }
+    }
   }
   if (dragMode === "paint") emit("paint-active", false);
   dragMode = null;

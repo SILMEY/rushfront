@@ -60,6 +60,16 @@ export function registerLobbyHandlers(_app: FastifyInstance, io: Server, socket:
     }
   });
 
+  socket.on("lobby:set_color", async (payload: { gameId: string; color: string }) => {
+    try {
+      const userId = userIdOf(socket);
+      await gameManager.setColor(payload.gameId, userId, payload.color);
+      io.emit("lobby:updated", await gameManager.listLobbies());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
   socket.on("lobby:start", async (payload: { gameId: string }) => {
     try {
       const userId = userIdOf(socket);
@@ -72,4 +82,3 @@ export function registerLobbyHandlers(_app: FastifyInstance, io: Server, socket:
     }
   });
 }
-

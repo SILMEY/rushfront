@@ -96,6 +96,19 @@ export class GameManager {
     });
   }
 
+  async setColor(gameId: string, userId: string, color: string) {
+    const game = await prisma.game.findUnique({ where: { id: gameId }, include: { players: true } });
+    if (!game) throw new Error("lobby_not_found");
+    if (game.status !== "LOBBY") throw new Error("lobby_not_open");
+    if (!PLAYER_COLORS.includes(color)) throw new Error("invalid_color");
+    const used = game.players.find((p) => p.color === color && p.userId !== userId);
+    if (used) throw new Error("color_taken");
+    await prisma.gamePlayer.update({
+      where: { gameId_userId: { gameId, userId } },
+      data: { color }
+    });
+  }
+
   async startGame(gameId: string, userId: string) {
     const game = await prisma.game.findUnique({ where: { id: gameId }, include: { players: true } });
     if (!game) throw new Error("lobby_not_found");

@@ -47,7 +47,19 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       const instance = gameManager.getActive(payload.gameId);
       if (!instance) throw new Error("game_not_active");
       instance.claimTile(userId, { x: payload.x, y: payload.y });
-      io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+      // Don't broadcast full state on every claim; clients render optimistically.
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  socket.on("game:claim_tiles", async (payload: { gameId: string; tiles: Array<{ x: number; y: number }> }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = gameManager.getActive(payload.gameId);
+      if (!instance) throw new Error("game_not_active");
+      for (const t of payload.tiles) instance.claimTile(userId, { x: t.x, y: t.y });
+      // No full state broadcast here either.
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
@@ -59,7 +71,7 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       const instance = gameManager.getActive(payload.gameId);
       if (!instance) throw new Error("game_not_active");
       instance.cancelClaim(userId, { x: payload.x, y: payload.y });
-      io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+      // No full snapshot needed.
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }

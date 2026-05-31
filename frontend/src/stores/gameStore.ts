@@ -12,7 +12,8 @@ export const useGameStore = defineStore("game", {
     hoveredTile: null as Vec2 | null,
     selectedBuilding: null as BuildingType | null,
     currentGameId: null as string | null,
-    isPainting: false
+    isPainting: false,
+    optimisticClaims: new Set<string>() as Set<string>
   }),
   getters: {
     mePlayer(state) {
@@ -27,6 +28,8 @@ export const useGameStore = defineStore("game", {
       socket.on("game:state", (snapshot: GameStateSnapshot) => {
         this.state = snapshot;
         this.currentGameId = snapshot.gameId;
+        // Clear optimistic overlays on authoritative updates.
+        this.optimisticClaims = new Set();
       });
       socket.on("game:error", ({ error }: { error: string }) => {
         this.lastError = error;
@@ -41,6 +44,7 @@ export const useGameStore = defineStore("game", {
         this.state = null;
         this.selectedBuilding = null;
         this.hoveredTile = null;
+        this.optimisticClaims = new Set();
       }
       socket.emit("game:get_state", { gameId });
     },
@@ -50,10 +54,17 @@ export const useGameStore = defineStore("game", {
     },
     async claimTile(gameId: string, pos: Vec2) {
       const socket = await getSocket();
+      this.optimisticClaims.add(`${pos.x},${pos.y}`);
       socket.emit("game:claim_tile", { gameId, x: pos.x, y: pos.y });
+    },
+    async claimTiles(gameId: string, tiles: Vec2[]) {
+      const socket = await getSocket();
+      for (const t of tiles) this.optimisticClaims.add(`${t.x},${t.y}`);
+      socket.emit("game:claim_tiles", { gameId, tiles });
     },
     async cancelClaim(gameId: string, pos: Vec2) {
       const socket = await getSocket();
+      this.optimisticClaims.delete(`${pos.x},${pos.y}`);
       socket.emit("game:cancel_claim", { gameId, x: pos.x, y: pos.y });
     },
     async build(gameId: string, pos: Vec2, building: BuildingType) {
