@@ -90,7 +90,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative mx-auto grid max-w-5xl gap-10 py-10">
+  <div class="relative mx-auto grid max-w-5xl gap-10 py-10 px-6">
     <canvas ref="canvasRef" class="pointer-events-none fixed inset-0 z-0 opacity-40" />
 
     <section class="relative z-10 mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-black/40 p-10 backdrop-blur">
@@ -136,4 +136,3 @@ onBeforeUnmount(() => {
   clip-path: polygon(50% 0%, 88% 16%, 88% 60%, 50% 100%, 12% 60%, 12% 16%);
 }
 </style>
-
