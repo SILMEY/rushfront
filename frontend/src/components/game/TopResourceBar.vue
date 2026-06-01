@@ -1,13 +1,59 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import type { GameStateSnapshot, Vec2 } from "../../types/game";
 import { BuildingType, TileType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
+import { useGameStore } from "../../stores/gameStore";
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
 const auth = useAuthStore();
+const game = useGameStore();
 
 const me = computed(() => props.state?.players.find((p) => p.userId === auth.user?.id) ?? null);
+
+const nowMs = ref(Date.now());
+let interval: number | null = null;
+onMounted(() => {
+  interval = window.setInterval(() => {
+    nowMs.value = Date.now();
+  }, 250);
+});
+onUnmounted(() => {
+  if (interval !== null) window.clearInterval(interval);
+});
+
+function formatClock(totalSeconds: number) {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+}
+
+const compositionPct = ref(50);
+watch(
+  () => me.value?.desiredSoldierPct,
+  (v) => {
+    if (typeof v !== "number" || !Number.isFinite(v)) {
+      compositionPct.value = 50;
+      return;
+    }
+    compositionPct.value = Math.max(0, Math.min(100, Math.round(v)));
+  },
+  { immediate: true }
+);
+
+let commitTimer: number | null = null;
+function commitComposition() {
+  if (!props.state) return;
+  void game.setComposition(props.state.gameId, compositionPct.value);
+}
+function scheduleCommitComposition() {
+  if (commitTimer != null) window.clearTimeout(commitTimer);
+  commitTimer = window.setTimeout(() => {
+    commitTimer = null;
+    commitComposition();
+  }, 120);
+}
 
 function inBounds(pos: Vec2, width: number, height: number) {
   return pos.x >= 0 && pos.y >= 0 && pos.x < width && pos.y < height;
@@ -74,13 +120,25 @@ const production = computed(() => {
 
   return { soldiers, wood, stone };
 });
+
+const turnRemaining = computed(() => {
+  const state = props.state;
+  if (!state?.turnEndsAt) return null;
+  const remainingSec = (state.turnEndsAt - nowMs.value) / 1000;
+  return formatClock(remainingSec);
+});
 </script>
 
 <template>
   <div
     v-if="me"
-    class="wood-texture etched-line flex h-14 w-full items-center justify-center gap-10 border-b-2 border-outline-variant px-8 shadow-xl"
+    class="wood-texture etched-line flex w-full items-center justify-center gap-10 border-b-2 border-outline-variant px-8 py-2 shadow-xl"
   >
+    <div class="flex items-center gap-3 cursor-default">
+      <div class="h-4 w-4 rounded-full border border-black/40 shadow-[0_0_10px_rgba(242,202,80,0.15)]" :style="{ backgroundColor: me.color }"></div>
+      <span class="font-label-sm italic font-bold text-primary-fixed">COULEUR</span>
+    </div>
+
     <div class="flex items-center gap-3 cursor-default">
       <span class="material-symbols-outlined text-[#ffd700]" style="font-variation-settings: 'FILL' 1">forest</span>
       <span class="font-label-sm italic font-bold text-primary-fixed">BOIS: {{ me.resources.wood }} (+{{ production.wood }})</span>
@@ -91,9 +149,30 @@ const production = computed(() => {
       <span class="font-label-sm italic font-bold text-primary-fixed">PIERRE: {{ me.resources.stone }} (+{{ production.stone }})</span>
     </div>
 
-    <div class="flex items-center gap-3 cursor-default">
+    <div class="flex items-center gap-3">
       <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">swords</span>
-      <span class="font-label-sm italic font-bold text-primary-fixed">MILITAIRES/T: +{{ production.soldiers }}</span>
+      <div class="flex flex-col gap-1">
+        <div class="flex items-baseline justify-between gap-3">
+          <span class="font-label-sm italic font-bold text-primary-fixed">MILITAIRE / VILLAGEOIS</span>
+          <span class="text-[10px] text-primary-fixed/80 italic">{{ compositionPct }}% / {{ 100 - compositionPct }}%</span>
+        </div>
+        <input
+          v-model.number="compositionPct"
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          class="w-44 accent-[#f2ca50]"
+          @input="scheduleCommitComposition()"
+          @change="commitComposition()"
+        />
+        <div class="text-[10px] text-primary-fixed/80 italic">+{{ production.soldiers }} militaires / tour</div>
+      </div>
+    </div>
+
+    <div v-if="turnRemaining" class="flex items-center gap-3 cursor-default">
+      <span class="material-symbols-outlined text-primary-fixed" style="font-variation-settings: 'FILL' 1">hourglass_top</span>
+      <span class="font-label-sm italic font-bold text-primary-fixed">PROCHAIN TOUR: {{ turnRemaining }}</span>
     </div>
   </div>
 </template>
@@ -120,4 +199,3 @@ const production = computed(() => {
   letter-spacing: 0.1em;
 }
 </style>
-

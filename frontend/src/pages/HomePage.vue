@@ -19,46 +19,55 @@ function hostNameOf(g: any) {
   <div class="bg-background text-on-background selection:bg-primary selection:text-on-primary">
     <main>
       <!-- Hero Section -->
-      <section class="relative flex min-h-[80vh] w-full items-center overflow-hidden">
+      <section class="relative flex h-[90vh] w-full items-center justify-center overflow-hidden">
         <div class="absolute inset-0">
           <img class="h-full w-full object-cover opacity-70" src="/rf.png" alt="Rushfront" />
           <div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
         </div>
 
-        <div class="relative mx-auto w-full max-w-7xl px-container-margin py-20">
-          <div class="max-w-3xl border border-outline-variant/30 bg-black/35 p-10 backdrop-blur">
-            <div class="font-headline text-xs font-bold uppercase tracking-[0.35em] text-primary/80">RUSHFRONT</div>
-            <h1 class="mt-6 font-headline text-6xl font-extrabold uppercase tracking-[0.14em] text-primary leading-none">
-              COMMANDER L'AVENIR
-            </h1>
-            <p class="mt-8 text-xl italic leading-relaxed text-secondary/80">
-              Préparez-vous pour l'affrontement tactique ultime. Gérez vos ressources, déployez vos troupes et dominez le champ de bataille
-              sur une grille millimétrée.
-            </p>
-          </div>
+        <div class="relative mx-auto w-full max-w-4xl px-container-margin text-center">
+          <h1 class="font-headline text-6xl font-bold uppercase tracking-tighter text-primary drop-shadow-2xl md:text-8xl">
+            COMMANDER L'AVENIR
+          </h1>
+          <p class="mx-auto mb-10 mt-6 max-w-2xl text-xl italic text-secondary md:text-2xl">
+            Préparez-vous pour l'affrontement tactique ultime. Gérez vos ressources, déployez vos troupes et dominez le champ de bataille sur
+            une grille millimétrée.
+          </p>
+          <a
+            class="antique-gradient burnished-gold-glow inline-flex items-center justify-center border border-primary/50 px-16 py-5 font-headline text-xl font-bold uppercase tracking-[0.3em] text-on-primary shadow-lg transition-all active:scale-95"
+            href="#missions"
+          >
+            Rejoindre la bataille
+          </a>
+        </div>
+      </section>
 
-          <div class="mt-14 grid gap-8 lg:grid-cols-2">
-            <!-- Partie rapide -->
-            <div class="group flex flex-col border border-primary/30 bg-black/40 p-8 backdrop-blur transition-colors duration-200 hover:bg-primary/10">
-              <div class="flex items-start justify-between">
-                <div class="flex flex-col gap-2">
-                  <span class="font-headline text-xs font-bold uppercase tracking-widest text-primary">EN LIGNE</span>
-                  <h3 class="font-headline text-4xl text-primary leading-none">Partie rapide</h3>
-                  <p class="text-lg text-secondary/80 italic leading-relaxed">Lance une partie instantanée.</p>
-                </div>
-                <span class="material-symbols-outlined text-primary/80" aria-hidden="true">swords</span>
+      <!-- Mission Selection -->
+      <section id="missions" class="mx-auto flex max-w-7xl flex-col items-center px-container-margin py-24">
+        <h2 class="mb-20 text-center font-headline text-3xl uppercase tracking-[0.25em] text-primary md:text-5xl">Choisissez votre mission</h2>
+
+        <div class="grid gap-12 md:grid-cols-2">
+          <!-- Card 1: Online -->
+          <div
+            class="group relative min-h-[450px] cursor-pointer border border-outline-variant/30 bg-stone-900/60 p-1 backdrop-blur-md transition-all duration-500 hover:-translate-y-2 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)]"
+          >
+            <div class="flex h-full w-full flex-col border border-primary/10 p-10">
+              <div class="mb-6 inline-flex w-fit items-center gap-2 border border-primary/20 bg-primary/10 px-4 py-1">
+                <span class="h-2 w-2 animate-pulse rounded-full bg-primary"></span>
+                <span class="text-xs font-bold uppercase tracking-widest text-primary">En direct</span>
+              </div>
+              <h3 class="mb-4 font-headline text-4xl leading-none text-primary">Lancer une partie rapide</h3>
+              <p class="mb-auto text-lg italic leading-relaxed text-secondary/80">
+                Affrontez des commandants inconnus à travers le royaume et gravissez les échelons de la ligue impériale.
+              </p>
+              <div class="mt-8 flex items-center justify-between border-t border-outline-variant/30 pt-6">
+                <span class="font-headline text-lg font-bold uppercase tracking-widest text-primary/80 transition-colors group-hover:text-primary">
+                  Lancer partie rapide
+                </span>
+                <span class="material-symbols-outlined text-primary/80 transition-transform group-hover:translate-x-2" aria-hidden="true">swords</span>
               </div>
 
-              <div class="mt-8 flex items-center justify-between gap-3 border-t border-outline-variant/30 pt-6">
-                <span class="font-headline text-lg font-bold uppercase tracking-widest text-primary/80 group-hover:text-primary transition-colors">
-                  LANCER PARTIE RAPIDE
-                </span>
-                <span class="material-symbols-outlined text-primary/80 transition-transform group-hover:translate-x-2" aria-hidden="true">
-                  play_arrow
-                </span>
-              </div>
-
-              <div class="mt-4 flex items-center gap-2">
+              <div class="mt-6 flex items-center gap-2">
                 <button
                   class="rounded-md border border-outline-variant/30 bg-white/5 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-secondary/50 opacity-60 cursor-not-allowed"
                   type="button"
@@ -70,28 +79,29 @@ function hostNameOf(g: any) {
 
               <div class="mt-6 rounded border border-outline-variant/20 bg-white/5 p-3 text-sm text-secondary/60">Aucune partie pour l’instant.</div>
             </div>
+          </div>
 
-            <!-- Partie personnalisée -->
-            <div class="group flex flex-col border border-primary/30 bg-black/40 p-8 backdrop-blur transition-colors duration-200 hover:bg-primary/10">
-              <div class="flex items-start justify-between">
-                <div class="flex flex-col gap-2">
-                  <span class="font-headline text-xs font-bold uppercase tracking-widest text-primary">MODULABLE</span>
-                  <h3 class="font-headline text-4xl text-primary leading-none">Partie personnalisée</h3>
-                  <p class="text-lg text-secondary/80 italic leading-relaxed">Organisez une bataille privée avec vos amis.</p>
-                </div>
-                <span class="material-symbols-outlined text-primary/80" aria-hidden="true">groups</span>
+          <!-- Card 2: Custom -->
+          <div
+            class="group relative min-h-[450px] cursor-pointer border border-outline-variant/30 bg-stone-900/60 p-1 backdrop-blur-md transition-all duration-500 hover:-translate-y-2 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)]"
+          >
+            <div class="flex h-full w-full flex-col border border-primary/10 p-10">
+              <div class="mb-6 inline-flex w-fit items-center gap-2 border border-primary/20 bg-primary/10 px-4 py-1">
+                <span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">history_edu</span>
+                <span class="text-xs font-bold uppercase tracking-widest text-primary">Modulable</span>
               </div>
-
-              <div class="mt-8 flex items-center justify-between gap-3 border-t border-outline-variant/30 pt-6">
-                <span class="font-headline text-lg font-bold uppercase tracking-widest text-primary/80 group-hover:text-primary transition-colors">
-                  PARTIES PERSONNALISÉES EN LIGNE
+              <h3 class="mb-4 font-headline text-4xl leading-none text-primary">Partie personnalisée</h3>
+              <p class="mb-auto text-lg italic leading-relaxed text-secondary/80">Organisez une bataille privée avec vos amis.</p>
+              <div class="mt-8 flex items-center justify-between border-t border-outline-variant/30 pt-6">
+                <span class="font-headline text-lg font-bold uppercase tracking-widest text-primary/80 transition-colors group-hover:text-primary">
+                  Créer partie personnalisée
                 </span>
                 <span class="material-symbols-outlined text-primary/80 transition-transform group-hover:translate-x-2" aria-hidden="true">
-                  military_tech
+                  menu_book
                 </span>
               </div>
 
-              <div class="mt-4 flex items-center gap-2">
+              <div class="mt-6 flex items-center gap-2">
                 <button
                   class="burnished-gold-glow rounded-md border border-primary/30 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-primary transition hover:bg-primary hover:text-on-primary"
                   @click="lobby.createLobby()"
@@ -106,7 +116,9 @@ function hostNameOf(g: any) {
                 </button>
               </div>
 
-              <div class="mt-6 space-y-3">
+              <div class="mt-8 border-t border-outline-variant/30 pt-6">
+                <h4 class="mb-4 font-headline text-sm font-bold uppercase tracking-widest text-primary">Parties disponibles</h4>
+
                 <div v-if="!hasAnyLobby" class="rounded border border-outline-variant/20 bg-white/5 p-3 text-sm text-secondary/60">
                   Aucune partie en lobby.
                 </div>
@@ -221,4 +233,3 @@ function hostNameOf(g: any) {
   box-shadow: 0 0 20px rgba(184, 134, 11, 0.3);
 }
 </style>
-

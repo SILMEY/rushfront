@@ -59,7 +59,7 @@ export class GameInstance {
       basePosition: p.baseX != null && p.baseY != null ? { x: p.baseX, y: p.baseY } : null,
       resources: { villagers: 0, soldiers: 0, wood: 0, stone: 0 },
       techs: [],
-      desiredSoldierPct: 0
+      desiredSoldierPct: 50
     }));
 
     const map = generateMap();
@@ -198,7 +198,7 @@ export class GameInstance {
     player.hasChosenStart = true;
     player.basePosition = pos;
     (player as any).techs = (player as any).techs ?? [];
-    (player as any).desiredSoldierPct = (player as any).desiredSoldierPct ?? 0;
+    (player as any).desiredSoldierPct = (player as any).desiredSoldierPct ?? 50;
     player.resources = { villagers: 10, soldiers: 0, wood: 5, stone: 0 };
     this.tileOwners[index] = player.id;
     this.tileBuildings[index] = BuildingType.Base;

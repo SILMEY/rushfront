@@ -6,7 +6,6 @@ import BuildPanel from "../components/game/BuildPanel.vue";
 import ResourceBar from "../components/game/ResourceBar.vue";
 import TopResourceBar from "../components/game/TopResourceBar.vue";
 import TechPanel from "../components/game/TechPanel.vue";
-import CompositionPanel from "../components/game/CompositionPanel.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route = useRoute();
@@ -60,7 +59,6 @@ watch(
             <span class="w-2 h-2 bg-primary rotate-45"></span> CONSTRUCTION
           </h3>
           <BuildPanel :state="game.state" :selected="game.selectedBuilding" @select="game.selectedBuilding = $event" />
-          <CompositionPanel :state="game.state" />
         </section>
 
         <TechPanel :state="game.state" />
