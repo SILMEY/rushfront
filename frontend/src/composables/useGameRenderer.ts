@@ -14,14 +14,16 @@ type RenderParams = {
 };
 
 const TILE_COLORS: Record<number, string> = {
-  // Dark strategy palette: more neutral gray for plains, keep water readable.
-  [TileType.Plain]: "#0b0f14",
-  [TileType.Water]: "#0b3a66",
-  [TileType.Forest]: "#0a2a18",
-  [TileType.Quarry]: "#141a22"
+  // Palette inspired by `public/codejeu.html` (tile-water/forest/stone/void).
+  [TileType.Plain]: "#131312",
+  [TileType.Water]: "rgba(30, 58, 138, 0.40)",
+  [TileType.Forest]: "rgba(20, 83, 45, 0.22)",
+  [TileType.Quarry]: "rgba(68, 64, 60, 0.35)"
 };
 
-const GRID = rgba("#94a3b8", 0.08);
+const GRID_DARK = "rgba(0,0,0,0.35)";
+const GRID_LIGHT = "rgba(255,255,255,0.06)";
+const OUTLINE = "rgba(77, 70, 53, 0.85)";
 
 export function useGameRenderer() {
   const game = useGameStore();
@@ -67,6 +69,26 @@ export function useGameRenderer() {
         ctx.fillStyle = base;
         ctx.fillRect(sx, sy, tileSize, tileSize);
 
+        // Etched border style (like codejeu.html tiles)
+        if (tsScreen >= 10) {
+          ctx.lineWidth = 1 / scale;
+          ctx.strokeStyle = OUTLINE;
+          ctx.strokeRect(sx, sy, tileSize, tileSize);
+          // subtle etched highlights
+          ctx.strokeStyle = GRID_DARK;
+          ctx.beginPath();
+          ctx.moveTo(sx + 0.5 / scale, sy + tileSize - 0.5 / scale);
+          ctx.lineTo(sx + 0.5 / scale, sy + 0.5 / scale);
+          ctx.lineTo(sx + tileSize - 0.5 / scale, sy + 0.5 / scale);
+          ctx.stroke();
+          ctx.strokeStyle = GRID_LIGHT;
+          ctx.beginPath();
+          ctx.moveTo(sx + tileSize - 0.5 / scale, sy + 0.5 / scale);
+          ctx.lineTo(sx + tileSize - 0.5 / scale, sy + tileSize - 0.5 / scale);
+          ctx.lineTo(sx + 0.5 / scale, sy + tileSize - 0.5 / scale);
+          ctx.stroke();
+        }
+
         if (ownerColor) {
           ctx.fillStyle = ownerColor;
           ctx.globalAlpha = 0.85;
@@ -85,12 +107,35 @@ export function useGameRenderer() {
           ctx.stroke();
         }
 
-        if (building != null) {
-          if (tsScreen < 18) continue;
-          const letter =
-            building === BuildingType.Base
-              ? "B"
-              : building === BuildingType.FishingHut
+        // Terrain icons (Material Symbols ligatures) like `codejeu.html`
+        if (tsScreen >= 28) {
+          const icon =
+            type === TileType.Water ? "water" : type === TileType.Forest ? "park" : type === TileType.Quarry ? "filter_hdr" : "";
+          if (icon) {
+            ctx.fillStyle =
+              type === TileType.Water
+                ? "rgba(96,165,250,0.35)"
+                : type === TileType.Forest
+                  ? "rgba(34,197,94,0.30)"
+                  : "rgba(168,162,158,0.35)";
+            ctx.font = `${Math.max(18 / scale, tileSize * 0.52)}px "Material Symbols Outlined"`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(icon, sx + tileSize / 2, sy + tileSize / 2);
+          }
+        }
+
+        // Buildings: show a castle for Base, letters for others when large enough.
+        if (building != null && tsScreen >= 28) {
+          if (building === BuildingType.Base) {
+            ctx.fillStyle = ownerColor ? rgba(ownerColor, 0.95) : rgba("#f2ca50", 0.9);
+            ctx.font = `${Math.max(18 / scale, tileSize * 0.6)}px "Material Symbols Outlined"`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("castle", sx + tileSize / 2, sy + tileSize / 2);
+          } else {
+            const letter =
+              building === BuildingType.FishingHut
                 ? "P"
                 : building === BuildingType.Sawmill
                   ? "S"
@@ -99,17 +144,18 @@ export function useGameRenderer() {
                     : building === BuildingType.Barracks
                       ? "C"
                       : "U";
-          ctx.fillStyle = rgba("#ffffff", 0.9);
-          ctx.font = `${Math.max(10 / scale, tileSize * 0.55)}px ui-sans-serif`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(letter, sx + tileSize / 2, sy + tileSize / 2 + 0.5 / scale);
+            ctx.fillStyle = rgba("#ffffff", 0.9);
+            ctx.font = `${Math.max(12 / scale, tileSize * 0.42)}px ui-sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(letter, sx + tileSize / 2, sy + tileSize / 2 + 0.5 / scale);
+          }
         }
       }
     }
 
-    if (tsScreen >= 14) {
-      ctx.strokeStyle = GRID;
+    if (tsScreen >= 18) {
+      ctx.strokeStyle = "rgba(153, 144, 124, 0.15)";
       ctx.lineWidth = 1 / scale;
       ctx.beginPath();
 

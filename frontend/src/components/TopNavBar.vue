@@ -15,7 +15,6 @@ const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).jo
     class="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[#4d4635] bg-stone-900/90 px-6 backdrop-blur-md"
   >
     <button class="flex items-center gap-3" @click="router.push('/')">
-      <img src="/rushfront-logo.svg" class="h-9 w-9 rounded ring-1 ring-white/10" alt="Rushfront" />
       <span class="font-headline text-2xl font-bold tracking-widest text-[#d4af37]">RUSHFRONT</span>
     </button>
 
@@ -58,4 +57,3 @@ const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).jo
     </div>
   </nav>
 </template>
-

@@ -15,7 +15,7 @@ const emit = defineEmits<{
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-const tileSize = 36;
+const tileSize = 64;
 
 const { camera, screenToWorld, pan, zoomAt } = useCamera();
 const { render } = useGameRenderer();
