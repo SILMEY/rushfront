@@ -21,7 +21,11 @@ function hostNameOf(g: any) {
       <!-- Hero Section -->
       <section class="relative flex h-[90vh] w-full items-center justify-center overflow-hidden">
         <div class="absolute inset-0">
-          <img class="h-full w-full object-cover opacity-70" src="/rf.png" alt="Rushfront" />
+          <img
+            class="h-full w-full object-cover opacity-70"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8Cln9HzQBqB53mGjJpzVik_jnYHYyrQ9EEmNG5MVjPPy-VdmHcvjWnITWdzScnDTZzzE59sdrPbXiRNBOiRfzZO1bRzU-8q2MaRYSsxvbdolnL2oSGgG3mvturc3AT5TVgWirIpcZ_04Ad_qjMSiX_pTT06U84Z9OpRRpKKoA4zgRxx6rTbtfTfr00wh_muCjW08fqdBN8Nwx_zIZvxXgvdwMIyFpKA1HJz-ypzaC2wA75BSLkkvohAuZNbJYq9hvDiCuoTBMipmO"
+            alt="Rushfront"
+          />
           <div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
         </div>
 
@@ -33,12 +37,6 @@ function hostNameOf(g: any) {
             Préparez-vous pour l'affrontement tactique ultime. Gérez vos ressources, déployez vos troupes et dominez le champ de bataille sur
             une grille millimétrée.
           </p>
-          <a
-            class="antique-gradient burnished-gold-glow inline-flex items-center justify-center border border-primary/50 px-16 py-5 font-headline text-xl font-bold uppercase tracking-[0.3em] text-on-primary shadow-lg transition-all active:scale-95"
-            href="#missions"
-          >
-            Rejoindre la bataille
-          </a>
         </div>
       </section>
 
