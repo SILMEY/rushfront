@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import GameCanvas from "../components/game/GameCanvas.vue";
 import BuildPanel from "../components/game/BuildPanel.vue";
 import ResourceBar from "../components/game/ResourceBar.vue";
+import TechPanel from "../components/game/TechPanel.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route = useRoute();
@@ -43,6 +44,7 @@ watch(
       </div>
       <div class="col-span-2 grid gap-4">
         <BuildPanel :state="game.state" :selected="game.selectedBuilding" @select="game.selectedBuilding = $event" />
+        <TechPanel :state="game.state" />
       </div>
     </div>
   </div>

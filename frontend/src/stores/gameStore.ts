@@ -1,9 +1,31 @@
 import { defineStore } from "pinia";
 import type { GameStateSnapshot, Vec2 } from "../types/game";
-import { BuildingType } from "../types/game";
+import { BuildingType, TileType } from "../types/game";
 import { getSocket } from "../composables/useSocket";
 import { useAuthStore } from "./authStore";
 import { tileIndex } from "../utils/tileUtils";
+
+function inBounds(pos: Vec2, state: GameStateSnapshot) {
+  return pos.x >= 0 && pos.y >= 0 && pos.x < state.width && pos.y < state.height;
+}
+
+function canClaimTileOptimistic(state: GameStateSnapshot, playerId: string, pos: Vec2) {
+  if (!inBounds(pos, state)) return false;
+  const i = tileIndex(pos.x, pos.y, state.width);
+  const type = state.tiles.types[i] as TileType;
+  if (type === TileType.Water) return false;
+  // Used for both neutral claims and attacks: requires adjacency and non-water.
+  const neighbors = [
+    { x: pos.x + 1, y: pos.y },
+    { x: pos.x - 1, y: pos.y },
+    { x: pos.x, y: pos.y + 1 },
+    { x: pos.x, y: pos.y - 1 }
+  ];
+  return neighbors.some((n) => {
+    if (!inBounds(n, state)) return false;
+    return state.tiles.owners[tileIndex(n.x, n.y, state.width)] === playerId;
+  });
+}
 
 export const useGameStore = defineStore("game", {
   state: () => ({
@@ -53,26 +75,48 @@ export const useGameStore = defineStore("game", {
       socket.emit("game:choose_start", { gameId, x: pos.x, y: pos.y });
     },
     async claimTile(gameId: string, pos: Vec2) {
-      if (this.state) {
-        const i = tileIndex(pos.x, pos.y, this.state.width);
-        if (this.state.tiles.owners[i] == null) {
-          this.optimisticClaims[`${pos.x},${pos.y}`] = true;
-        }
-      }
+      if (!this.state) return;
+      const meId = this.mePlayer?.id;
+      if (!meId) return;
+      if (!canClaimTileOptimistic(this.state, meId, pos)) return;
+
+      const i = tileIndex(pos.x, pos.y, this.state.width);
+      if (this.state.tiles.owners[i] != null) return; // neutral only
+      this.optimisticClaims[`${pos.x},${pos.y}`] = true;
       const socket = await getSocket();
       socket.emit("game:claim_tile", { gameId, x: pos.x, y: pos.y });
     },
-    async claimTiles(gameId: string, tiles: Vec2[]) {
-      if (this.state) {
-        for (const t of tiles) {
-          const i = tileIndex(t.x, t.y, this.state.width);
-          if (this.state.tiles.owners[i] == null) {
-            this.optimisticClaims[`${t.x},${t.y}`] = true;
-          }
-        }
-      }
+    async attackTile(gameId: string, pos: Vec2) {
+      if (!this.state) return;
+      const meId = this.mePlayer?.id;
+      if (!meId) return;
+      if (!inBounds(pos, this.state)) return;
+      const i = tileIndex(pos.x, pos.y, this.state.width);
+      const type = this.state.tiles.types[i] as TileType;
+      if (type === TileType.Water) return;
+      const owner = this.state.tiles.owners[i];
+      if (!owner || owner === meId) return;
+      if (!canClaimTileOptimistic(this.state, meId, pos)) return; // same adjacency rule
+      if ((this.mePlayer?.resources.soldiers ?? 0) < 10) return;
+
+      this.optimisticClaims[`${pos.x},${pos.y}`] = true;
       const socket = await getSocket();
-      socket.emit("game:claim_tiles", { gameId, tiles });
+      socket.emit("game:attack_tile", { gameId, x: pos.x, y: pos.y });
+    },
+    async claimTiles(gameId: string, tiles: Vec2[]) {
+      if (!this.state) return;
+      const meId = this.mePlayer?.id;
+      if (!meId) return;
+
+      const valid: Vec2[] = [];
+      for (const t of tiles) {
+        if (!canClaimTileOptimistic(this.state, meId, t)) continue;
+        this.optimisticClaims[`${t.x},${t.y}`] = true;
+        valid.push(t);
+      }
+      if (valid.length === 0) return;
+      const socket = await getSocket();
+      socket.emit("game:claim_tiles", { gameId, tiles: valid });
     },
     async cancelClaim(gameId: string, pos: Vec2) {
       const socket = await getSocket();
@@ -95,6 +139,14 @@ export const useGameStore = defineStore("game", {
       if (this.state.status === "PLACING") return this.chooseStart(this.state.gameId, pos);
       if (this.state.status !== "ACTIVE") return;
       if (this.selectedBuilding != null) return this.build(this.state.gameId, pos, this.selectedBuilding);
+
+      const meId = this.mePlayer?.id;
+      if (meId) {
+        const i = tileIndex(pos.x, pos.y, this.state.width);
+        const owner = this.state.tiles.owners[i];
+        if (owner && owner !== meId) return this.attackTile(this.state.gameId, pos);
+      }
+
       return this.claimTile(this.state.gameId, pos);
     }
   }

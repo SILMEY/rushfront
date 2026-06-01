@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { Server, Socket } from "socket.io";
 import { GameManager } from "../game/GameManager.js";
 import { BuildingType } from "../game/types.js";
+import { TECHS } from "../game/tech.js";
 
 function userIdOf(socket: Socket) {
   const uid = (socket as any).userId as string | undefined;
@@ -65,6 +66,18 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     }
   });
 
+  socket.on("game:attack_tile", async (payload: { gameId: string; x: number; y: number }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = gameManager.getActive(payload.gameId);
+      if (!instance) throw new Error("game_not_active");
+      instance.attackTile(userId, { x: payload.x, y: payload.y });
+      // Don't broadcast full state on every attack; clients render optimistically.
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
   socket.on("game:cancel_claim", async (payload: { gameId: string; x: number; y: number }) => {
     try {
       const userId = userIdOf(socket);
@@ -103,6 +116,28 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       player.resources.soldiers = soldiers;
       player.resources.villagers = total - soldiers;
 
+      io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  socket.on("game:list_techs", async (payload: { gameId: string }) => {
+    try {
+      const instance = gameManager.getActive(payload.gameId);
+      if (!instance) throw new Error("game_not_active");
+      socket.emit("game:techs", { techs: TECHS });
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  socket.on("game:buy_tech", async (payload: { gameId: string; techId: string }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = gameManager.getActive(payload.gameId);
+      if (!instance) throw new Error("game_not_active");
+      instance.buyTech(userId, payload.techId);
       io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });

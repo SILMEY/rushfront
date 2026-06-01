@@ -59,9 +59,10 @@ const production = computed(() => {
   const player = me.value;
   if (!state || !player) return { soldiers: 0, wood: 0, stone: 0 };
 
-  const soldiers = Math.floor(player.resources.villagers / 3) + (2 + Math.floor(ownedTiles.value / 5) + fishingHuts.value);
-  let wood = Math.floor(player.resources.villagers / 4);
-  let stone = Math.floor(player.resources.villagers / 8);
+  const soldiers =
+    Math.floor(player.resources.villagers / 10) + (1 + Math.floor(ownedTiles.value / 12) + Math.floor(fishingHuts.value / 2));
+  let wood = Math.floor(player.resources.villagers / 12);
+  let stone = Math.floor(player.resources.villagers / 24);
 
   for (let i = 0; i < state.tiles.buildings.length; i++) {
     if (state.tiles.owners[i] !== player.id) continue;
@@ -89,11 +90,15 @@ const secondsLeft = computed(() => {
   return Math.ceil(Math.max(0, props.state.turnEndsAt - now.value) / 1000);
 });
 
-const composition = ref(0);
+const compositionPct = ref(0);
 watch(
   () => me.value?.resources.soldiers,
   (v) => {
-    if (typeof v === "number") composition.value = v;
+    const player = me.value;
+    if (!player || typeof v !== "number") return;
+    const total = player.resources.villagers + player.resources.soldiers;
+    if (total <= 0) compositionPct.value = 0;
+    else compositionPct.value = Math.round((player.resources.soldiers / total) * 100);
   },
   { immediate: true }
 );
@@ -102,7 +107,7 @@ let compositionTimer: number | null = null;
 function commitComposition() {
   if (!props.state || !me.value) return;
   const total = me.value.resources.villagers + me.value.resources.soldiers;
-  const soldiers = Math.max(0, Math.min(total, Math.floor(composition.value)));
+  const soldiers = Math.max(0, Math.min(total, Math.round((compositionPct.value / 100) * total)));
   void game.setComposition(props.state.gameId, soldiers);
 }
 function scheduleCommit() {
@@ -165,14 +170,19 @@ function scheduleCommit() {
       <div class="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
         <div class="flex items-center justify-between gap-4">
           <div class="text-slate-400">Répartition</div>
-          <div class="font-mono">{{ composition }} / {{ me.resources.villagers + me.resources.soldiers }} militaires</div>
+          <div class="font-mono">
+            {{ 100 - compositionPct }}% villageois • {{ compositionPct }}% militaires
+          </div>
+        </div>
+        <div class="mt-1 text-[11px] text-slate-400">
+          {{ me.resources.villagers }} villageois • {{ me.resources.soldiers }} militaires (total {{ me.resources.villagers + me.resources.soldiers }})
         </div>
         <input
-          v-model.number="composition"
+          v-model.number="compositionPct"
           class="mt-2 w-full accent-indigo-400"
           type="range"
           :min="0"
-          :max="me.resources.villagers + me.resources.soldiers"
+          :max="100"
           :step="1"
           @input="scheduleCommit()"
           @change="commitComposition()"
@@ -190,4 +200,3 @@ function scheduleCommit() {
     </div>
   </div>
 </template>
-

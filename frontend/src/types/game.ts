@@ -33,6 +33,7 @@ export type GamePlayerState = {
   hasChosenStart: boolean;
   basePosition: Vec2 | null;
   resources: PlayerResources;
+  techs?: string[];
 };
 
 export type GameStateSnapshot = {
@@ -50,6 +51,7 @@ export type GameStateSnapshot = {
     contestedUntil: (number | null)[];
   };
   claims: Record<string, Array<{ x: number; y: number }>>;
+  attacks?: Record<string, Array<{ x: number; y: number }>>;
   pendingBuilds: Record<string, Array<{ x: number; y: number; building: number }>>;
   brouillage: Array<{ casterPlayerId: string; x: number; y: number; untilTurn: number }>;
 };

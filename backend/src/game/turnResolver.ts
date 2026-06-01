@@ -17,6 +17,7 @@ type TurnInput = {
   tileBuildings: Array<number | null>;
   tileContestedUntil: Array<number | null>;
   claims: Map<string, Set<number>>;
+  attacks: Map<string, Set<number>>;
   pendingBuilds: Map<string, BuildIntent[]>;
 };
 
@@ -91,8 +92,11 @@ export function resolveTurn(input: TurnInput) {
     const player = players.find((p) => p.id === pid);
     if (!player) continue;
 
-    const cost = claimCost(tileType);
+    let cost = claimCost(tileType);
     if (!Number.isFinite(cost)) continue;
+
+    const techs = new Set((player as any).techs as string[] | undefined);
+    if (techs.has("logistics")) cost = Math.max(1, cost - 1);
 
     const pos = tilePos(tileIndex, width);
     const barracks = barracksByPlayer.get(pid) ?? [];
@@ -119,6 +123,45 @@ export function resolveTurn(input: TurnInput) {
 
   // Claims are per-turn intents: everything not validated is cleared.
   input.claims.clear();
+
+  // Attacks: capture enemy tiles for a fixed soldier cost.
+  const ATTACK_COST = 10;
+  const tileAttackers = new Map<number, string[]>(); // tileIndex -> playerIds
+  for (const [pid, set] of input.attacks) {
+    for (const tileIndex of set) {
+      const list = tileAttackers.get(tileIndex) ?? [];
+      list.push(pid);
+      tileAttackers.set(tileIndex, list);
+    }
+  }
+
+  for (const [tileIndex, attackers] of tileAttackers) {
+    const contestedUntil = tileContestedUntil[tileIndex];
+    if (contestedUntil != null && contestedUntil >= currentTurn) continue;
+    const owner = tileOwners[tileIndex];
+    if (!owner) continue; // only enemy-owned tiles can be attacked
+
+    const tileType = tileTypes[tileIndex] as TileType;
+    if (tileType === TileType.Water) continue;
+
+    if (attackers.length !== 1) {
+      tileContestedUntil[tileIndex] = currentTurn + 1;
+      continue;
+    }
+
+    const pid = attackers[0]!;
+    const player = players.find((p) => p.id === pid);
+    if (!player) continue;
+    if (owner === pid) continue;
+
+    if (player.resources.soldiers < ATTACK_COST) continue;
+
+    player.resources.soldiers -= ATTACK_COST;
+    tileOwners[tileIndex] = pid;
+    tileContestedUntil[tileIndex] = null;
+  }
+
+  input.attacks.clear();
 
   // Builds are per-turn intents: validated at resolution, instantaneous placement.
   for (const [pid, builds] of input.pendingBuilds) {
@@ -150,36 +193,44 @@ export function resolveTurn(input: TurnInput) {
   // Production (applies at resolution, usable next turn).
   for (const player of players) {
     const ownedTiles = countOwned(tileOwners, player.id);
+    const techs = new Set((player as any).techs as string[] | undefined);
 
     let fishingHuts = 0;
     for (let i = 0; i < tileBuildings.length; i++) {
       if (tileOwners[i] === player.id && tileBuildings[i] === BuildingType.FishingHut) fishingHuts++;
     }
 
-    const recruitFromVillagers = Math.floor(player.resources.villagers / 3);
-    const recruitFromTerritory = 2 + Math.floor(ownedTiles / 5) + fishingHuts;
-    player.resources.soldiers += recruitFromVillagers + recruitFromTerritory;
+    // Soldiers gain is intentionally slow (strategic pacing).
+    const recruitFromVillagers = Math.floor(player.resources.villagers / 10);
+    const recruitFromTerritory = 1 + Math.floor(ownedTiles / 12) + Math.floor(fishingHuts / 2);
+    player.resources.soldiers += recruitFromVillagers + recruitFromTerritory + (techs.has("mil_training") ? 1 : 0);
 
     // Passive economy from villagers (small baseline so the split matters even early-game).
-    player.resources.wood += Math.floor(player.resources.villagers / 4);
-    player.resources.stone += Math.floor(player.resources.villagers / 8);
+    player.resources.wood += Math.floor(player.resources.villagers / 12);
+    player.resources.stone += Math.floor(player.resources.villagers / 24);
 
     let woodGain = 0;
+    let sawmills = 0;
     for (let i = 0; i < tileBuildings.length; i++) {
       if (tileOwners[i] !== player.id) continue;
       if (tileBuildings[i] !== BuildingType.Sawmill) continue;
+      sawmills++;
       const pos = tilePos(i, width);
       woodGain += Math.min(3, adjacentCountOfType(tileTypes, pos, width, height, TileType.Forest));
     }
+    if (techs.has("eco_tools")) woodGain += sawmills * 1;
     player.resources.wood += woodGain;
 
     let stoneGain = 0;
+    let mines = 0;
     for (let i = 0; i < tileBuildings.length; i++) {
       if (tileOwners[i] !== player.id) continue;
       if (tileBuildings[i] !== BuildingType.Mine) continue;
+      mines++;
       const pos = tilePos(i, width);
       stoneGain += Math.min(3, adjacentCountOfType(tileTypes, pos, width, height, TileType.Quarry));
     }
+    if (techs.has("eco_tools")) stoneGain += mines * 1;
     player.resources.stone += stoneGain;
   }
 }

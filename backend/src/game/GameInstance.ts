@@ -11,6 +11,7 @@ import {
 } from "./types.js";
 import { TURN_SECONDS, buildCost, idx, inBounds, orthogonalNeighbors } from "./rules.js";
 import { resolveTurn } from "./turnResolver.js";
+import { TECHS, isTechId } from "./tech.js";
 
 type RuntimePlayer = GamePlayerState;
 
@@ -29,6 +30,7 @@ export class GameInstance {
 
   players: RuntimePlayer[] = [];
   claims = new Map<string, Set<number>>(); // playerId -> tile index
+  attacks = new Map<string, Set<number>>(); // playerId -> tile index (enemy-owned)
   pendingBuilds = new Map<string, BuildIntent[]>(); // playerId -> builds
   brouillageTiles = new Map<number, { casterPlayerId: string; untilTurn: number }>(); // tileIndex -> effect
 
@@ -55,7 +57,8 @@ export class GameInstance {
       isReady: p.isReady,
       hasChosenStart: p.hasChosenStart,
       basePosition: p.baseX != null && p.baseY != null ? { x: p.baseX, y: p.baseY } : null,
-      resources: { villagers: 0, soldiers: 0, wood: 0, stone: 0 }
+      resources: { villagers: 0, soldiers: 0, wood: 0, stone: 0 },
+      techs: []
     }));
 
     const map = generateMap();
@@ -99,6 +102,11 @@ export class GameInstance {
       claims[pid] = Array.from(set).map((i) => ({ x: i % this.width, y: Math.floor(i / this.width) }));
     }
 
+    const attacks: Record<string, ClaimIntent[]> = {};
+    for (const [pid, set] of this.attacks) {
+      attacks[pid] = Array.from(set).map((i) => ({ x: i % this.width, y: Math.floor(i / this.width) }));
+    }
+
     const pendingBuilds: Record<string, BuildIntent[]> = {};
     for (const [pid, builds] of this.pendingBuilds) pendingBuilds[pid] = builds;
 
@@ -124,6 +132,7 @@ export class GameInstance {
         contestedUntil: this.tileContestedUntil
       },
       claims,
+      attacks,
       pendingBuilds,
       brouillage
     };
@@ -131,6 +140,34 @@ export class GameInstance {
 
   getPlayerByUserId(userId: string) {
     return this.players.find((p) => p.userId === userId) ?? null;
+  }
+
+  buyTech(userId: string, techId: string) {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    if (!isTechId(techId)) throw new Error("invalid_tech");
+
+    // Require at least one University owned by the player.
+    let hasUniversity = false;
+    for (let i = 0; i < this.tileBuildings.length; i++) {
+      if (this.tileOwners[i] === player.id && this.tileBuildings[i] === BuildingType.University) {
+        hasUniversity = true;
+        break;
+      }
+    }
+    if (!hasUniversity) throw new Error("need_university");
+
+    const techs = new Set((player as any).techs as string[] | undefined);
+    if (techs.has(techId)) throw new Error("tech_already_bought");
+
+    const def = TECHS.find((t) => t.id === techId)!;
+    if (player.resources.wood < def.cost.wood || player.resources.stone < def.cost.stone) throw new Error("not_enough_resources");
+
+    player.resources.wood -= def.cost.wood;
+    player.resources.stone -= def.cost.stone;
+    techs.add(techId);
+    (player as any).techs = Array.from(techs);
   }
 
   chooseStart(userId: string, pos: Vec2) {
@@ -155,6 +192,7 @@ export class GameInstance {
 
     player.hasChosenStart = true;
     player.basePosition = pos;
+    (player as any).techs = (player as any).techs ?? [];
     player.resources = { villagers: 10, soldiers: 0, wood: 5, stone: 0 };
     this.tileOwners[index] = player.id;
     this.tileBuildings[index] = BuildingType.Base;
@@ -202,6 +240,34 @@ export class GameInstance {
     if (!inBounds(pos, this.width, this.height)) return;
     const index = idx(pos, this.width);
     this.claims.get(player.id)?.delete(index);
+  }
+
+  attackTile(userId: string, pos: Vec2) {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    if (!inBounds(pos, this.width, this.height)) throw new Error("out_of_bounds");
+
+    const index = idx(pos, this.width);
+    const block = this.brouillageTiles.get(index);
+    if (block && block.untilTurn >= this.currentTurn && block.casterPlayerId !== player.id) throw new Error("tile_blocked");
+
+    const type = this.tileTypes[index] as TileType;
+    if (type === TileType.Water) throw new Error("water");
+
+    const owner = this.tileOwners[index];
+    if (!owner) throw new Error("not_owned");
+    if (owner === player.id) throw new Error("already_owned");
+
+    const neighborOwned = orthogonalNeighbors(pos).some((n) => {
+      if (!inBounds(n, this.width, this.height)) return false;
+      return this.tileOwners[idx(n, this.width)] === player.id;
+    });
+    if (!neighborOwned) throw new Error("not_adjacent");
+
+    const set = this.attacks.get(player.id) ?? new Set<number>();
+    set.add(index);
+    this.attacks.set(player.id, set);
   }
 
   build(userId: string, intent: BuildIntent) {
@@ -282,6 +348,7 @@ export class GameInstance {
       tileBuildings: this.tileBuildings,
       tileContestedUntil: this.tileContestedUntil,
       claims: this.claims,
+      attacks: this.attacks,
       pendingBuilds: this.pendingBuilds
     });
 
@@ -292,6 +359,7 @@ export class GameInstance {
 
     // Reset per-turn intents (resolver mutates arrays/resources in-place)
     this.claims = new Map();
+    this.attacks = new Map();
     this.pendingBuilds = new Map();
   }
 }

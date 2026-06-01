@@ -6,7 +6,7 @@ import { useLobbyStore } from "../stores/lobbyStore";
 const lobby = useLobbyStore();
 const router = useRouter();
 const heroOk = ref(true);
-const heroSrc = "/rushfront-hero.png";
+const heroSrc = "/rushfront-hero.svg";
 
 onMounted(() => lobby.refresh());
 </script>
@@ -78,9 +78,6 @@ onMounted(() => lobby.refresh());
               </div>
             </div>
 
-            <div v-if="!heroOk" class="mt-4 text-xs text-slate-400">
-              Ajoute l’image en `frontend/public/rushfront-hero.png` pour afficher la bannière.
-            </div>
           </div>
         </div>
       </div>
