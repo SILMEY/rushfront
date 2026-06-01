@@ -9,50 +9,56 @@ defineProps<{
 
 const emit = defineEmits<{ (e: "select", building: BuildingType | null): void }>();
 
-const items: Array<{ type: BuildingType | null; name: string; cost: string; rule: string }> = [
-  {
-    type: null,
-    name: "Revendiquer (⚑)",
-    cost: "1 militaire",
-    rule: "Clique une case neutre adjacente"
-  },
-  {
-    type: BuildingType.FishingHut,
-    name: "Cabane de pêche (P)",
-    cost: "5 bois",
-    rule: "Adjacente à l’eau"
-  },
-  { type: BuildingType.Sawmill, name: "Scierie (S)", cost: "5 bois", rule: "Adjacente à une forêt" },
-  { type: BuildingType.Mine, name: "Mine (M)", cost: "5 bois", rule: "Adjacente à une carrière" },
-  { type: BuildingType.Barracks, name: "Caserne (C)", cost: "20 bois + 10 pierre", rule: "Sur case possédée" },
-  {
-    type: BuildingType.University,
-    name: "Université (U)",
-    cost: "20 bois + 20 pierre",
-    rule: "Sur case possédée"
-  }
+const items: Array<{
+  type: BuildingType | null;
+  label: string;
+  icon: string;
+  cost: string;
+  hint: string;
+}> = [
+  { type: null, label: "Territoire vide", icon: "flag", cost: "Coût: 1 militaire", hint: "Revendiquer une case neutre adjacente" },
+  { type: BuildingType.FishingHut, label: "Cabane de pêche", icon: "sailing", cost: "Coût: 5 bois", hint: "Adjacente à l’eau" },
+  { type: BuildingType.Sawmill, label: "Scierie", icon: "forest", cost: "Coût: 5 bois", hint: "Adjacente à une forêt" },
+  { type: BuildingType.Mine, label: "Mine", icon: "construction", cost: "Coût: 5 bois", hint: "Adjacente à une carrière" },
+  { type: BuildingType.Barracks, label: "Caserne", icon: "shield", cost: "Coût: 20 bois + 10 pierre", hint: "Sur une case possédée" },
+  { type: BuildingType.University, label: "Université", icon: "history_edu", cost: "Coût: 20 bois + 20 pierre", hint: "Sur une case possédée" }
 ];
 </script>
 
 <template>
-  <div class="rounded-xl border border-white/10 bg-white/5 p-4">
-    <div class="flex items-center justify-between">
-      <div class="font-semibold">Actions</div>
-    </div>
-    <div class="mt-3 grid gap-2">
-      <button
-        v-for="b in items"
-        :key="b.type ?? 'claim'"
-        class="rounded-lg border px-3 py-2 text-left transition"
-        :class="selected === b.type ? 'border-indigo-400 bg-indigo-500/10' : 'border-white/10 bg-slate-950/40 hover:bg-white/5'"
-        @click="emit('select', b.type)"
-      >
-        <div class="text-sm font-semibold">{{ b.name }}</div>
-        <div class="mt-1 text-xs text-slate-400">{{ b.cost }} • {{ b.rule }}</div>
-      </button>
-    </div>
-    <div class="mt-3 text-xs text-slate-400">
-      Note: construire plusieurs bâtiments dans le même tour est possible, mais tu dois avoir les ressources pour le total (ex: 2× scierie = 10 bois).
-    </div>
+  <div class="grid grid-cols-2 gap-3">
+    <button
+      v-for="b in items"
+      :key="b.type ?? 'claim'"
+      class="rf-parchment group flex flex-col items-center justify-center rounded-sm border-2 border-[#8b7e66] p-4 shadow-md transition-all hover:brightness-105 active:scale-95"
+      :class="selected === b.type ? 'ring-2 ring-inset ring-[#f2ca50]' : ''"
+      type="button"
+      @click="emit('select', b.type)"
+    >
+      <span class="material-symbols-outlined rf-parchment-icon mb-2 text-3xl transition-transform group-hover:scale-110" aria-hidden="true">
+        {{ b.icon }}
+      </span>
+      <span class="rf-parchment-title text-center text-[10px] font-bold uppercase">{{ b.label }}</span>
+      <span class="mt-1 text-center text-[10px] text-black/70">{{ b.cost }}</span>
+      <span class="mt-1 text-center text-[9px] text-black/60 italic">{{ b.hint }}</span>
+    </button>
   </div>
 </template>
+
+<style scoped>
+.rf-parchment {
+  background-color: #d2c5b3;
+  background-image: url("https://www.transparenttextures.com/patterns/paper-fibers.png");
+  color: #2c241a;
+}
+
+.rf-parchment-icon {
+  color: #4d3f2f;
+}
+
+.rf-parchment-title {
+  font-family: "Literata", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  letter-spacing: 0.1em;
+}
+</style>
+

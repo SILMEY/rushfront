@@ -19,27 +19,27 @@ function hostNameOf(g: any) {
   <div class="bg-background text-on-background selection:bg-primary selection:text-on-primary">
     <main>
       <!-- Hero Section -->
-      <section class="relative w-full overflow-hidden">
+      <section class="relative flex min-h-[80vh] w-full items-center overflow-hidden">
         <div class="absolute inset-0">
           <img class="h-full w-full object-cover opacity-70" src="/rf.png" alt="Rushfront" />
           <div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
         </div>
 
-        <div class="relative mx-auto flex min-h-[80vh] max-w-7xl flex-col justify-center px-container-margin py-20">
-          <div class="max-w-3xl">
+        <div class="relative mx-auto w-full max-w-7xl px-container-margin py-20">
+          <div class="max-w-3xl border border-outline-variant/30 bg-black/35 p-10 backdrop-blur">
             <div class="font-headline text-xs font-bold uppercase tracking-[0.35em] text-primary/80">RUSHFRONT</div>
             <h1 class="mt-6 font-headline text-6xl font-extrabold uppercase tracking-[0.14em] text-primary leading-none">
               COMMANDER L'AVENIR
             </h1>
             <p class="mt-8 text-xl italic leading-relaxed text-secondary/80">
-              Préparez-vous pour l'affrontement tactique ultime. Gérez vos ressources, déployez vos troupes et dominez le champ de
-              bataille sur une grille millimétrée.
+              Préparez-vous pour l'affrontement tactique ultime. Gérez vos ressources, déployez vos troupes et dominez le champ de bataille
+              sur une grille millimétrée.
             </p>
           </div>
 
           <div class="mt-14 grid gap-8 lg:grid-cols-2">
             <!-- Partie rapide -->
-            <div class="group flex flex-col border border-outline-variant/30 bg-black/40 p-8 backdrop-blur">
+            <div class="group flex flex-col border border-primary/30 bg-black/40 p-8 backdrop-blur transition-colors duration-200 hover:bg-primary/10">
               <div class="flex items-start justify-between">
                 <div class="flex flex-col gap-2">
                   <span class="font-headline text-xs font-bold uppercase tracking-widest text-primary">EN LIGNE</span>
@@ -60,41 +60,34 @@ function hostNameOf(g: any) {
 
               <div class="mt-4 flex items-center gap-2">
                 <button
-                  class="burnished-gold-glow rounded-md border border-primary/30 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-primary transition hover:bg-primary hover:text-on-primary"
-                  @click="lobby.createLobby()"
+                  class="rounded-md border border-outline-variant/30 bg-white/5 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-secondary/50 opacity-60 cursor-not-allowed"
+                  type="button"
+                  disabled
                 >
-                  Créer
-                </button>
-                <button
-                  class="rounded-md border border-outline-variant/30 bg-white/5 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-secondary/80 transition hover:bg-white/10 hover:text-secondary"
-                  @click="lobby.refresh()"
-                >
-                  Rafraîchir
+                  Rejoindre (bientôt)
                 </button>
               </div>
 
-              <div class="mt-6 rounded border border-outline-variant/20 bg-white/5 p-3 text-sm text-secondary/60">
-                Aucune partie pour l’instant.
-              </div>
+              <div class="mt-6 rounded border border-outline-variant/20 bg-white/5 p-3 text-sm text-secondary/60">Aucune partie pour l’instant.</div>
             </div>
 
             <!-- Partie personnalisée -->
-            <div class="group flex flex-col border border-outline-variant/30 bg-black/40 p-8 backdrop-blur">
+            <div class="group flex flex-col border border-primary/30 bg-black/40 p-8 backdrop-blur transition-colors duration-200 hover:bg-primary/10">
               <div class="flex items-start justify-between">
                 <div class="flex flex-col gap-2">
                   <span class="font-headline text-xs font-bold uppercase tracking-widest text-primary">MODULABLE</span>
                   <h3 class="font-headline text-4xl text-primary leading-none">Partie personnalisée</h3>
                   <p class="text-lg text-secondary/80 italic leading-relaxed">Organisez une bataille privée avec vos amis.</p>
                 </div>
-                <span class="material-symbols-outlined text-primary/80" aria-hidden="true">menu_book</span>
+                <span class="material-symbols-outlined text-primary/80" aria-hidden="true">groups</span>
               </div>
 
               <div class="mt-8 flex items-center justify-between gap-3 border-t border-outline-variant/30 pt-6">
                 <span class="font-headline text-lg font-bold uppercase tracking-widest text-primary/80 group-hover:text-primary transition-colors">
-                  CRÉER PARTIE PERSONNALISÉE
+                  PARTIES PERSONNALISÉES EN LIGNE
                 </span>
                 <span class="material-symbols-outlined text-primary/80 transition-transform group-hover:translate-x-2" aria-hidden="true">
-                  menu_book
+                  military_tech
                 </span>
               </div>
 
@@ -113,9 +106,7 @@ function hostNameOf(g: any) {
                 </button>
               </div>
 
-              <div class="mt-8 border-t border-outline-variant/30 pt-6">
-                <h4 class="mb-4 font-headline text-sm font-bold uppercase tracking-widest text-primary">PARTIES DISPONIBLES</h4>
-
+              <div class="mt-6 space-y-3">
                 <div v-if="!hasAnyLobby" class="rounded border border-outline-variant/20 bg-white/5 p-3 text-sm text-secondary/60">
                   Aucune partie en lobby.
                 </div>
@@ -143,6 +134,56 @@ function hostNameOf(g: any) {
           </div>
         </div>
       </section>
+
+      <!-- Stats Section (from `code_accueil.html`) -->
+      <section class="stone-block border-y border-outline-variant/30 py-24">
+        <div class="mx-auto flex max-w-7xl flex-col items-center gap-16 px-container-margin md:flex-row">
+          <div class="flex-1">
+            <h2 class="mb-8 font-headline text-5xl uppercase tracking-wide text-primary leading-tight">ÉCONOMIE DE GUERRE</h2>
+            <p class="text-xl italic leading-relaxed text-secondary opacity-80">
+              Analysez vos performances en temps réel. L’interface de commandement vous fournit les données nécessaires pour optimiser votre
+              stratégie de conquête.
+            </p>
+          </div>
+          <div class="grid w-full flex-none grid-cols-2 gap-6 md:w-1/2">
+            <div class="border border-outline-variant/30 bg-black/40 p-10 text-center">
+              <div class="mb-2 font-headline text-5xl text-primary">10s</div>
+              <div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Durée d’un tour</div>
+            </div>
+            <div class="mt-12 border border-outline-variant/30 bg-black/40 p-10 text-center md:mt-24">
+              <div class="mb-2 font-headline text-5xl text-primary">10</div>
+              <div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Joueurs max</div>
+            </div>
+            <div class="-mt-12 border border-outline-variant/30 bg-black/40 p-10 text-center md:-mt-24">
+              <div class="mb-2 font-headline text-5xl text-primary">⚔️</div>
+              <div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Attaque / Défense</div>
+            </div>
+            <div class="border border-outline-variant/30 bg-black/40 p-10 text-center">
+              <div class="mb-2 font-headline text-5xl text-primary">🏛️</div>
+              <div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Technologies</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer (from `code_accueil.html`) -->
+      <footer class="stone-block border-t border-white/5 px-container-margin py-20">
+        <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-12 md:flex-row">
+          <div class="font-headline text-3xl font-bold tracking-[0.4em] text-primary">RUSHFRONT</div>
+          <div class="flex gap-12">
+            <a class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" href="#">
+              Confidentialité
+            </a>
+            <a class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" href="#">
+              Conditions
+            </a>
+            <a class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" href="#">
+              Support
+            </a>
+          </div>
+          <div class="font-headline text-[10px] uppercase tracking-[0.3em] text-secondary/40">© 2024 RUSHFRONT EMPIRE.</div>
+        </div>
+      </footer>
     </main>
   </div>
 </template>

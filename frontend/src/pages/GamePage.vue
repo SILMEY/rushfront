@@ -4,7 +4,9 @@ import { useRoute, useRouter } from "vue-router";
 import GameCanvas from "../components/game/GameCanvas.vue";
 import BuildPanel from "../components/game/BuildPanel.vue";
 import ResourceBar from "../components/game/ResourceBar.vue";
+import TopResourceBar from "../components/game/TopResourceBar.vue";
 import TechPanel from "../components/game/TechPanel.vue";
+import CompositionPanel from "../components/game/CompositionPanel.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route = useRoute();
@@ -30,20 +32,8 @@ watch(
   <div class="rf-game">
     <main class="tactical-overlay flex h-[calc(100vh-64px)] flex-col overflow-hidden pr-80">
       <!-- Resource Bar (Wooden Beam) -->
-      <div class="wood-texture etched-line z-10 flex h-14 w-full shrink-0 items-center justify-between gap-6 border-b-2 border-outline-variant px-6 shadow-xl">
-        <div>
-          <div class="font-headline text-[10px] font-bold uppercase tracking-[0.25em] text-secondary/70">Champ de bataille</div>
-          <div class="mt-0.5 text-[10px] uppercase tracking-[0.25em] text-secondary/50">ID: {{ gameId }}</div>
-        </div>
-        <div class="flex-1">
-          <ResourceBar :state="game.state" />
-        </div>
-        <button
-          class="rounded-md border border-primary/30 px-3 py-1.5 text-xs font-headline font-bold uppercase tracking-widest text-primary transition hover:bg-primary hover:text-on-primary"
-          @click="router.push('/')"
-        >
-          Accueil
-        </button>
+      <div class="z-10">
+        <TopResourceBar :state="game.state" />
       </div>
 
       <!-- Grid Area -->
@@ -66,11 +56,11 @@ watch(
 
       <div class="flex-1 space-y-6 overflow-y-auto bg-black/10 p-6">
         <section>
-          <h3 class="carved-text mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary">
-            <span class="h-2 w-2 rotate-45 bg-primary"></span>
-            Actions
+          <h3 class="font-label-sm text-primary mb-4 flex items-center gap-2 carved-text">
+            <span class="w-2 h-2 bg-primary rotate-45"></span> CONSTRUCTION
           </h3>
           <BuildPanel :state="game.state" :selected="game.selectedBuilding" @select="game.selectedBuilding = $event" />
+          <CompositionPanel :state="game.state" />
         </section>
 
         <TechPanel :state="game.state" />
@@ -136,6 +126,15 @@ watch(
   text-shadow: -1px -1px 1px rgba(0, 0, 0, 0.8), 1px 1px 1px rgba(255, 255, 255, 0.1);
 }
 
+.font-label-sm {
+  font-family: "Literata", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .text-primary {
   color: var(--primary);
 }
@@ -149,4 +148,3 @@ watch(
   border-color: var(--outline-variant);
 }
 </style>
-

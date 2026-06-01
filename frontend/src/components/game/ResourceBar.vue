@@ -5,7 +5,7 @@ import { BuildingType, TileType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
 import { useGameStore } from "../../stores/gameStore";
 
-const props = defineProps<{ state: GameStateSnapshot | null }>();
+const props = defineProps<{ state: GameStateSnapshot | null; showComposition?: boolean }>();
 const auth = useAuthStore();
 const game = useGameStore();
 const me = computed(() => props.state?.players.find((p) => p.userId === auth.user?.id) ?? null);
@@ -161,7 +161,7 @@ function scheduleCommit() {
       </div>
     </div>
 
-    <div v-if="me && state" class="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+    <div v-if="(showComposition ?? true) && me && state" class="flex flex-wrap items-center gap-3 text-xs text-slate-300">
       <div class="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
         <div class="flex items-center justify-between gap-4">
           <div class="text-slate-400">Répartition</div>
