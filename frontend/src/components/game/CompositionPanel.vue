@@ -10,11 +10,14 @@ const game = useGameStore();
 
 const me = computed(() => props.state?.players.find((p) => p.userId === auth.user?.id) ?? null);
 
-const compositionPct = ref(0);
+const compositionPct = ref(50);
 watch(
   () => me.value?.desiredSoldierPct,
   (v) => {
-    if (typeof v !== "number" || !Number.isFinite(v)) return;
+    if (typeof v !== "number" || !Number.isFinite(v)) {
+      compositionPct.value = 50;
+      return;
+    }
     compositionPct.value = Math.max(0, Math.min(100, Math.round(v)));
   },
   { immediate: true }
@@ -81,4 +84,3 @@ function scheduleCommit() {
   color: #e5e2e0;
 }
 </style>
-

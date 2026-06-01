@@ -125,7 +125,7 @@ export function useGameRenderer() {
           }
         }
 
-        // Buildings: show a castle for Base, letters for others when large enough.
+        // Buildings: use Material Symbols icons like the control panel.
         if (building != null && tsScreen >= 28) {
           if (building === BuildingType.Base) {
             ctx.fillStyle = ownerColor ? rgba(ownerColor, 0.95) : rgba("#f2ca50", 0.9);
@@ -134,21 +134,21 @@ export function useGameRenderer() {
             ctx.textBaseline = "middle";
             ctx.fillText("castle", sx + tileSize / 2, sy + tileSize / 2);
           } else {
-            const letter =
+            const icon =
               building === BuildingType.FishingHut
-                ? "P"
+                ? "sailing"
                 : building === BuildingType.Sawmill
-                  ? "S"
+                  ? "forest"
                   : building === BuildingType.Mine
-                    ? "M"
+                    ? "construction"
                     : building === BuildingType.Barracks
-                      ? "C"
-                      : "U";
-            ctx.fillStyle = rgba("#ffffff", 0.9);
-            ctx.font = `${Math.max(12 / scale, tileSize * 0.42)}px ui-sans-serif`;
+                      ? "shield"
+                      : "history_edu";
+            ctx.fillStyle = rgba("#f2ca50", 0.85);
+            ctx.font = `${Math.max(16 / scale, tileSize * 0.55)}px "Material Symbols Outlined"`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText(letter, sx + tileSize / 2, sy + tileSize / 2 + 0.5 / scale);
+            ctx.fillText(icon, sx + tileSize / 2, sy + tileSize / 2);
           }
         }
       }

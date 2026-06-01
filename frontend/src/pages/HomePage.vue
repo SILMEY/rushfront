@@ -19,11 +19,11 @@ function hostNameOf(g: any) {
   <div class="bg-background text-on-background selection:bg-primary selection:text-on-primary">
     <main>
       <!-- Hero Section -->
-      <section class="relative flex h-[90vh] w-full items-center justify-center overflow-hidden">
+      <section class="relative flex h-[65vh] w-full items-center justify-center overflow-hidden">
         <div class="absolute inset-0">
           <img
             class="h-full w-full object-cover opacity-70"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8Cln9HzQBqB53mGjJpzVik_jnYHYyrQ9EEmNG5MVjPPy-VdmHcvjWnITWdzScnDTZzzE59sdrPbXiRNBOiRfzZO1bRzU-8q2MaRYSsxvbdolnL2oSGgG3mvturc3AT5TVgWirIpcZ_04Ad_qjMSiX_pTT06U84Z9OpRRpKKoA4zgRxx6rTbtfTfr00wh_muCjW08fqdBN8Nwx_zIZvxXgvdwMIyFpKA1HJz-ypzaC2wA75BSLkkvohAuZNbJYq9hvDiCuoTBMipmO"
+            src="/bggame.png"
             alt="Rushfront"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
@@ -33,9 +33,8 @@ function hostNameOf(g: any) {
           <h1 class="font-headline text-6xl font-bold uppercase tracking-tighter text-primary drop-shadow-2xl md:text-8xl">
             COMMANDER L'AVENIR
           </h1>
-          <p class="mx-auto mb-10 mt-6 max-w-2xl text-xl italic text-secondary md:text-2xl">
-            Préparez-vous pour l'affrontement tactique ultime. Gérez vos ressources, déployez vos troupes et dominez le champ de bataille sur
-            une grille millimétrée.
+          <p class="mx-auto mt-4 max-w-3xl text-lg italic text-secondary md:text-xl">
+            Gérez vos ressources, déployez vos troupes et dominez le champ de bataille sur une grille millimétrée.
           </p>
         </div>
       </section>
@@ -46,14 +45,10 @@ function hostNameOf(g: any) {
 
         <div class="grid gap-12 md:grid-cols-2">
           <!-- Card 1: Online -->
-          <div
+            <div
             class="group relative min-h-[450px] cursor-pointer border border-outline-variant/30 bg-stone-900/60 p-1 backdrop-blur-md transition-all duration-500 hover:-translate-y-2 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)]"
           >
             <div class="flex h-full w-full flex-col border border-primary/10 p-10">
-              <div class="mb-6 inline-flex w-fit items-center gap-2 border border-primary/20 bg-primary/10 px-4 py-1">
-                <span class="h-2 w-2 animate-pulse rounded-full bg-primary"></span>
-                <span class="text-xs font-bold uppercase tracking-widest text-primary">En direct</span>
-              </div>
               <h3 class="mb-4 font-headline text-4xl leading-none text-primary">Lancer une partie rapide</h3>
               <p class="mb-auto text-lg italic leading-relaxed text-secondary/80">
                 Affrontez des commandants inconnus à travers le royaume et gravissez les échelons de la ligue impériale.
@@ -84,10 +79,6 @@ function hostNameOf(g: any) {
             class="group relative min-h-[450px] cursor-pointer border border-outline-variant/30 bg-stone-900/60 p-1 backdrop-blur-md transition-all duration-500 hover:-translate-y-2 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)]"
           >
             <div class="flex h-full w-full flex-col border border-primary/10 p-10">
-              <div class="mb-6 inline-flex w-fit items-center gap-2 border border-primary/20 bg-primary/10 px-4 py-1">
-                <span class="material-symbols-outlined text-[16px] text-primary" aria-hidden="true">history_edu</span>
-                <span class="text-xs font-bold uppercase tracking-widest text-primary">Modulable</span>
-              </div>
               <h3 class="mb-4 font-headline text-4xl leading-none text-primary">Partie personnalisée</h3>
               <p class="mb-auto text-lg italic leading-relaxed text-secondary/80">Organisez une bataille privée avec vos amis.</p>
               <div class="mt-8 flex items-center justify-between border-t border-outline-variant/30 pt-6">
@@ -101,7 +92,7 @@ function hostNameOf(g: any) {
 
               <div class="mt-6 flex items-center gap-2">
                 <button
-                  class="burnished-gold-glow rounded-md border border-primary/30 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-primary transition hover:bg-primary hover:text-on-primary"
+                  class="antique-gradient burnished-gold-glow rounded-md border border-primary/50 px-7 py-3 text-sm font-headline font-extrabold uppercase tracking-[0.25em] text-on-primary shadow-lg transition hover:brightness-105 active:scale-[0.98]"
                   @click="lobby.createLobby()"
                 >
                   Créer

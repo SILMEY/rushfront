@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { GameStateSnapshot, Vec2 } from "../../types/game";
 import { BuildingType, TileType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
-import { useGameStore } from "../../stores/gameStore";
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
 const auth = useAuthStore();
-const game = useGameStore();
 
 const me = computed(() => props.state?.players.find((p) => p.userId === auth.user?.id) ?? null);
 
@@ -27,32 +25,6 @@ function formatClock(totalSeconds: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
-}
-
-const compositionPct = ref(50);
-watch(
-  () => me.value?.desiredSoldierPct,
-  (v) => {
-    if (typeof v !== "number" || !Number.isFinite(v)) {
-      compositionPct.value = 50;
-      return;
-    }
-    compositionPct.value = Math.max(0, Math.min(100, Math.round(v)));
-  },
-  { immediate: true }
-);
-
-let commitTimer: number | null = null;
-function commitComposition() {
-  if (!props.state) return;
-  void game.setComposition(props.state.gameId, compositionPct.value);
-}
-function scheduleCommitComposition() {
-  if (commitTimer != null) window.clearTimeout(commitTimer);
-  commitTimer = window.setTimeout(() => {
-    commitTimer = null;
-    commitComposition();
-  }, 120);
 }
 
 function inBounds(pos: Vec2, width: number, height: number) {
@@ -104,7 +76,7 @@ const production = computed(() => {
   const player = me.value;
   if (!state || !player) return { soldiers: 0, wood: 0, stone: 0 };
 
-  const soldiers =
+  const recruits =
     Math.floor(player.resources.villagers / 10) + (1 + Math.floor(ownedTiles.value / 12) + Math.floor(fishingHuts.value / 2));
   let wood = Math.floor(player.resources.villagers / 12);
   let stone = Math.floor(player.resources.villagers / 24);
@@ -118,7 +90,7 @@ const production = computed(() => {
     if (b === BuildingType.Mine) stone += Math.min(3, adjacentCountOfType(state, pos, TileType.Quarry));
   }
 
-  return { soldiers, wood, stone };
+  return { recruits, wood, stone };
 });
 
 const turnRemaining = computed(() => {
@@ -126,6 +98,12 @@ const turnRemaining = computed(() => {
   if (!state?.turnEndsAt) return null;
   const remainingSec = (state.turnEndsAt - nowMs.value) / 1000;
   return formatClock(remainingSec);
+});
+
+const habitants = computed(() => {
+  const player = me.value;
+  if (!player) return 0;
+  return player.resources.villagers + player.resources.soldiers;
 });
 </script>
 
@@ -149,25 +127,9 @@ const turnRemaining = computed(() => {
       <span class="font-label-sm italic font-bold text-primary-fixed">PIERRE: {{ me.resources.stone }} (+{{ production.stone }})</span>
     </div>
 
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">swords</span>
-      <div class="flex flex-col gap-1">
-        <div class="flex items-baseline justify-between gap-3">
-          <span class="font-label-sm italic font-bold text-primary-fixed">MILITAIRE / VILLAGEOIS</span>
-          <span class="text-[10px] text-primary-fixed/80 italic">{{ compositionPct }}% / {{ 100 - compositionPct }}%</span>
-        </div>
-        <input
-          v-model.number="compositionPct"
-          type="range"
-          min="0"
-          max="100"
-          step="1"
-          class="w-44 accent-[#f2ca50]"
-          @input="scheduleCommitComposition()"
-          @change="commitComposition()"
-        />
-        <div class="text-[10px] text-primary-fixed/80 italic">+{{ production.soldiers }} militaires / tour</div>
-      </div>
+    <div class="flex items-center gap-3 cursor-default">
+      <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">groups</span>
+      <span class="font-label-sm italic font-bold text-primary-fixed">HABITANTS: {{ habitants }} (+{{ production.recruits }})</span>
     </div>
 
     <div v-if="turnRemaining" class="flex items-center gap-3 cursor-default">

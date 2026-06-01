@@ -6,6 +6,7 @@ import BuildPanel from "../components/game/BuildPanel.vue";
 import ResourceBar from "../components/game/ResourceBar.vue";
 import TopResourceBar from "../components/game/TopResourceBar.vue";
 import TechPanel from "../components/game/TechPanel.vue";
+import CompositionPanel from "../components/game/CompositionPanel.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route = useRoute();
@@ -55,6 +56,8 @@ watch(
 
       <div class="flex-1 space-y-6 overflow-y-auto bg-black/10 p-6">
         <section>
+          <CompositionPanel :state="game.state" />
+
           <h3 class="font-label-sm text-primary mb-4 flex items-center gap-2 carved-text">
             <span class="w-2 h-2 bg-primary rotate-45"></span> CONSTRUCTION
           </h3>
