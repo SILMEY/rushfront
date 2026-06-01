@@ -1,23 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
 
 const auth = useAuthStore();
 const displayName = computed(() => auth.displayName);
 const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase());
-
-async function changePseudo() {
-  const current = auth.user?.pseudo ?? "";
-  const next = window.prompt("Choisis ton pseudo (3-20 caractères)", current);
-  if (next == null) return;
-  const pseudo = next.trim();
-  if (!pseudo) return;
-  try {
-    await auth.setPseudo(pseudo);
-  } catch (e: any) {
-    const msg = e?.message || "Erreur";
-    window.alert(msg.includes("pseudo_taken") ? "Pseudo déjà pris" : msg);
-  }
+const router = useRouter();
+function openProfile() {
+  router.push("/profile");
 }
 </script>
 
@@ -30,17 +21,13 @@ async function changePseudo() {
           <div class="font-semibold tracking-wide text-emerald-200">Rushfront</div>
         </div>
         <div v-if="auth.user" class="flex items-center gap-3">
-          <img v-if="auth.user.avatarUrl" :src="auth.user.avatarUrl" class="h-8 w-8 rounded-full ring-1 ring-white/10" />
-          <div v-else class="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-xs">
-            {{ initials }}
-          </div>
-          <button class="hidden text-sm text-slate-200 hover:underline sm:block" @click="changePseudo()">{{ displayName }}</button>
-          <button
-            class="rounded-md bg-white/5 px-3 py-1.5 text-sm ring-1 ring-white/10 hover:bg-white/10"
-            @click="changePseudo()"
-          >
-            Pseudo
+          <button class="rounded-full ring-1 ring-white/10 hover:ring-white/20" @click="openProfile()" title="Profil">
+            <img v-if="auth.user.avatarUrl" :src="auth.user.avatarUrl" class="h-8 w-8 rounded-full" />
+            <div v-else class="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-xs">
+              {{ initials }}
+            </div>
           </button>
+          <button class="hidden text-sm text-slate-200 hover:underline sm:block" @click="openProfile()">{{ displayName }}</button>
           <button
             class="rounded-md bg-white/5 px-3 py-1.5 text-sm ring-1 ring-white/10 hover:bg-white/10"
             @click="auth.logout()"

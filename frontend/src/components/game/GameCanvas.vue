@@ -76,8 +76,10 @@ watch(
 );
 
 let dragging = false;
+let selecting = false;
 let dragStart: { x: number; y: number } | null = null;
 let dragMoved = 0;
+let lastSelectedKey: string | null = null;
 
 function toTile(clientX: number, clientY: number): Vec2 | null {
   const canvas = canvasRef.value;
@@ -95,10 +97,23 @@ function toTile(clientX: number, clientY: number): Vec2 | null {
 
 function onPointerDown(e: PointerEvent) {
   if (!hasState.value) return;
+  // Left click: pan (drag) / select (click).
+  // Right click: select tiles only (no pan).
+  if (e.button !== 0 && e.button !== 2) return;
   (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  dragging = true;
+  dragging = e.button === 0;
+  selecting = e.button === 2;
   dragStart = { x: e.clientX, y: e.clientY };
   dragMoved = 0;
+
+  if (selecting) {
+    const tile = toTile(e.clientX, e.clientY);
+    if (tile) {
+      const key = `${tile.x},${tile.y}`;
+      lastSelectedKey = key;
+      emit("tile-click", tile);
+    }
+  }
 }
 
 function onPointerMove(e: PointerEvent) {
@@ -107,20 +122,34 @@ function onPointerMove(e: PointerEvent) {
   hovered.value = tile;
   emit("tile-hover", tile);
 
-  if (!dragging || !dragStart) return;
-  const dx = e.clientX - dragStart.x;
-  const dy = e.clientY - dragStart.y;
-  dragMoved += Math.abs(dx) + Math.abs(dy);
-  dragStart = { x: e.clientX, y: e.clientY };
-  // Drag always pans the camera (no "painting" mode).
-  pan(dx, dy);
+  if (!dragStart) return;
+
+  if (dragging) {
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    dragMoved += Math.abs(dx) + Math.abs(dy);
+    dragStart = { x: e.clientX, y: e.clientY };
+    pan(dx, dy);
+    return;
+  }
+
+  if (selecting && tile) {
+    const key = `${tile.x},${tile.y}`;
+    if (key !== lastSelectedKey) {
+      lastSelectedKey = key;
+      emit("tile-click", tile);
+    }
+  }
 }
 
 function onPointerUp(e: PointerEvent) {
   if (!hasState.value) return;
+  const wasDragging = dragging;
   dragging = false;
+  selecting = false;
+  lastSelectedKey = null;
   (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-  if (dragMoved < 6) {
+  if (wasDragging && dragMoved < 6) {
     const tile = toTile(e.clientX, e.clientY);
     if (tile) emit("tile-click", tile);
   }
