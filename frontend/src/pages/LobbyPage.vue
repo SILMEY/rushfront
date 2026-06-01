@@ -15,6 +15,8 @@ const me = computed(() => current.value?.players.find((p) => p.userId === auth.u
 const isHost = computed(() => current.value?.hostUserId === auth.user?.id);
 const hostName = computed(() => current.value?.players.find((p) => p.userId === current.value?.hostUserId)?.name ?? "");
 
+const MAX_PLAYERS = 10;
+
 const COLORS = [
   "#3b82f6",
   "#ef4444",
@@ -27,6 +29,8 @@ const COLORS = [
   "#06b6d4",
   "#e11d48"
 ];
+
+const usedColors = computed(() => new Set((current.value?.players ?? []).map((p) => p.color)));
 
 onMounted(async () => {
   await lobby.ensureConnected();
@@ -42,74 +46,264 @@ watch(
 </script>
 
 <template>
-  <div class="grid gap-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-xl font-semibold">Partie de {{ hostName || "..." }}</h1>
-        <div class="mt-1 text-xs text-slate-400">ID: {{ gameId }}</div>
-      </div>
-      <button class="rounded-md bg-white/5 px-3 py-1.5 text-sm ring-1 ring-white/10 hover:bg-white/10" @click="router.push('/')">
-        Retour
-      </button>
-    </div>
-
-    <div class="rounded-xl border border-white/10 bg-white/5 p-4">
-      <div class="flex items-center justify-between">
-        <h2 class="font-semibold">Joueurs</h2>
-        <div class="text-xs text-slate-400">Prêts requis: 2+</div>
-      </div>
-      <div class="mt-4 grid gap-2">
-        <div
-          v-for="p in current?.players ?? []"
-          :key="p.id"
-          class="flex items-center justify-between rounded-lg border border-white/10 bg-slate-950/40 px-3 py-2"
-        >
-          <div class="flex items-center gap-3">
-            <div class="h-3 w-3 rounded" :style="{ background: p.color }"></div>
-            <div class="text-sm">{{ p.name }}</div>
-          </div>
-          <div class="text-xs" :class="p.isReady ? 'text-emerald-300' : 'text-slate-400'">
-            {{ p.isReady ? 'Prêt' : 'Pas prêt' }}
-          </div>
+  <div class="rf-lobby relative">
+    <div class="mx-auto w-full max-w-7xl px-container-margin py-6">
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div class="text-xs font-headline font-bold uppercase tracking-[0.3em] text-primary/80">War Room</div>
+          <h1 class="mt-2 text-4xl font-headline font-extrabold uppercase tracking-[0.12em] text-primary">
+            Partie de {{ hostName || "..." }}
+          </h1>
+          <div class="mt-2 text-xs uppercase tracking-[0.25em] text-secondary/60">ID: {{ gameId }}</div>
         </div>
-      </div>
-
-      <div class="mt-5 flex flex-wrap items-center gap-3">
-        <div v-if="me" class="mr-auto flex flex-wrap items-center gap-2">
-          <div class="text-xs text-slate-400">Couleur</div>
+        <div class="flex items-center gap-2">
           <button
-            v-for="c in COLORS"
-            :key="c"
-            class="h-7 w-7 rounded-md ring-1 ring-white/15 transition hover:scale-105"
-            :style="{ background: c }"
-            :title="c"
-            :disabled="(current?.players ?? []).some((p) => p.color === c && p.userId !== auth.user?.id)"
-            :class="[
-              (current?.players ?? []).some((p) => p.color === c && p.userId !== auth.user?.id) ? 'opacity-25' : 'opacity-100',
-              me.color === c ? 'ring-2 ring-emerald-300' : ''
-            ]"
-            @click="lobby.setColor(gameId, c)"
-          />
+            class="rounded-md border border-primary/30 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-primary transition hover:bg-primary hover:text-on-primary"
+            @click="router.push('/')"
+          >
+            Retour
+          </button>
+          <button
+            class="rounded-md border border-outline-variant/30 bg-black/40 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-secondary/80 transition hover:bg-black/60 hover:text-secondary"
+            @click="lobby.leaveLobby(gameId)"
+          >
+            Quitter
+          </button>
         </div>
-        <button
-          v-if="me"
-          class="rounded-lg bg-white/5 px-4 py-2 font-semibold ring-1 ring-white/10 hover:bg-white/10"
-          @click="lobby.setReady(gameId, !me.isReady)"
-        >
-          {{ me.isReady ? 'Annuler prêt' : 'Prêt' }}
-        </button>
-        <button
-          v-if="isHost"
-          class="rounded-lg bg-indigo-500 px-4 py-2 font-semibold text-white hover:bg-indigo-400"
-          @click="lobby.startGame(gameId)"
-        >
-          Lancer la partie
-        </button>
-        <button class="ml-auto rounded-md bg-white/5 px-3 py-1.5 text-sm ring-1 ring-white/10 hover:bg-white/10" @click="lobby.leaveLobby(gameId)">
-          Quitter
-        </button>
       </div>
 
+      <div class="overflow-hidden rounded-2xl border border-outline-variant/30 bg-black/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+        <div class="scroll-banner flex items-center justify-between gap-6 px-6 py-5">
+          <div class="flex items-center gap-4">
+            <div class="wax-seal">
+              <span class="material-symbols-outlined text-white text-3xl">campaign</span>
+            </div>
+            <div>
+              <div class="text-xs font-headline font-bold uppercase tracking-[0.25em] text-primary/80">Rassemblement</div>
+              <div class="text-lg font-headline font-bold uppercase tracking-widest text-primary">Salon de jeu</div>
+            </div>
+          </div>
+          <div class="text-[10px] font-bold uppercase tracking-[0.25em] text-secondary/60">
+            Prêts requis: 2+
+          </div>
+        </div>
+
+        <div class="grid gap-0 lg:grid-cols-12">
+          <!-- Players list -->
+          <div class="lg:col-span-8">
+            <div class="custom-scrollbar max-h-[560px] overflow-auto p-6">
+              <div class="grid gap-3">
+                <div
+                  v-for="p in current?.players ?? []"
+                  :key="p.id"
+                  class="scroll-banner flex items-center justify-between gap-6 p-6"
+                >
+                  <div class="flex items-center gap-6">
+                    <img
+                      v-if="p.avatarUrl"
+                      :src="p.avatarUrl"
+                      alt="Avatar"
+                      class="h-20 w-20 border-4 border-outline/50 object-cover shadow-lg"
+                    />
+                    <div v-else class="iron-texture grid h-20 w-20 place-items-center text-xl font-headline text-secondary">
+                      {{ p.name.slice(0, 2).toUpperCase() }}
+                    </div>
+
+                    <div>
+                      <div class="text-3xl font-headline leading-none text-secondary-fixed">{{ p.name }}</div>
+                      <div class="mt-1 text-sm italic text-secondary/70">Commandant</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-12">
+                    <div class="flex flex-col items-center">
+                      <span class="mb-1 text-[10px] font-bold uppercase tracking-widest text-secondary">Héraldique</span>
+                      <div class="h-8 w-12 border-2 border-black/20 shadow-md" :style="{ background: p.color }"></div>
+                    </div>
+                    <div class="flex flex-col items-center gap-1">
+                      <div class="wax-seal" :class="p.isReady ? '' : 'opacity-40 bg-zinc-700 grayscale border-zinc-900'">
+                        <span class="material-symbols-outlined text-white text-3xl">
+                          {{ p.isReady ? "check_circle" : "hourglass_empty" }}
+                        </span>
+                      </div>
+                      <span class="text-[10px] font-bold uppercase tracking-widest" :class="p.isReady ? 'text-primary' : 'text-secondary-fixed-dim'">
+                        {{ p.isReady ? "PRÊT" : "ATTENTE" }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  v-for="i in Math.max(0, MAX_PLAYERS - (current?.players?.length ?? 0))"
+                  :key="`empty-${i}`"
+                  class="flex cursor-default items-center justify-center gap-4 border-2 border-dashed border-outline-variant bg-black/40 p-8 text-secondary/50"
+                >
+                  <span class="material-symbols-outlined text-4xl">person_add</span>
+                  <div class="text-center">
+                    <div class="text-xl font-headline">Emplacement vide</div>
+                    <div class="text-[10px] font-bold uppercase tracking-widest text-primary/60">En attente d’un allié</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div class="lg:col-span-4">
+            <div class="border-t-2 border-outline-variant bg-black/60 p-6 lg:border-l-2 lg:border-t-0">
+              <div class="grid gap-6">
+                <div>
+                  <h3 class="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-secondary">
+                    <span class="material-symbols-outlined text-sm">palette</span>
+                    Couleur d’héraldique
+                  </h3>
+                  <div class="flex flex-wrap gap-3">
+                    <button
+                      v-for="c in COLORS"
+                      :key="c"
+                      class="h-10 w-10 border-2 border-black/20 shadow-md transition-all hover:scale-110 disabled:opacity-30"
+                      :style="{ background: c }"
+                      :disabled="usedColors.has(c) && c !== me?.color"
+                      :class="me?.color === c ? 'ring-2 ring-primary ring-offset-2 ring-offset-black' : ''"
+                      @click="lobby.setColor(gameId, c)"
+                    />
+                  </div>
+                </div>
+
+                <div class="flex flex-col justify-center">
+                  <button
+                    v-if="me"
+                    class="h-16 w-full overflow-hidden rounded-md border border-outline-variant/50 bg-black/30 text-on-surface shadow-xl transition-all hover:brightness-110 active:scale-95"
+                    :class="me.isReady ? 'metallic-crest' : 'grayscale opacity-70'"
+                    @click="lobby.setReady(gameId, !me.isReady)"
+                  >
+                    <span class="flex items-center justify-center gap-4 text-2xl font-headline">
+                      <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1">
+                        {{ me.isReady ? "verified" : "hourglass_bottom" }}
+                      </span>
+                      <span>{{ me.isReady ? "PRÊT" : "PAS PRÊT" }}</span>
+                    </span>
+                  </button>
+
+                  <button
+                    v-if="isHost"
+                    class="mt-3 h-16 metallic-crest w-full rounded-md text-on-primary shadow-xl transition-all hover:brightness-110 active:scale-95"
+                    @click="lobby.startGame(gameId)"
+                  >
+                    <span class="flex items-center justify-center gap-4 text-2xl font-headline">
+                      <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1">swords</span>
+                      <span>Lancer la partie</span>
+                    </span>
+                  </button>
+                  <p class="mt-3 text-center text-[10px] font-bold uppercase tracking-widest text-secondary-fixed-dim">
+                    Préparez vos troupes.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <div
+      class="pointer-events-none fixed bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-primary/40 to-transparent shadow-[0_-4px_20px_rgba(242,202,80,0.2)]"
+    ></div>
   </div>
 </template>
+
+<style scoped>
+.rf-lobby {
+  --primary: #d4af37;
+  --on-primary: #241a00;
+  --secondary: #d4c59f;
+  --secondary-fixed: #f1e1b9;
+  --secondary-fixed-dim: rgba(212, 197, 159, 0.75);
+  --outline: #99907c;
+  --outline-variant: #4d4635;
+  --background: #131312;
+  --container-margin: 24px;
+}
+
+.px-container-margin {
+  padding-left: var(--container-margin);
+  padding-right: var(--container-margin);
+}
+
+.text-primary {
+  color: var(--primary);
+}
+.text-on-primary {
+  color: var(--on-primary);
+}
+.text-secondary {
+  color: var(--secondary);
+}
+.text-secondary-fixed {
+  color: var(--secondary-fixed);
+}
+.text-secondary-fixed-dim {
+  color: var(--secondary-fixed-dim);
+}
+.border-outline-variant {
+  border-color: var(--outline-variant);
+}
+.border-outline-variant\/30 {
+  border-color: rgba(77, 70, 53, 0.3);
+}
+.border-outline\/50 {
+  border-color: rgba(153, 144, 124, 0.5);
+}
+.bg-background {
+  background-color: var(--background);
+}
+
+.iron-texture {
+  background-color: #1c1c1b;
+  background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 4px 4px;
+  border: 2px solid #353533;
+  box-shadow: inset 0 0 10px #000, 4px 4px 0 #0e0e0d;
+}
+
+.scroll-banner {
+  background: rgba(28, 28, 27, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid #d4af37;
+  position: relative;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.wax-seal {
+  background: #920703;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6), 2px 2px 4px rgba(0, 0, 0, 0.4);
+  border: 2px solid #410000;
+  transition: transform 0.2s;
+}
+.wax-seal:active {
+  transform: scale(0.9);
+}
+
+.metallic-crest {
+  background: linear-gradient(135deg, #f2ca50 0%, #d4af37 50%, #735c00 100%);
+  border: 1px solid #ffe088;
+  box-shadow: 0 0 10px rgba(242, 202, 80, 0.2);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0e0e0d;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #52482b;
+}
+</style>
+

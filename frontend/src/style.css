@@ -9,3 +9,13 @@
 html {
   font-size: 17px;
 }
+
+body {
+  font-family: "Literata", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+h1,
+h2,
+h3,
+.font-headline {
+  font-family: "EB Garamond", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}

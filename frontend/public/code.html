@@ -1,0 +1,295 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700;800&amp;family=Literata:ital,wght@0,400;0,700;1,400&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#ffdad4",
+                        "error-container": "#93000a",
+                        "on-primary-fixed-variant": "#574500",
+                        "surface-container": "#20201f",
+                        "surface-bright": "#393938",
+                        "surface-dim": "#131312",
+                        "on-tertiary-fixed": "#410000",
+                        "on-secondary-container": "#c6b792",
+                        "on-tertiary-container": "#8f0402",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-fixed": "#241a00",
+                        "on-surface": "#e5e2e0",
+                        "on-secondary-fixed": "#221b03",
+                        "surface-tint": "#e9c349",
+                        "surface-container-highest": "#353533",
+                        "secondary-container": "#52482b",
+                        "on-error": "#690005",
+                        "on-primary": "#3c2f00",
+                        "primary-fixed": "#ffe088",
+                        "background": "#131312",
+                        "surface-variant": "#353533",
+                        "on-background": "#e5e2e0",
+                        "surface-container-low": "#1c1c1b",
+                        "inverse-on-surface": "#31302f",
+                        "on-tertiary": "#690000",
+                        "surface-container-high": "#2a2a29",
+                        "primary-fixed-dim": "#e9c349",
+                        "outline-variant": "#4d4635",
+                        "on-tertiary-fixed-variant": "#920703",
+                        "on-primary-container": "#554300",
+                        "secondary-fixed": "#f1e1b9",
+                        "surface-container-lowest": "#0e0e0d",
+                        "primary-container": "#d4af37",
+                        "inverse-surface": "#e5e2e0",
+                        "surface": "#131312",
+                        "error": "#ffb4ab",
+                        "secondary": "#d4c59f",
+                        "outline": "#99907c",
+                        "tertiary-fixed-dim": "#ffb4a8",
+                        "tertiary-container": "#ff9686",
+                        "on-secondary-fixed-variant": "#504629",
+                        "on-surface-variant": "#d0c5af",
+                        "on-secondary": "#383014",
+                        "secondary-fixed-dim": "#d4c59f",
+                        "primary": "#f2ca50",
+                        "tertiary": "#ffbfb4",
+                        "inverse-primary": "#735c00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "border-light": "1px",
+                        "border-heavy": "4px",
+                        "gutter": "24px",
+                        "margin-mobile": "16px",
+                        "margin-desktop": "64px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Literata"],
+                        "headline-xl-mobile": ["EB Garamond"],
+                        "headline-lg": ["EB Garamond"],
+                        "headline-xl": ["EB Garamond"],
+                        "label-sm": ["Literata"],
+                        "body-lg": ["Literata"],
+                        "headline-md": ["EB Garamond"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-xl-mobile": ["36px", {"lineHeight": "44px", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .stone-texture {
+            background-image: url("https://www.transparenttextures.com/patterns/dark-matter.png");
+            background-color: #1a1a19;
+        }
+        .parchment-texture {
+            background-image: url("https://www.transparenttextures.com/patterns/p6.png");
+        }
+        .forged-gold {
+            background: linear-gradient(135deg, #d4af37 0%, #f2ca50 45%, #b8860b 100%);
+            border-bottom: 3px solid #735c00;
+            box-shadow: 0 4px 0 #574500, 0 10px 15px rgba(0,0,0,0.4);
+        }
+        .iron-trim {
+            border: 8px solid transparent;
+            border-image: linear-gradient(to bottom, #4d4635, #1c1c1b, #4d4635) 1;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        .heraldic-shield {
+            clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 50% 100%, 0% 70%);
+        }
+        .inner-glow {
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container min-h-screen overflow-x-hidden stone-texture">
+<!-- Atmospheric Background Elements -->
+<div class="fixed inset-0 z-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none"></div>
+<canvas class="fixed inset-0 z-10 pointer-events-none opacity-40" id="atmosphere" width="1280" height="1326"></canvas>
+<main class="relative z-20 flex flex-col items-center min-h-screen justify-center py-12">
+<!-- Imperial Header -->
+<header class="mb-12 flex flex-col items-center"><a href="/" class="hover:opacity-80 transition-opacity"><h1 class="font-headline-xl text-headline-xl text-primary-fixed-dim tracking-[0.2em] drop-shadow-[0_4px_4px_rgba(0,0,0,1)] uppercase">Rushfront</h1></a></header>
+<!-- War Room Authentication Box -->
+<section class="surface-container-low w-full max-w-lg iron-trim relative p-12 inner-glow">
+<!-- Corner Embellishments -->
+<div class="absolute -top-3 -left-3 w-12 h-12">
+<span class="material-symbols-outlined text-primary-fixed-dim text-4xl transform rotate-0 opacity-80">workspace_premium</span>
+</div>
+<div class="absolute -top-3 -right-3 w-12 h-12">
+<span class="material-symbols-outlined text-primary-fixed-dim text-4xl transform rotate-90 opacity-80">workspace_premium</span>
+</div>
+<div class="absolute -bottom-3 -left-3 w-12 h-12">
+<span class="material-symbols-outlined text-primary-fixed-dim text-4xl transform rotate-[-90deg] opacity-80">workspace_premium</span>
+</div>
+<div class="absolute -bottom-3 -right-3 w-12 h-12">
+<span class="material-symbols-outlined text-primary-fixed-dim text-4xl transform rotate-180 opacity-80">workspace_premium</span>
+</div>
+<div class="text-center mb-10">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-[0.25em] italic">Imperial Authentication Required</p>
+<h2 class="font-headline-lg text-headline-lg text-primary mt-3 border-b border-outline-variant/30 pb-4 inline-block px-8">ACCESS WAR ROOM</h2>
+</div>
+<!-- Form Elements -->
+<form class="space-y-8" onsubmit="event.preventDefault();">
+<div class="space-y-3">
+<label class="font-label-sm text-label-sm text-on-surface-variant block ml-1 uppercase">Commander's Identity</label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">person</span>
+<input class="w-full bg-surface-container-highest/30 border-2 border-outline-variant focus:border-primary-container text-on-surface pl-12 pr-6 py-4 outline-none transition-all duration-300 rounded-none italic font-body-md placeholder:text-outline-variant" placeholder="Enter Identity..." type="text">
+</div>
+</div>
+<div class="space-y-3">
+<label class="font-label-sm text-label-sm text-on-surface-variant block ml-1 uppercase">Secure Royal Cipher</label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">vpn_key</span>
+<input class="w-full bg-surface-container-highest/30 border-2 border-outline-variant focus:border-primary-container text-on-surface pl-12 pr-6 py-4 outline-none transition-all duration-300 rounded-none italic font-body-md placeholder:text-outline-variant" placeholder="Enter Cipher..." type="password">
+</div>
+</div>
+<!-- Main Button: Gold Banner Style -->
+<button class="w-full forged-gold text-on-primary-fixed font-headline-md text-headline-md py-6 active:translate-y-1 transition-all duration-150 flex items-center justify-center gap-4 group relative overflow-hidden">
+<div class="absolute inset-0 parchment-texture opacity-10 pointer-events-none"></div>
+<span class="material-symbols-outlined text-3xl">swords</span>
+<span class="tracking-widest uppercase">Deploy Commander</span>
+<span class="material-symbols-outlined text-3xl">military_tech</span>
+</button>
+</form>
+<!-- Medieval Alliance Divider -->
+<div class="flex items-center gap-6 my-12">
+<div class="h-[2px] flex-1 bg-gradient-to-r from-transparent via-outline-variant to-outline-variant"></div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-widest italic">Alliances</span>
+<div class="h-[2px] flex-1 bg-gradient-to-l from-transparent via-outline-variant to-outline-variant"></div>
+</div>
+<!-- Shield Social Logins -->
+<div class="grid grid-cols-2 gap-8">
+<button class="group flex flex-col items-center justify-center gap-3 py-4 transition-all duration-300 hover:scale-105">
+<div class="w-16 h-20 bg-surface-container-highest border-2 border-outline-variant flex items-center justify-center heraldic-shield group-hover:border-primary-container group-hover:bg-surface-variant transition-colors relative">
+<span class="material-symbols-outlined text-primary-fixed-dim text-3xl" style="font-variation-settings: 'FILL' 1;">castle</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface tracking-tighter uppercase">House of Google</span>
+</button>
+<button class="group flex flex-col items-center justify-center gap-3 py-4 transition-all duration-300 hover:scale-105">
+<div class="w-16 h-20 bg-surface-container-highest border-2 border-outline-variant flex items-center justify-center heraldic-shield group-hover:border-primary-container group-hover:bg-surface-variant transition-colors relative">
+<span class="material-symbols-outlined text-primary-fixed-dim text-3xl" style="font-variation-settings: 'FILL' 1;">groups</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface tracking-tighter uppercase">Discord Keep</span>
+</button>
+</div>
+<div class="mt-12 text-center">
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors uppercase tracking-[0.2em] border-b border-transparent hover:border-primary-container pb-1" href="#">Request New Cipher?</a>
+</div>
+</section>
+<!-- Royal Decree Footer -->
+<footer class="mt-16 text-center max-w-md">
+<p class="font-body-md text-outline leading-relaxed italic opacity-80">
+            By passing the threshold of the Rushfront interface, thou art bound by the Imperial Decrees and the Grand Empire's protocols of tactical data handling.
+        </p>
+</footer>
+</main>
+<!-- Decorative Side Elements (Standards/Banners) -->
+<div class="hidden xl:block fixed left-16 top-1/2 -translate-y-1/2 space-y-16 opacity-40">
+<div class="flex flex-col items-center">
+<div class="w-10 h-10 border-4 border-primary-fixed-dim rounded-full flex items-center justify-center">
+<div class="w-4 h-4 bg-primary-fixed-dim rounded-full"></div>
+</div>
+<div class="w-[2px] h-48 bg-gradient-to-b from-primary-fixed-dim via-outline-variant to-transparent"></div>
+<span class="material-symbols-outlined text-primary-fixed-dim text-5xl mt-4">castle</span>
+</div>
+</div>
+<div class="hidden xl:block fixed right-16 top-1/2 -translate-y-1/2 space-y-16 opacity-40">
+<div class="flex flex-col items-center">
+<span class="material-symbols-outlined text-primary-fixed-dim text-5xl mb-4">fort</span>
+<div class="w-[2px] h-48 bg-gradient-to-t from-primary-fixed-dim via-outline-variant to-transparent"></div>
+<div class="w-10 h-10 border-4 border-primary-fixed-dim rounded-full flex items-center justify-center">
+<div class="w-4 h-4 bg-primary-fixed-dim rounded-full"></div>
+</div>
+</div>
+</div>
+<script>
+    // Medieval Atmosphere Particle Effect (Dust motes/sparks)
+    const canvas = document.getElementById('atmosphere');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    class Particle {
+        constructor() {
+            this.init();
+        }
+        init() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.size = Math.random() * 1.5 + 0.5;
+            this.speedX = Math.random() * 0.4 - 0.2;
+            this.speedY = Math.random() * -0.4 - 0.05;
+            this.alpha = Math.random() * 0.4 + 0.1;
+            this.color = Math.random() > 0.5 ? '242, 202, 80' : '212, 175, 55'; // Gold-ish colors
+        }
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            if (this.y < -10 || this.x < 0 || this.x > canvas.width) this.init();
+        }
+        draw() {
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = `rgba(${this.color}, ${this.alpha})`;
+            ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function initParticles() {
+        particles = [];
+        for (let i = 0; i < 60; i++) {
+            particles.push(new Particle());
+        }
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+        requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', () => {
+        resize();
+        initParticles();
+    });
+    resize();
+    initParticles();
+    animate();
+</script>
+
+
+
+
+</body></html>

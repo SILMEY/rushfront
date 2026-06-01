@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700;800&amp;family=Literata:ital,wght@0,400;0,700;1,400&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .grid-tile {
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .grid-tile:hover {
+            filter: brightness(1.2);
+            z-index: 10;
+        }
+        .etched-line {
+            box-shadow: inset 1px 1px 1px rgba(0,0,0,0.4), 1px 1px 0px rgba(255,255,255,0.05);
+        }
+        .wood-texture {
+            background-color: #2b2319;
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255, 0.02) 0px, rgba(255,255,255, 0.02) 2px, transparent 2px, transparent 4px);
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+        .parchment-texture {
+            background-color: #d2c5b3;
+            background-image: url("https://www.transparenttextures.com/patterns/paper-fibers.png");
+            color: #2c241a;
+        }
+        .stone-texture {
+            background-color: #353533;
+            background-image: url("https://www.transparenttextures.com/patterns/asfalt-dark.png");
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1510;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4d4635;
+        }
+        .tactical-overlay {
+            background-color: #131312;
+            background-image: radial-gradient(circle, #2a2a29 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        .carved-text {
+            text-shadow: -1px -1px 1px rgba(0,0,0,0.8), 1px 1px 1px rgba(255,255,255,0.1);
+        }
+        /* Grid specific styles */
+        .tile-water { background-color: rgba(30, 58, 138, 0.4); border-color: rgba(59, 130, 246, 0.3); }
+        .tile-forest { background-color: rgba(20, 83, 45, 0.2); border-color: rgba(34, 197, 94, 0.2); }
+        .tile-stone { background-color: rgba(68, 64, 60, 0.3); border-color: rgba(120, 113, 108, 0.3); }
+        .tile-player { background-color: rgba(212, 175, 55, 0.2); border-color: rgba(242, 202, 80, 0.5); box-shadow: inset 0 0 15px rgba(212, 175, 55, 0.1); }
+        .tile-void { background-color: transparent; border-color: #2a2a29; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#353533",
+                        "surface-tint": "#e9c349",
+                        "inverse-surface": "#e5e2e0",
+                        "on-primary-fixed": "#241a00",
+                        "secondary-container": "#52482b",
+                        "on-tertiary-container": "#8f0402",
+                        "on-primary-fixed-variant": "#574500",
+                        "surface": "#131312",
+                        "background": "#131312",
+                        "error-container": "#93000a",
+                        "tertiary-fixed-dim": "#ffb4a8",
+                        "primary-fixed-dim": "#e9c349",
+                        "outline": "#99907c",
+                        "on-primary-container": "#554300",
+                        "tertiary-container": "#ff9686",
+                        "primary-container": "#d4af37",
+                        "on-surface-variant": "#d0c5af",
+                        "on-surface": "#e5e2e0",
+                        "secondary": "#d4c59f",
+                        "surface-container-highest": "#353533",
+                        "on-secondary-fixed-variant": "#504629",
+                        "surface-container-low": "#1c1c1b",
+                        "on-tertiary-fixed": "#410000",
+                        "on-primary": "#3c2f00",
+                        "on-tertiary": "#690000",
+                        "surface-container": "#20201f",
+                        "on-secondary-fixed": "#221b03",
+                        "tertiary": "#ffbfb4",
+                        "surface-container-high": "#2a2a29",
+                        "on-secondary-container": "#c6b792",
+                        "primary-fixed": "#ffe088",
+                        "outline-variant": "#4d4635",
+                        "on-secondary": "#383014",
+                        "on-error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#d4c59f",
+                        "on-tertiary-fixed-variant": "#920703",
+                        "surface-dim": "#131312",
+                        "surface-bright": "#393938",
+                        "primary": "#f2ca50",
+                        "on-background": "#e5e2e0",
+                        "tertiary-fixed": "#ffdad4",
+                        "secondary-fixed": "#f1e1b9",
+                        "on-error": "#690005",
+                        "surface-container-lowest": "#0e0e0d",
+                        "error": "#ffb4ab",
+                        "inverse-on-surface": "#31302f",
+                        "inverse-primary": "#735c00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "unit": "8px",
+                        "border-light": "1px",
+                        "border-heavy": "4px",
+                        "margin-desktop": "64px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["EB Garamond"],
+                        "body-lg": ["Literata"],
+                        "label-sm": ["Literata"],
+                        "body-md": ["Literata"],
+                        "headline-xl": ["EB Garamond"],
+                        "headline-md": ["EB Garamond"],
+                        "headline-xl-mobile": ["EB Garamond"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-xl-mobile": ["36px", {"lineHeight": "44px", "fontWeight": "700"}]
+                    }
+                },
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-hidden selection:bg-primary/30">
+<!-- TOP NAVIGATION SHELL -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 border-b border-outline-variant bg-stone-900/90 backdrop-blur-md">
+<a class="text-2xl font-bold text-primary tracking-widest font-headline uppercase" href="/">RUSHFRONT</a>
+<div class="hidden md:flex gap-8 items-center absolute left-1/2 -translate-x-1/2">
+<a class="text-secondary font-medium hover:text-primary transition-colors duration-200 text-sm uppercase tracking-widest font-headline" href="#">GAMES</a>
+<a class="text-secondary font-medium hover:text-primary transition-colors duration-200 text-sm uppercase tracking-widest font-headline" href="#">LEADERBOARDS</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-secondary hover:text-primary transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="shield">shield</span>
+</button>
+<button class="text-secondary hover:text-primary transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</nav>
+<!-- MAIN GAMEPLAY CANVAS -->
+<main class="pr-80 pt-16 h-screen flex flex-col tactical-overlay overflow-hidden">
+<!-- Resource Bar (Wooden Beam) -->
+<div class="h-14 wood-texture border-b-2 border-outline-variant flex items-center justify-center gap-12 shrink-0 px-8 shadow-xl w-full z-10">
+<div class="flex items-center gap-3 group cursor-default">
+<span class="material-symbols-outlined text-[#ffd700] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" style="font-variation-settings: 'FILL' 1;">forest</span>
+<span class="font-label-sm text-primary-fixed italic font-bold">WOOD: 2,450</span>
+</div>
+<div class="flex items-center gap-3 group cursor-default">
+<span class="material-symbols-outlined text-primary drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+<span class="font-label-sm text-primary-fixed italic font-bold">GOLD: 1,820</span>
+</div>
+<div class="flex items-center gap-3 group cursor-default">
+<span class="material-symbols-outlined text-[#a0a0a0] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" style="font-variation-settings: 'FILL' 1;">foundation</span>
+<span class="font-label-sm text-primary-fixed italic font-bold">STONE: 980</span>
+</div>
+<div class="flex items-center gap-3 group cursor-default">
+<span class="material-symbols-outlined text-[#87ceeb] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+<span class="font-label-sm text-primary-fixed italic font-bold">KNOWLEDGE: 45</span>
+</div>
+</div>
+<!-- Grid Area (Full area) -->
+<div class="flex-1 overflow-auto relative p-4 bg-stone-950">
+<div class="grid grid-cols-12 md:grid-cols-16 lg:grid-cols-20 auto-rows-fr min-h-full min-w-max border-4 border-outline-variant shadow-2xl bg-stone-900/40" id="battlefield-grid">
+<!-- Grid tiles will be injected or hardcoded here to ensure they fill the area -->
+</div>
+</div>
+</main>
+<!-- RIGHT PANEL -->
+<aside class="fixed right-0 top-16 h-[calc(100vh-64px)] w-80 border-l-4 border-outline-variant stone-texture z-40 flex flex-col">
+<div class="p-6 border-b-2 border-outline-variant bg-black/20">
+<div class="flex items-center justify-between mb-2">
+<h2 class="font-headline-md text-primary carved-text uppercase">Poste de Contrôle</h2>
+<span class="material-symbols-outlined text-primary">radar</span>
+</div>
+<p class="text-[10px] font-label-sm text-on-surface/50 uppercase tracking-widest italic">Imperial Management Console</p>
+</div>
+<div class="flex-1 overflow-y-auto p-6 space-y-8 bg-black/10">
+<!-- Build Section -->
+<section>
+<h3 class="font-label-sm text-primary mb-4 flex items-center gap-2 carved-text">
+<span class="w-2 h-2 bg-primary rotate-45"></span> CONSTRUCTION
+                </h3>
+<div class="grid grid-cols-2 gap-3">
+<button class="flex flex-col items-center justify-center p-4 parchment-texture border-2 border-[#8b7e66] hover:brightness-105 active:scale-95 transition-all group rounded-sm shadow-md">
+<span class="material-symbols-outlined text-[#4d3f2f] mb-2 text-3xl group-hover:scale-110 transition-transform">forest</span>
+<span class="font-label-sm text-[10px] uppercase font-bold">Scierie</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 parchment-texture border-2 border-[#8b7e66] hover:brightness-105 active:scale-95 transition-all group rounded-sm shadow-md">
+<span class="material-symbols-outlined text-[#4d3f2f] mb-2 text-3xl group-hover:scale-110 transition-transform">construction</span>
+<span class="font-label-sm text-[10px] uppercase font-bold">Mine</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 parchment-texture border-2 border-[#8b7e66] hover:brightness-105 active:scale-95 transition-all group rounded-sm shadow-md">
+<span class="material-symbols-outlined text-[#4d3f2f] mb-2 text-3xl group-hover:scale-110 transition-transform">shield</span>
+<span class="font-label-sm text-[10px] uppercase font-bold">Caserne</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 parchment-texture border-2 border-[#8b7e66] hover:brightness-105 active:scale-95 transition-all group rounded-sm shadow-md">
+<span class="material-symbols-outlined text-[#4d3f2f] mb-2 text-3xl group-hover:scale-110 transition-transform">history_edu</span>
+<span class="font-label-sm text-[10px] uppercase font-bold">Université</span>
+</button>
+</div>
+</section>
+<!-- Status Section -->
+<section>
+<h3 class="font-label-sm text-primary mb-4 flex items-center gap-2 carved-text">
+<span class="w-2 h-2 bg-primary rotate-45"></span> UNIT STATUS
+                </h3>
+<div class="space-y-3">
+<div class="bg-black/30 p-4 border-l-4 border-primary shadow-inner">
+<div class="flex justify-between items-center mb-2">
+<span class="text-xs font-bold text-on-surface uppercase tracking-tight">Knight Squad A</span>
+<span class="text-[10px] text-primary italic">IDLE</span>
+</div>
+<div class="w-full bg-black/50 h-1.5 overflow-hidden rounded-full">
+<div class="bg-primary h-full w-[85%] shadow-[0_0_10px_#f2ca50]"></div>
+</div>
+</div>
+<div class="bg-black/30 p-4 border-l-4 border-outline shadow-inner">
+<div class="flex justify-between items-center mb-2">
+<span class="text-xs font-bold text-on-surface uppercase tracking-tight">Peasant Workers</span>
+<span class="text-[10px] text-on-surface/50 italic">MINING</span>
+</div>
+<div class="w-full bg-black/50 h-1.5 overflow-hidden rounded-full">
+<div class="bg-outline h-full w-[40%]"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Tactical Map Preview -->
+<section class="mt-auto">
+<div class="relative w-full aspect-video bg-black border-2 border-outline-variant overflow-hidden group shadow-2xl">
+<img class="w-full h-full object-cover opacity-40 group-hover:scale-110 transition-transform duration-[2s] sepia-[0.3]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtHyAgf52Ja5FhHu-4tzXXfJtIaslj-Yt14BWhbEu-mb3YIN6qnTKwvBHRhVeioZNOwo8kZfXAVmNQ7EwBq9m0PUvFz_GEzwDB4KV14pPw49CRQe0qDi9IDZwUQKJB25jRdhFMccgpKX7cy83K292wD8Qe55d-eobiAm622ZVAct_Pi5aUwdxHUTmhNhLX3hdKYbnwCmrp9rH7ZxohHDF3TfNQoODyHi1v1Z8EUshI_ibbJL9pyHpxQQZnspdqs7ssTmmKnqsSc20b"/>
+<div class="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-transparent"></div>
+<div class="absolute bottom-3 left-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-[12px] text-primary animate-pulse">explore</span>
+<span class="text-[9px] font-bold tracking-widest text-on-surface/80 uppercase carved-text">Sector 7G: RECONNAISSANCE</span>
+</div>
+</div>
+</section>
+</div>
+<div class="p-6 bg-black/40 border-t-2 border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_#f2ca50]"></div>
+<span class="text-[10px] font-label-sm text-on-surface/40 uppercase">Connection Established</span>
+</div>
+</div>
+</aside>
+<script>
+        const grid = document.getElementById('battlefield-grid');
+        const rows = 12;
+        const cols = 20;
+        const totalTiles = rows * cols;
+        
+        // Define tile types and icons
+        const types = [
+            { type: 'water', icon: 'water', color: 'text-blue-400/40', class: 'tile-water' },
+            { type: 'forest', icon: 'park', color: 'text-green-500/30', class: 'tile-forest' },
+            { type: 'stone', icon: 'filter_hdr', color: 'text-stone-400/40', class: 'tile-stone' },
+            { type: 'void', icon: '', color: '', class: 'tile-void' }
+        ];
+
+        // Central starting point roughly
+        const startR = 5;
+        const startC = 8;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const tile = document.createElement('div');
+                tile.className = 'w-16 h-16 border etched-line flex items-center justify-center cursor-pointer grid-tile';
+                
+                // Determine if it's the player's starting position
+                const isMain = (r === startR && c === startC);
+                const isTerritory = (Math.abs(r - startR) <= 1 && Math.abs(c - startC) <= 1 && !isMain);
+
+                if (isMain) {
+                    tile.classList.add('tile-player', '!z-30');
+                    tile.innerHTML = `<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">castle</span>`;
+                } else if (isTerritory && Math.random() > 0.3) {
+                    tile.classList.add('tile-player');
+                    tile.innerHTML = `<span class="material-symbols-outlined text-primary/30 text-3xl">swords</span>`;
+                } else {
+                    // Random distribution with "Void" as majority
+                    const rand = Math.random();
+                    let selected;
+                    if (rand < 0.1) selected = types[0]; // Water 10%
+                    else if (rand < 0.2) selected = types[1]; // Forest 10%
+                    else if (rand < 0.3) selected = types[2]; // Stone 10%
+                    else selected = types[3]; // Void 70%
+
+                    tile.classList.add(selected.class);
+                    if (selected.icon) {
+                        tile.innerHTML = `<span class="material-symbols-outlined ${selected.color} text-3xl">${selected.icon}</span>`;
+                    }
+                }
+
+                tile.addEventListener('click', function() {
+                    document.querySelectorAll('.grid-tile').forEach(t => t.classList.remove('ring-2', 'ring-primary', 'ring-inset'));
+                    this.classList.add('ring-2', 'ring-primary', 'ring-inset');
+                });
+
+                grid.appendChild(tile);
+            }
+        }
+    </script>
+</body></html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>RUSHFRONT | War Room Lobby</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700;800&amp;family=Literata:opsz,wght@7..72,400;500;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .iron-texture {
+            background-color: #1c1c1b;
+            background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 4px 4px;
+            border: 2px solid #353533;
+            box-shadow: inset 0 0 10px #000, 4px 4px 0 #0e0e0d;
+        }
+        .wood-texture {
+            background-color: #383014;
+            background-image: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.1) 40px, rgba(0,0,0,0.1) 80px);
+            border: 4px solid #52482b;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+        }
+        .parchment {
+            background: #e5e2af;
+            background-image: url('https://www.transparenttextures.com/patterns/natural-paper.png');
+            color: #410000;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+            border-radius: 2px;
+        }
+        .scroll-banner {
+            background: rgba(28, 28, 27, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #d4af37;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+        .wax-seal {
+            background: #920703;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.6), 2px 2px 4px rgba(0,0,0,0.4);
+            border: 2px solid #410000;
+            transition: transform 0.2s;
+        }
+        .wax-seal:active { transform: scale(0.9); }
+        
+        .metallic-crest {
+            background: linear-gradient(135deg, #f2ca50 0%, #d4af37 50%, #735c00 100%);
+            border: 1px solid #ffe088;
+            box-shadow: 0 0 10px rgba(242, 202, 80, 0.2);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0e0e0d; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #52482b; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#ffdad4",
+                        "error-container": "#93000a",
+                        "on-primary-fixed-variant": "#574500",
+                        "surface-container": "#20201f",
+                        "surface-bright": "#393938",
+                        "surface-dim": "#131312",
+                        "on-tertiary-fixed": "#410000",
+                        "on-secondary-container": "#c6b792",
+                        "on-tertiary-container": "#8f0402",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-fixed": "#241a00",
+                        "on-surface": "#e5e2e0",
+                        "on-secondary-fixed": "#221b03",
+                        "surface-tint": "#e9c349",
+                        "surface-container-highest": "#353533",
+                        "secondary-container": "#52482b",
+                        "on-error": "#690005",
+                        "on-primary": "#3c2f00",
+                        "primary-fixed": "#ffe088",
+                        "background": "#131312",
+                        "surface-variant": "#353533",
+                        "on-background": "#e5e2e0",
+                        "surface-container-low": "#1c1c1b",
+                        "inverse-on-surface": "#31302f",
+                        "on-tertiary": "#690000",
+                        "surface-container-high": "#2a2a29",
+                        "primary-fixed-dim": "#e9c349",
+                        "outline-variant": "#4d4635",
+                        "on-tertiary-fixed-variant": "#920703",
+                        "on-primary-container": "#554300",
+                        "secondary-fixed": "#f1e1b9",
+                        "surface-container-lowest": "#0e0e0d",
+                        "primary-container": "#d4af37",
+                        "inverse-surface": "#e5e2e0",
+                        "surface": "#131312",
+                        "error": "#ffb4ab",
+                        "secondary": "#d4c59f",
+                        "outline": "#99907c",
+                        "tertiary-fixed-dim": "#ffb4a8",
+                        "tertiary-container": "#ff9686",
+                        "on-secondary-fixed-variant": "#504629",
+                        "on-surface-variant": "#d0c5af",
+                        "on-secondary": "#383014",
+                        "secondary-fixed-dim": "#d4c59f",
+                        "primary": "#f2ca50",
+                        "tertiary": "#ffbfb4",
+                        "inverse-primary": "#735c00"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Literata"],
+                        "headline-xl": ["EB Garamond"],
+                        "headline-lg": ["EB Garamond"],
+                        "headline-md": ["EB Garamond"],
+                        "label-sm": ["Literata"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-hidden">
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-8 h-16 border-b border-outline-variant bg-stone-900/90 backdrop-blur-md">
+<a class="text-2xl font-bold text-primary tracking-widest font-headline-md uppercase" href="/">RUSHFRONT</a>
+<div class="hidden md:flex gap-8 items-center absolute left-1/2 -translate-x-1/2">
+<a class="text-secondary font-medium hover:text-primary transition-colors duration-200 text-sm uppercase tracking-widest font-headline-md" href="#">GAMES</a>
+<a class="text-secondary font-medium hover:text-primary transition-colors duration-200 text-sm uppercase tracking-widest font-headline-md" href="#">LEADERBOARDS</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-secondary hover:text-primary transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="shield">shield</span>
+</button>
+<button class="text-secondary hover:text-primary transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</nav>
+<main class="mt-16 p-8 h-[calc(100vh-64px)] overflow-hidden relative">
+<div class="absolute inset-0 z-0 opacity-30 pointer-events-none overflow-hidden">
+<img class="w-full h-full object-cover grayscale brightness-50" data-alt="A cinematic, high-contrast digital painting of a medieval tactical war table inside a dark stone fortress. The scene is illuminated by flicking orange torches and a central golden light source. Deep charcoal shadows fill the corners of the room, while metallic elements and parchment maps on the table reflect a warm, golden glow. The atmosphere is solemn, martial, and heavy with the weight of impending war, following a modern-brutalist digital art style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjt5kO6_vk3ybNh423IDDm6Xzlp5Ty0SaXPgA3JBXgVzb-CbT7-jVrc36F17JOblw9SJG7PVsLPI23SI4mYFbC_7eaxtOk3h7rgQ30lXGzWuFkgIsYBbdZvqKHRaL1IKoA9ava35pkfyEBrr8mxyd_kQR_IBJv2Oy9kI9ASvANaiTG6o-RQ-00tPBAy5CSer2B_jVzcj6eYfhGE2x4jsNX15kQTSeLHgMnCey4FJq37_IrevPc4FFEPrxPdM4cQ1fi9vhQNzKvloMC">
+</div>
+<div class="relative z-10 grid grid-cols-12 gap-8 h-full">
+<!-- Tactical Scrolls Panel - Now on the left side -->
+
+<!-- War Room Content - Expanded to fill the center and right -->
+<div class="flex flex-col gap-8 h-full pb-8 col-span-12">
+<div class="flex justify-between items-center px-4">
+<div>
+<h1 class="font-headline-xl text-5xl text-on-surface uppercase tracking-tight">War Room <span class="text-primary">#402</span></h1>
+<p class="text-secondary font-label-sm uppercase tracking-[0.2em] mt-1">Map: Iron Forge Valley • Mode: Conquest 4v4</p>
+</div>
+<div class="flex gap-4">
+<div class="iron-texture px-6 py-2 flex items-center gap-3">
+<span class="material-symbols-outlined text-sm text-primary">lock</span>
+<span class="text-xs font-bold uppercase tracking-widest text-on-surface">Private Lobby</span>
+</div>
+</div>
+</div>
+<div class="flex-1 iron-texture p-1 flex flex-col overflow-hidden w-full">
+<div class="bg-black/40 p-4 border-b border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">groups</span>
+<h2 class="font-headline-md text-xl uppercase tracking-widest">Active Personnel</h2>
+</div>
+<div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+<!-- Redesigned Player Banner 1 -->
+<div class="scroll-banner p-6 flex items-center justify-between group">
+<div class="flex items-center gap-6">
+<div class="relative">
+<img alt="User Avatar" class="w-20 h-20 border-4 border-primary/50 shadow-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSK8iTjCkPkSsxFGW5e-dLH5ON7lI8h-8qgJ94TLWw-6xt3npdLZavetR600d1tUQAYb2zoCJ5zhowu1iF5G2NII29tPO3YJdbOEsLw2v-FXpZIaHKc0KpVXZ1tkMsacKNlOvPbBEAUuWMBJpA4tBm3JLn8_F_usyN90osaoLdMZQw0r3knEfiAG2ATy-o0ZoXivVoOkaCmg0hMvcDFdTeh7GeYCgAk0_hRvoVi4De0mxLYT6UtPNuQuKy6i4EU1a9w3qtU4E8brSu">
+<div class="absolute -top-2 -left-2 bg-primary text-on-primary text-[10px] font-bold px-2 py-0.5 rounded-sm shadow-md">HOST</div>
+</div>
+<div>
+<div class="font-headline-md text-3xl text-primary leading-none">Vanguard_Prime</div>
+<div class="text-sm text-secondary italic font-serif mt-1">Level 42 Overlord</div>
+</div>
+</div>
+<div class="flex items-center gap-16">
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-secondary uppercase font-bold tracking-widest mb-1">Heraldry</span>
+<div class="w-12 h-8 bg-primary border-2 border-black/20 shadow-md"></div>
+</div>
+<div class="flex flex-col items-center gap-1">
+<div class="wax-seal">
+<span class="material-symbols-outlined text-white text-3xl">check_circle</span>
+</div>
+<span class="text-[10px] font-bold text-primary uppercase tracking-widest">PRÊT</span>
+</div>
+</div>
+</div>
+<!-- Redesigned Player Banner 2 -->
+<div class="scroll-banner p-6 flex items-center justify-between group opacity-80">
+<div class="flex items-center gap-6">
+<img alt="User Avatar" class="w-20 h-20 border-4 border-outline/50 shadow-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMT_94TlsYSK0JlMIAQe0s0jO0Zy914CKoZHDzAIeYB1E_iCNdZu4IMQPWqHnMg6S5glbT8MSNni4zwyxIC-V8POeOfbyjA0cYUI4lr0ILeU1xIQ5sV2PijRE4Q0S7dYEjY7toejiXklkScAY4-4EhCUzJxMpIqDiytxs0UqGHxDakbHwUAvN48AkG1RY1CU44ydIoJeovOVg62-KcMO8TQ-BSrr9VeeGOX2UVliuqUrzPG8hIq6IAj_l-8O1DffMqB99eHl1kQNRs">
+<div>
+<div class="font-headline-md text-3xl text-secondary-fixed leading-none">ShieldMaiden_99</div>
+<div class="text-sm text-secondary/70 italic font-serif mt-1">Level 18 Knight</div>
+</div>
+</div>
+<div class="flex items-center gap-16">
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-secondary uppercase font-bold tracking-widest mb-1">Heraldry</span>
+<div class="w-12 h-8 bg-blue-700 border-2 border-black/20 shadow-md"></div>
+</div>
+<div class="flex flex-col items-center gap-1">
+<div class="wax-seal opacity-40 bg-zinc-700 grayscale border-zinc-900">
+<span class="material-symbols-outlined text-white text-3xl">hourglass_empty</span>
+</div>
+<span class="text-[10px] font-bold text-secondary-fixed-dim uppercase tracking-widest">ATTENTE</span>
+</div>
+</div>
+</div>
+<!-- Redesigned Player Banner 3 -->
+<div class="scroll-banner p-6 flex items-center justify-between group">
+<div class="flex items-center gap-6">
+<img alt="User Avatar" class="w-20 h-20 border-4 border-outline/50 shadow-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1_p5XOrep0qoBUm8Hhy5WzhRQtvozVTxYb5mQTREqsaFzEwnzlKT_7PnlBmtyyVu-50CsvNfFwcvcmL_754gqWhb1uY2XyQ5kNmV6lTSzRoLsqTF79SL_RYICbwiNwMyODS6d0b_cNw3uQokaye_1DNbKLvq5NRKjeCb7zywxM3I1M2KJ19dcDfbktrkz8RzzfbMqa9-skDstn0Bw_ynJ-U1j8l8s6-lbF3X5X4sV3uXgjtlvAU-hzj3erd-cWrk4nmwSc3_6ml8N">
+<div>
+<div class="font-headline-md text-3xl text-secondary-fixed leading-none">Rex_Ironfist</div>
+<div class="text-sm text-secondary/70 italic font-serif mt-1">Level 35 General</div>
+</div>
+</div>
+<div class="flex items-center gap-16">
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-secondary uppercase font-bold tracking-widest mb-1">Heraldry</span>
+<div class="w-12 h-8 bg-error-container border-2 border-black/20 shadow-md"></div>
+</div>
+<div class="flex flex-col items-center gap-1">
+<div class="wax-seal">
+<span class="material-symbols-outlined text-white text-3xl">check_circle</span>
+</div>
+<span class="text-[10px] font-bold text-primary uppercase tracking-widest">PRÊT</span>
+</div>
+</div>
+</div>
+<!-- Empty Slot -->
+<div class="border-2 border-dashed border-outline-variant bg-black/40 p-8 flex items-center justify-center gap-4 cursor-pointer hover:bg-black/60 transition-colors">
+<span class="material-symbols-outlined text-outline text-4xl">person_add</span>
+<div class="text-center">
+<div class="font-headline-md text-on-surface opacity-50 text-xl">Empty Garrison Slot</div>
+<div class="text-[10px] font-bold text-primary uppercase tracking-widest">Invoke Ally</div>
+</div>
+</div>
+</div>
+<div class="bg-black/60 p-6 grid grid-cols-2 gap-12 border-t-2 border-outline-variant">
+<div>
+<h3 class="font-label-sm uppercase tracking-widest text-secondary mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">palette</span> Chosen Heraldry Color
+                        </h3>
+<div class="flex flex-wrap gap-3">
+<button class="w-10 h-10 bg-error ring-2 ring-primary ring-offset-2 ring-offset-black transition-all"></button>
+<button class="w-10 h-10 bg-blue-700 hover:scale-110 transition-all"></button>
+<button class="w-10 h-10 bg-emerald-700 hover:scale-110 transition-all"></button>
+<button class="w-10 h-10 bg-primary hover:scale-110 transition-all"></button>
+<button class="w-10 h-10 bg-purple-800 hover:scale-110 transition-all"></button>
+<button class="w-10 h-10 bg-orange-700 hover:scale-110 transition-all"></button>
+</div>
+</div>
+<div class="flex flex-col justify-center">
+<button class="h-16 metallic-crest text-on-primary font-headline-md text-2xl flex items-center justify-center gap-4 shadow-xl hover:brightness-110 active:scale-95 transition-all group overflow-hidden" id="readyToggle">
+<span class="material-symbols-outlined text-4xl" id="readyIcon" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="" id="readyText">LANCER LA PARTIE</span>
+</button>
+<p class="text-[10px] text-center text-secondary-fixed-dim mt-3 uppercase tracking-widest font-bold">Invasion begins in 00:42</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<div class="fixed bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-primary/40 to-transparent shadow-[0_-4px_20px_rgba(242,202,80,0.2)]"></div>
+<script>
+    const readyBtn = document.getElementById('readyToggle');
+    const readyText = document.getElementById('readyText');
+    const readyIcon = document.getElementById('readyIcon');
+    let isReady = true;
+
+    readyBtn.addEventListener('click', () => {
+        isReady = !isReady;
+        if (isReady) {
+            readyBtn.classList.remove('grayscale', 'opacity-70');
+            readyBtn.classList.add('metallic-crest');
+            readyText.textContent = 'PROCLAIM READINESS';
+            readyIcon.textContent = 'verified';
+            readyIcon.style.fontVariationSettings = "'FILL' 1";
+        } else {
+            readyBtn.classList.add('grayscale', 'opacity-70');
+            readyBtn.classList.remove('metallic-crest');
+            readyText.textContent = 'CONSULTING COMMAND';
+            readyIcon.textContent = 'hourglass_bottom';
+            readyIcon.style.fontVariationSettings = "'FILL' 0";
+        }
+    });
+</script>
+
+
+</body></html>

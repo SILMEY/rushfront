@@ -1,0 +1,190 @@
+<!DOCTYPE html><html class="dark" lang="fr" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700;800&amp;family=Literata:ital,wght@0,400;0,700;1,400&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .burnished-gold-glow:hover {
+            box-shadow: 0 0 20px rgba(184, 134, 11, 0.3);
+        }
+        .parchment-texture {
+            background-color: #d2c19d;
+            background-image: url("https://www.transparenttextures.com/patterns/p6.png");
+            color: #3e2723;
+            clip-path: polygon(
+                0% 2%, 5% 0%, 10% 3%, 15% 1%, 20% 4%, 25% 2%, 30% 5%, 35% 3%, 40% 6%, 45% 4%, 50% 7%, 55% 5%, 60% 8%, 65% 6%, 70% 9%, 75% 7%, 80% 10%, 85% 8%, 90% 11%, 95% 9%, 100% 12%,
+                100% 90%, 97% 93%, 94% 91%, 91% 94%, 88% 92%, 85% 95%, 82% 93%, 79% 96%, 76% 94%, 73% 97%, 70% 95%, 67% 98%, 64% 96%, 61% 99%, 58% 97%, 55% 100%, 52% 98%, 49% 100%, 46% 98%, 43% 100%, 40% 98%, 37% 100%, 34% 98%, 31% 100%, 28% 98%, 25% 100%, 22% 98%, 19% 100%, 16% 98%, 13% 100%, 10% 98%, 7% 100%, 4% 98%, 0% 100%
+            );
+        }
+        .antique-gradient {
+            background: linear-gradient(180deg, #d4af37 0%, #996515 100%);
+        }
+        .stone-block {
+            background-color: #1a1a1a;
+            background-image: url("https://www.transparenttextures.com/patterns/dark-matter.png");
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+        body {
+            background-color: #131312;
+            color: #e5e2e0;
+            overflow-x: hidden;
+            font-family: 'Literata', serif;
+        }
+        h1, h2, h3, .font-headline {
+            font-family: 'EB Garamond', serif;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#d4af37", /* Antique Gold */
+                        "on-primary": "#241a00",
+                        "secondary": "#d4c59f",
+                        "background": "#131312",
+                        "surface": "#1a1a1a",
+                        "outline": "#99907c",
+                        "outline-variant": "#4d4635",
+                        "surface-container": "#20201f"
+                    },
+                    "spacing": {
+                        "container-margin": "24px",
+                        "panel-padding": "24px",
+                        "gutter": "24px"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background selection:bg-primary selection:text-on-primary">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-container-margin h-16 border-b border-outline-variant bg-stone-900/90 backdrop-blur-md">
+<a href="/" class="text-2xl font-bold text-primary tracking-widest font-headline">RUSHFRONT</a>
+<div class="hidden md:flex gap-8 items-center absolute left-1/2 -translate-x-1/2"><a class="text-secondary font-medium hover:text-primary transition-colors duration-200 text-sm uppercase tracking-widest font-headline" href="#">GAMES</a><a class="text-secondary font-medium hover:text-primary transition-colors duration-200 text-sm uppercase tracking-widest font-headline" href="#">LEADERBOARDS</a></div>
+<div class="flex items-center gap-4">
+<button class="text-secondary hover:text-primary transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="shield">shield</span>
+</button>
+<button class="text-secondary hover:text-primary transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</nav>
+<main class="pt-16">
+<!-- Hero Section -->
+<section class="relative h-[90vh] w-full flex items-center justify-center overflow-hidden">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover opacity-70" data-alt="A grand oil painting of a medieval battlefield with knights charging through misty fields under a heavy grey sky, orange embers flying in the air." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8Cln9HzQBqB53mGjJpzVik_jnYHYyrQ9EEmNG5MVjPPy-VdmHcvjWnITWdzScnDTZzzE59sdrPbXiRNBOiRfzZO1bRzU-8q2MaRYSsxvbdolnL2oSGgG3mvturc3AT5TVgWirIpcZ_04Ad_qjMSiX_pTT06U84Z9OpRRpKKoA4zgRxx6rTbtfTfr00wh_muCjW08fqdBN8Nwx_zIZvxXgvdwMIyFpKA1HJz-ypzaC2wA75BSLkkvohAuZNbJYq9hvDiCuoTBMipmO">
+<div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
+</div>
+<div class="relative z-10 text-center max-w-4xl px-container-margin">
+<h1 class="text-6xl md:text-8xl text-primary mb-6 font-bold drop-shadow-2xl font-headline tracking-tighter uppercase">
+                COMMANDER L'AVENIR
+            </h1>
+<p class="text-xl md:text-2xl text-secondary max-w-2xl mx-auto mb-10 italic">
+                Préparez-vous pour l'affrontement tactique ultime. Gérez vos ressources, déployez vos troupes et dominez le champ de bataille sur une grille millimétrée.
+            </p>
+<button class="antique-gradient text-on-primary font-headline text-xl px-16 py-5 border border-primary/50 burnished-gold-glow transition-all active:scale-95 uppercase tracking-[0.3em] font-bold shadow-lg">
+                REJOINDRE LA BATAILLE
+            </button>
+</div>
+</section>
+<!-- Mission Selection -->
+<section class="py-24 px-container-margin max-w-7xl mx-auto flex flex-col items-center">
+<h2 class="text-3xl md:text-5xl text-center mb-20 tracking-[0.25em] text-primary font-headline uppercase">CHOISISSEZ VOTRE MISSION</h2>
+<div class="grid md:grid-cols-2 gap-12">
+<!-- Card 1: Online -->
+<div class="group relative bg-stone-900/60 backdrop-blur-md border border-outline-variant/30 min-h-[450px] transition-all duration-500 hover:-translate-y-2 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] cursor-pointer p-1">
+<div class="h-full w-full border border-primary/10 flex flex-col p-10">
+<div class="mb-6 inline-flex items-center gap-2 px-4 py-1 bg-primary/10 border border-primary/20 w-fit">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-bold text-xs uppercase tracking-widest text-primary">EN DIRECT</span>
+</div>
+<h3 class="text-4xl font-headline text-primary mb-4 leading-none">Lancer une partie rapide</h3>
+<p class="text-lg text-secondary/80 mb-auto leading-relaxed italic">Affrontez des commandants inconnus à travers le royaume et gravissez les échelons de la ligue impériale.</p>
+<div class="mt-8 flex justify-between items-center pt-6 border-t border-outline-variant/30">
+<span class="font-headline font-bold text-lg uppercase tracking-widest text-primary/80 group-hover:text-primary transition-colors">LANCER PARTIE RAPIDE</span>
+<span class="material-symbols-outlined text-primary/80 group-hover:translate-x-2 transition-transform" data-icon="swords">swords</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Custom -->
+<div class="group relative bg-stone-900/60 backdrop-blur-md border border-outline-variant/30 min-h-[450px] transition-all duration-500 hover:-translate-y-2 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] cursor-pointer p-1">
+<div class="h-full w-full border border-primary/10 flex flex-col p-10">
+<div class="mb-6 inline-flex items-center gap-2 px-4 py-1 bg-primary/10 border border-primary/20 w-fit">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="history_edu">history_edu</span>
+<span class="font-bold text-xs uppercase tracking-widest text-primary">MODULABLE</span>
+</div>
+<h3 class="text-4xl font-headline text-primary mb-4 leading-none">Partie personnalisée</h3>
+<p class="text-lg text-secondary/80 mb-auto leading-relaxed italic">Organisez une bataille privée avec vos amis.</p>
+<div class="mt-8 flex justify-between items-center pt-6 border-t border-outline-variant/30">
+<span class="font-headline font-bold text-lg uppercase tracking-widest text-primary/80 group-hover:text-primary transition-colors">CRÉER PARTIE PERSONNALISÉE</span>
+<span class="material-symbols-outlined text-primary/80 group-hover:translate-x-2 transition-transform" data-icon="menu_book">menu_book</span>
+</div><div class="mt-8 pt-6 border-t border-outline-variant/30"><h4 class="font-headline font-bold text-sm uppercase tracking-widest text-primary mb-4">PARTIES DISPONIBLES</h4><div class="space-y-3"><div class="flex justify-between items-center bg-white/5 p-3 border border-outline-variant/20 hover:bg-white/10 transition-colors"><div class="flex flex-col"><span class="text-sm font-bold text-secondary">Forteresse de Fer</span><span class="text-[10px] text-secondary/50 uppercase tracking-tighter">Joueurs: 2/4</span></div><button class="text-xs font-headline font-bold text-primary uppercase border border-primary/30 px-3 py-1 hover:bg-primary hover:text-on-primary transition-all">Rejoindre</button></div><div class="flex justify-between items-center bg-white/5 p-3 border border-outline-variant/20 hover:bg-white/10 transition-colors"><div class="flex flex-col"><span class="text-sm font-bold text-secondary">Plaines de la Couronne</span><span class="text-[10px] text-secondary/50 uppercase tracking-tighter">Joueurs: 1/2</span></div><button class="text-xs font-headline font-bold text-primary uppercase border border-primary/30 px-3 py-1 hover:bg-primary hover:text-on-primary transition-all">Rejoindre</button></div></div></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Stats Section -->
+<section class="py-24 stone-block border-y border-outline-variant/30">
+<div class="max-w-7xl mx-auto px-container-margin flex flex-col md:flex-row gap-16 items-center">
+<div class="flex-1">
+<h2 class="text-5xl font-headline text-primary mb-8 leading-tight uppercase tracking-wide">ÉCONOMIE DE GUERRE</h2>
+<p class="text-xl text-secondary leading-relaxed italic opacity-80">
+                    Analysez vos performances en temps réel. Notre interface de commandement vous fournit toutes les données nécessaires pour optimiser votre stratégie de conquête et assurer la pérennité de votre royaume.
+                </p>
+</div>
+<div class="flex-none grid grid-cols-2 gap-6 w-full md:w-1/2">
+<div class="p-10 bg-black/40 border border-outline-variant/30 text-center">
+<div class="text-primary text-5xl font-headline mb-2">1.2M</div>
+<div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Unités Déployées</div>
+</div>
+<div class="p-10 bg-black/40 border border-outline-variant/30 text-center mt-12 md:mt-24">
+<div class="text-primary text-5xl font-headline mb-2">84%</div>
+<div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Taux de Victoire</div>
+</div>
+<div class="p-10 bg-black/40 border border-outline-variant/30 text-center -mt-12 md:-mt-24">
+<div class="text-primary text-5xl font-headline mb-2">150+</div>
+<div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Cartes Uniques</div>
+</div>
+<div class="p-10 bg-black/40 border border-outline-variant/30 text-center">
+<div class="text-primary text-5xl font-headline mb-2">24/7</div>
+<div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Conseil Tactique</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="py-20 px-container-margin stone-block border-t border-white/5">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
+<div class="text-3xl font-headline text-primary tracking-[0.4em] font-bold">RUSHFRONT</div>
+<div class="flex gap-12">
+<a class="text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors font-headline" href="#">Confidentialité</a>
+<a class="text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors font-headline" href="#">Conditions</a>
+<a class="text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors font-headline" href="#">Support</a>
+</div>
+<div class="text-secondary/40 text-[10px] uppercase tracking-[0.3em] font-headline">© 2024 RUSHFRONT EMPIRE. TOUS DROITS RÉSERVÉS PAR LA COURONNE.</div>
+</div>
+</footer>
+<script>
+    // Sticky Nav logic
+    window.addEventListener('scroll', () => {
+        const nav = document.querySelector('nav');
+        if (window.scrollY > 50) {
+            nav.classList.add('shadow-2xl');
+        } else {
+            nav.classList.remove('shadow-2xl');
+        }
+    });
+</script>
+
+
+
+
+</body></html>
