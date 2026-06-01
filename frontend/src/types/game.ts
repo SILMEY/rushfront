@@ -34,6 +34,7 @@ export type GamePlayerState = {
   basePosition: Vec2 | null;
   resources: PlayerResources;
   techs?: string[];
+  desiredSoldierPct?: number;
 };
 
 export type GameStateSnapshot = {

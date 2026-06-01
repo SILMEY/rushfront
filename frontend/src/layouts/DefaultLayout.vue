@@ -17,7 +17,11 @@ function openProfile() {
     <header class="sticky top-0 z-10 border-b border-white/10 bg-zinc-950/60 backdrop-blur">
       <div class="flex h-14 w-full items-center justify-between px-4 lg:px-6">
         <div class="flex items-center gap-3">
-          <div class="h-8 w-8 rounded bg-emerald-500/15 ring-1 ring-emerald-500/30"></div>
+          <img
+            src="/rushfront-logo.svg"
+            class="h-8 w-8 rounded ring-1 ring-white/10"
+            alt="Rushfront"
+          />
           <div class="font-semibold tracking-wide text-emerald-200">Rushfront</div>
         </div>
         <div v-if="auth.user" class="flex items-center gap-3">

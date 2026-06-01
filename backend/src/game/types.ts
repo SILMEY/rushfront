@@ -41,6 +41,7 @@ export type GamePlayerState = {
   basePosition: Vec2 | null;
   resources: PlayerResources;
   techs?: string[];
+  desiredSoldierPct?: number; // 0..100
 };
 
 export type ClaimIntent = {

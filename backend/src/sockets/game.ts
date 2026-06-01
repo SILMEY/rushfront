@@ -103,7 +103,7 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     }
   });
 
-  socket.on("game:set_composition", async (payload: { gameId: string; soldiers: number }) => {
+  socket.on("game:set_composition", async (payload: { gameId: string; soldierPct?: number; soldiers?: number }) => {
     try {
       const userId = userIdOf(socket);
       const instance = gameManager.getActive(payload.gameId);
@@ -112,9 +112,20 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       if (!player) throw new Error("not_in_game");
 
       const total = player.resources.villagers + player.resources.soldiers;
-      const soldiers = Math.max(0, Math.min(total, Math.floor(payload.soldiers)));
-      player.resources.soldiers = soldiers;
-      player.resources.villagers = total - soldiers;
+
+      if (typeof payload.soldierPct === "number" && Number.isFinite(payload.soldierPct)) {
+        const pct = Math.max(0, Math.min(100, Math.round(payload.soldierPct)));
+        (player as any).desiredSoldierPct = pct;
+        const soldiers = Math.max(0, Math.min(total, Math.round((pct / 100) * total)));
+        player.resources.soldiers = soldiers;
+        player.resources.villagers = total - soldiers;
+      } else {
+        const soldiers = Math.max(0, Math.min(total, Math.floor(payload.soldiers ?? 0)));
+        player.resources.soldiers = soldiers;
+        player.resources.villagers = total - soldiers;
+        const pct = total > 0 ? Math.round((soldiers / total) * 100) : 0;
+        (player as any).desiredSoldierPct = pct;
+      }
 
       io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
     } catch (e: any) {

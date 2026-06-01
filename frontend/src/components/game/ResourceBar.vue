@@ -92,13 +92,10 @@ const secondsLeft = computed(() => {
 
 const compositionPct = ref(0);
 watch(
-  () => me.value?.resources.soldiers,
+  () => me.value?.desiredSoldierPct,
   (v) => {
-    const player = me.value;
-    if (!player || typeof v !== "number") return;
-    const total = player.resources.villagers + player.resources.soldiers;
-    if (total <= 0) compositionPct.value = 0;
-    else compositionPct.value = Math.round((player.resources.soldiers / total) * 100);
+    if (typeof v !== "number" || !Number.isFinite(v)) return;
+    compositionPct.value = Math.max(0, Math.min(100, Math.round(v)));
   },
   { immediate: true }
 );
@@ -106,9 +103,7 @@ watch(
 let compositionTimer: number | null = null;
 function commitComposition() {
   if (!props.state || !me.value) return;
-  const total = me.value.resources.villagers + me.value.resources.soldiers;
-  const soldiers = Math.max(0, Math.min(total, Math.round((compositionPct.value / 100) * total)));
-  void game.setComposition(props.state.gameId, soldiers);
+  void game.setComposition(props.state.gameId, compositionPct.value);
 }
 function scheduleCommit() {
   if (compositionTimer != null) window.clearTimeout(compositionTimer);

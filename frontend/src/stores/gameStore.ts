@@ -129,7 +129,7 @@ export const useGameStore = defineStore("game", {
     },
     async setComposition(gameId: string, soldiers: number) {
       const socket = await getSocket();
-      socket.emit("game:set_composition", { gameId, soldiers });
+      socket.emit("game:set_composition", { gameId, soldierPct: soldiers });
     },
     setHovered(pos: Vec2 | null) {
       this.hoveredTile = pos;

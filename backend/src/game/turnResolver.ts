@@ -203,7 +203,23 @@ export function resolveTurn(input: TurnInput) {
     // Soldiers gain is intentionally slow (strategic pacing).
     const recruitFromVillagers = Math.floor(player.resources.villagers / 10);
     const recruitFromTerritory = 1 + Math.floor(ownedTiles / 12) + Math.floor(fishingHuts / 2);
-    player.resources.soldiers += recruitFromVillagers + recruitFromTerritory + (techs.has("mil_training") ? 1 : 0);
+    const recruits = recruitFromVillagers + recruitFromTerritory + (techs.has("mil_training") ? 1 : 0);
+
+    // Split new recruits between villagers/soldiers using the player's desired ratio.
+    // This keeps the UI slider stable and makes growth follow the chosen composition.
+    const desiredPctRaw = (player as any).desiredSoldierPct;
+    const desiredPct =
+      typeof desiredPctRaw === "number" && Number.isFinite(desiredPctRaw) ? Math.max(0, Math.min(100, desiredPctRaw)) : 0;
+
+    const currentTotal = player.resources.villagers + player.resources.soldiers;
+    const nextTotal = currentTotal + recruits;
+    const targetSoldiers = Math.max(0, Math.min(nextTotal, Math.round((desiredPct / 100) * nextTotal)));
+    const deltaSoldiers = targetSoldiers - player.resources.soldiers;
+    const addSoldiers = Math.max(0, Math.min(recruits, deltaSoldiers));
+    const addVillagers = recruits - addSoldiers;
+
+    player.resources.soldiers += addSoldiers;
+    player.resources.villagers += addVillagers;
 
     // Passive economy from villagers (small baseline so the split matters even early-game).
     player.resources.wood += Math.floor(player.resources.villagers / 12);

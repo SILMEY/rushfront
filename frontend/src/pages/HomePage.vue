@@ -6,7 +6,7 @@ import { useLobbyStore } from "../stores/lobbyStore";
 const lobby = useLobbyStore();
 const router = useRouter();
 const heroOk = ref(true);
-const heroSrc = "/rushfront-hero.svg";
+const heroSrc = "/rf.png";
 
 onMounted(() => lobby.refresh());
 </script>
@@ -25,25 +25,29 @@ onMounted(() => lobby.refresh());
 
     <div class="grid gap-6 lg:grid-cols-12">
       <div class="lg:col-span-7">
-        <div class="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-          <div
-            v-if="heroOk"
-            class="absolute inset-0 opacity-70"
-            style="
-              background: radial-gradient(1200px 400px at 20% 20%, rgba(99, 102, 241, 0.35), transparent 55%),
-                radial-gradient(900px 500px at 80% 60%, rgba(34, 197, 94, 0.22), transparent 60%);
-            "
-          />
-          <img
-            v-if="heroOk"
-            :src="heroSrc"
-            class="absolute inset-0 h-full w-full object-cover opacity-60"
-            alt="Rushfront"
-            @error="heroOk = false"
-          />
-          <div class="absolute inset-0 bg-gradient-to-b from-zinc-950/50 via-zinc-950/70 to-zinc-950"></div>
+        <div class="grid gap-4">
+          <div class="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+            <div
+              class="absolute inset-0 opacity-70"
+              style="
+                background: radial-gradient(1200px 400px at 20% 20%, rgba(99, 102, 241, 0.35), transparent 55%),
+                  radial-gradient(900px 500px at 80% 60%, rgba(34, 197, 94, 0.22), transparent 60%);
+              "
+            />
+            <div class="relative">
+              <img
+                v-if="heroOk"
+                :src="heroSrc"
+                class="h-[220px] w-full object-cover"
+                alt="Rushfront"
+                @error="heroOk = false"
+              />
+              <div v-else class="grid h-[220px] place-items-center text-sm text-slate-400">Image indisponible</div>
+              <div class="absolute inset-0 bg-gradient-to-b from-zinc-950/0 via-zinc-950/20 to-zinc-950/70"></div>
+            </div>
+          </div>
 
-          <div class="relative p-6">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
             <div class="flex flex-wrap items-center gap-2">
               <span class="rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-semibold text-indigo-200 ring-1 ring-indigo-500/25">
                 Tour par tour
@@ -77,7 +81,6 @@ onMounted(() => lobby.refresh());
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
