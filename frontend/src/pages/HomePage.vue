@@ -2,13 +2,12 @@
 import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
+import heroBgUrl from "../assets/bggame.png";
 
 const lobby = useLobbyStore();
 const router = useRouter();
 
 onMounted(() => lobby.refresh());
-
-import heroBgUrl from "../assets/bggame.png";
 
 const hasAnyLobby = computed(() => lobby.lobbies.length > 0);
 function hostNameOf(g: any) {
@@ -22,16 +21,16 @@ function hostNameOf(g: any) {
     <main>
       <!-- Hero Section -->
       <section class="relative flex h-[65vh] w-full items-center justify-center overflow-hidden">
-        <div class="absolute inset-0">
+        <div class="absolute inset-0 z-0">
           <img
-            class="h-full w-full object-cover opacity-70"
+            class="w-full h-full object-cover opacity-70"
             :src="heroBgUrl"
             alt="Rushfront"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
         </div>
 
-        <div class="relative mx-auto -mt-12 w-full max-w-4xl px-container-margin text-center md:-mt-16">
+        <div class="relative z-10 mx-auto -mt-12 w-full max-w-4xl px-container-margin text-center md:-mt-16">
           <h1 class="font-headline whitespace-nowrap text-5xl font-bold uppercase tracking-tighter text-primary drop-shadow-2xl md:text-7xl">
             COMMANDER L'AVENIR
           </h1>
