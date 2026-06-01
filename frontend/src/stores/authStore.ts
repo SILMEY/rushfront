@@ -43,11 +43,17 @@ export const useAuthStore = defineStore("auth", {
       window.location.href = `${apiOrigin()}/auth/google/start`;
     },
     async logout() {
-      await apiFetch("/auth/logout", { method: "POST" });
-      this.setAccessToken(null);
-      this.user = null;
-      disconnectSocket();
-      window.location.href = "/login";
+      try {
+        await apiFetch("/auth/logout", { method: "POST" });
+      } catch {
+        // Even if the API call fails (expired session, network error), we still want to clear local auth state.
+      } finally {
+        this.setAccessToken(null);
+        this.user = null;
+        disconnectSocket();
+        const base = (import.meta.env.BASE_URL as string) || "/";
+        window.location.assign(`${base.replace(/\/+$/, "/")}login`);
+      }
     },
     async setPseudo(pseudo: string) {
       const res = await apiFetch<{ user: User }>("/profile/pseudo", {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
 import heroBgUrl from "../assets/bggame.png";
@@ -8,6 +8,90 @@ const lobby = useLobbyStore();
 const router = useRouter();
 
 onMounted(() => lobby.refresh());
+
+const canvasRef = ref<HTMLCanvasElement | null>(null);
+let raf: number | null = null;
+
+type Particle = {
+  x: number;
+  y: number;
+  size: number;
+  speedX: number;
+  speedY: number;
+  alpha: number;
+  color: string;
+};
+
+function initParticle(w: number, h: number): Particle {
+  return {
+    x: Math.random() * w,
+    y: Math.random() * h,
+    size: Math.random() * 1.5 + 0.5,
+    speedX: Math.random() * 0.4 - 0.2,
+    speedY: Math.random() * -0.4 - 0.05,
+    alpha: Math.random() * 0.4 + 0.1,
+    color: Math.random() > 0.5 ? "242, 202, 80" : "212, 175, 55"
+  };
+}
+
+onMounted(() => {
+  const canvas = canvasRef.value;
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const particles: Particle[] = [];
+  const resize = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  };
+  const init = () => {
+    particles.length = 0;
+    for (let i = 0; i < 60; i++) particles.push(initParticle(canvas.width, canvas.height));
+  };
+
+  const onResize = () => {
+    resize();
+    init();
+  };
+  window.addEventListener("resize", onResize);
+  resize();
+  init();
+
+  const animate = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const p of particles) {
+      p.x += p.speedX;
+      p.y += p.speedY;
+      if (p.y < -10 || p.x < 0 || p.x > canvas.width) {
+        const np = initParticle(canvas.width, canvas.height);
+        p.x = np.x;
+        p.y = np.y;
+        p.size = np.size;
+        p.speedX = np.speedX;
+        p.speedY = np.speedY;
+        p.alpha = np.alpha;
+        p.color = np.color;
+      }
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = `rgba(${p.color}, ${p.alpha})`;
+      ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    raf = requestAnimationFrame(animate);
+  };
+  raf = requestAnimationFrame(animate);
+
+  onBeforeUnmount(() => {
+    window.removeEventListener("resize", onResize);
+  });
+});
+
+onBeforeUnmount(() => {
+  if (raf != null) cancelAnimationFrame(raf);
+});
 
 const hasAnyLobby = computed(() => lobby.lobbies.length > 0);
 function hostNameOf(g: any) {
@@ -18,17 +102,15 @@ function hostNameOf(g: any) {
 <template>
   <!-- Structure aligned with `frontend/public/code_accueil.html` (without the local nav; global TopNavBar is used). -->
   <div class="bg-background text-on-background selection:bg-primary selection:text-on-primary">
+    <canvas ref="canvasRef" class="pointer-events-none fixed inset-0 z-[5] opacity-35" />
     <main>
       <!-- Hero Section -->
-      <section class="relative flex h-[65vh] w-full items-center justify-center overflow-hidden">
-        <div class="absolute inset-0 z-0">
-          <img
-            class="w-full h-full object-cover opacity-70"
-            :src="heroBgUrl"
-            alt="Rushfront"
-          />
-          <div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
-        </div>
+      <section
+        class="relative flex h-[40vh] w-full items-center justify-center overflow-hidden bg-cover bg-center"
+        :style="{ backgroundImage: `url(${heroBgUrl})` }"
+      >
+        <div class="absolute inset-0 z-0 bg-black/30"></div>
+        <div class="absolute inset-0 z-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
 
         <div class="relative z-10 mx-auto -mt-12 w-full max-w-4xl px-container-margin text-center md:-mt-16">
           <h1 class="font-headline whitespace-nowrap text-5xl font-bold uppercase tracking-tighter text-primary drop-shadow-2xl md:text-7xl">
@@ -71,7 +153,7 @@ function hostNameOf(g: any) {
                 </button>
               </div>
 
-              <div class="mt-6 rounded border border-outline-variant/20 bg-white/5 p-3 text-sm text-secondary/60">Aucune partie pour l’instant.</div>
+              
             </div>
           </div>
 
@@ -93,7 +175,7 @@ function hostNameOf(g: any) {
 
               <div class="mt-6 flex items-center gap-2">
                 <button
-                  class="burnished-gold-glow rounded-md border border-primary/60 bg-gradient-to-r from-primary to-primary/80 px-7 py-3 text-sm font-headline font-extrabold uppercase tracking-[0.25em] text-on-primary shadow-lg transition hover:brightness-110 active:scale-[0.98]"
+                  class="burnished-gold-glow rounded-md border border-[#d4af37]/80 bg-gradient-to-r from-[#d4af37] to-[#f2ca50] px-7 py-3 text-sm font-headline font-extrabold uppercase tracking-[0.25em] text-[#241a00] shadow-lg transition hover:brightness-110 active:scale-[0.98]"
                   @click="lobby.createLobby()"
                 >
                   Créer
