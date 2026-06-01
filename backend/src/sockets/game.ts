@@ -66,12 +66,12 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     }
   });
 
-  socket.on("game:attack_tile", async (payload: { gameId: string; x: number; y: number }) => {
+  socket.on("game:attack_tile", async (payload: { gameId: string; x: number; y: number; amount: number }) => {
     try {
       const userId = userIdOf(socket);
       const instance = gameManager.getActive(payload.gameId);
       if (!instance) throw new Error("game_not_active");
-      instance.attackTile(userId, { x: payload.x, y: payload.y });
+      instance.queueAttack(userId, { pos: { x: payload.x, y: payload.y }, amount: payload.amount });
       // Don't broadcast full state on every attack; clients render optimistically.
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });

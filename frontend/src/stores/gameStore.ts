@@ -13,7 +13,7 @@ function canClaimTileOptimistic(state: GameStateSnapshot, playerId: string, pos:
   if (!inBounds(pos, state)) return false;
   const i = tileIndex(pos.x, pos.y, state.width);
   const type = state.tiles.types[i] as TileType;
-  if (type === TileType.Water) return false;
+  if (type !== TileType.Plain) return false;
   // Used for both neutral claims and attacks: requires adjacency and non-water.
   const neighbors = [
     { x: pos.x + 1, y: pos.y },
@@ -86,7 +86,7 @@ export const useGameStore = defineStore("game", {
       const socket = await getSocket();
       socket.emit("game:claim_tile", { gameId, x: pos.x, y: pos.y });
     },
-    async attackTile(gameId: string, pos: Vec2) {
+    async attackTile(gameId: string, pos: Vec2, amount: number) {
       if (!this.state) return;
       const meId = this.mePlayer?.id;
       if (!meId) return;
@@ -97,11 +97,13 @@ export const useGameStore = defineStore("game", {
       const owner = this.state.tiles.owners[i];
       if (!owner || owner === meId) return;
       if (!canClaimTileOptimistic(this.state, meId, pos)) return; // same adjacency rule
-      if ((this.mePlayer?.resources.soldiers ?? 0) < 10) return;
+      const a = Math.floor(amount);
+      if (!Number.isFinite(a) || a <= 0) return;
+      if ((this.mePlayer?.resources.soldiers ?? 0) < a) return;
 
       this.optimisticClaims[`${pos.x},${pos.y}`] = true;
       const socket = await getSocket();
-      socket.emit("game:attack_tile", { gameId, x: pos.x, y: pos.y });
+      socket.emit("game:attack_tile", { gameId, x: pos.x, y: pos.y, amount: a });
     },
     async claimTiles(gameId: string, tiles: Vec2[]) {
       if (!this.state) return;
@@ -144,7 +146,14 @@ export const useGameStore = defineStore("game", {
       if (meId) {
         const i = tileIndex(pos.x, pos.y, this.state.width);
         const owner = this.state.tiles.owners[i];
-        if (owner && owner !== meId) return this.attackTile(this.state.gameId, pos);
+        if (owner && owner !== meId) {
+          const max = this.mePlayer?.resources.soldiers ?? 0;
+          if (max <= 0) return;
+          const raw = window.prompt(`Combien de militaires envoyer ? (1-${max})`, String(Math.min(10, max)));
+          if (raw == null) return;
+          const amount = Math.max(1, Math.min(max, Number.parseInt(raw, 10) || 0));
+          return this.attackTile(this.state.gameId, pos, amount);
+        }
       }
 
       return this.claimTile(this.state.gameId, pos);

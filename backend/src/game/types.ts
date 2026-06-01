@@ -49,6 +49,12 @@ export type ClaimIntent = {
   y: number;
 };
 
+export type AttackIntent = {
+  x: number;
+  y: number;
+  amount: number;
+};
+
 export type BuildIntent = {
   x: number;
   y: number;
@@ -70,7 +76,7 @@ export type GameStateSnapshot = {
     contestedUntil: (number | null)[]; // length w*h
   };
   claims: Record<string, ClaimIntent[]>; // by playerId
-  attacks?: Record<string, ClaimIntent[]>; // by playerId
+  attacks?: Record<string, AttackIntent[]>; // by playerId
   pendingBuilds: Record<string, BuildIntent[]>; // by playerId
   brouillage: Array<{ casterPlayerId: string; x: number; y: number; untilTurn: number }>;
 };

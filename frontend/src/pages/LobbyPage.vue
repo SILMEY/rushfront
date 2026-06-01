@@ -13,6 +13,7 @@ const gameId = computed(() => String(route.params.id));
 const current = computed(() => lobby.lobbies.find((l) => l.id === gameId.value) ?? null);
 const me = computed(() => current.value?.players.find((p) => p.userId === auth.user?.id) ?? null);
 const isHost = computed(() => current.value?.hostUserId === auth.user?.id);
+const hostName = computed(() => current.value?.players.find((p) => p.userId === current.value?.hostUserId)?.name ?? "");
 
 const COLORS = [
   "#3b82f6",
@@ -44,7 +45,7 @@ watch(
   <div class="grid gap-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-semibold">Lobby</h1>
+        <h1 class="text-xl font-semibold">Partie de {{ hostName || "..." }}</h1>
         <div class="mt-1 text-xs text-slate-400">ID: {{ gameId }}</div>
       </div>
       <button class="rounded-md bg-white/5 px-3 py-1.5 text-sm ring-1 ring-white/10 hover:bg-white/10" @click="router.push('/')">

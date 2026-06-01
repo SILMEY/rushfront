@@ -22,8 +22,6 @@ export const PLAYER_COLORS = [
 export function claimCost(tileType: TileType): number {
   switch (tileType) {
     case TileType.Plain:
-    case TileType.Forest:
-    case TileType.Quarry:
       return 1;
     default:
       return Infinity;

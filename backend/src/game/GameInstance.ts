@@ -30,7 +30,7 @@ export class GameInstance {
 
   players: RuntimePlayer[] = [];
   claims = new Map<string, Set<number>>(); // playerId -> tile index
-  attacks = new Map<string, Set<number>>(); // playerId -> tile index (enemy-owned)
+  attacks = new Map<string, Map<number, number>>(); // playerId -> tileIndex -> amount (enemy-owned)
   pendingBuilds = new Map<string, BuildIntent[]>(); // playerId -> builds
   brouillageTiles = new Map<number, { casterPlayerId: string; untilTurn: number }>(); // tileIndex -> effect
 
@@ -103,9 +103,13 @@ export class GameInstance {
       claims[pid] = Array.from(set).map((i) => ({ x: i % this.width, y: Math.floor(i / this.width) }));
     }
 
-    const attacks: Record<string, ClaimIntent[]> = {};
-    for (const [pid, set] of this.attacks) {
-      attacks[pid] = Array.from(set).map((i) => ({ x: i % this.width, y: Math.floor(i / this.width) }));
+    const attacks: Record<string, Array<{ x: number; y: number; amount: number }>> = {};
+    for (const [pid, map] of this.attacks) {
+      attacks[pid] = Array.from(map.entries()).map(([i, amount]) => ({
+        x: i % this.width,
+        y: Math.floor(i / this.width),
+        amount
+      }));
     }
 
     const pendingBuilds: Record<string, BuildIntent[]> = {};
@@ -222,7 +226,7 @@ export class GameInstance {
     if (block && block.untilTurn >= this.currentTurn && block.casterPlayerId !== player.id) throw new Error("tile_blocked");
 
     const type = this.tileTypes[index] as TileType;
-    if (type === TileType.Water) throw new Error("water");
+    if (type !== TileType.Plain) throw new Error("invalid_tile");
     if (this.tileOwners[index]) throw new Error("already_owned");
 
     const neighborOwned = orthogonalNeighbors(pos).some((n) => {
@@ -244,7 +248,7 @@ export class GameInstance {
     this.claims.get(player.id)?.delete(index);
   }
 
-  attackTile(userId: string, pos: Vec2) {
+  private validateAttack(userId: string, pos: Vec2) {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
@@ -255,7 +259,7 @@ export class GameInstance {
     if (block && block.untilTurn >= this.currentTurn && block.casterPlayerId !== player.id) throw new Error("tile_blocked");
 
     const type = this.tileTypes[index] as TileType;
-    if (type === TileType.Water) throw new Error("water");
+    if (type !== TileType.Plain) throw new Error("invalid_tile");
 
     const owner = this.tileOwners[index];
     if (!owner) throw new Error("not_owned");
@@ -266,10 +270,24 @@ export class GameInstance {
       return this.tileOwners[idx(n, this.width)] === player.id;
     });
     if (!neighborOwned) throw new Error("not_adjacent");
+  }
 
-    const set = this.attacks.get(player.id) ?? new Set<number>();
-    set.add(index);
-    this.attacks.set(player.id, set);
+  queueAttack(userId: string, params: { pos: Vec2; amount: number }) {
+    const { pos, amount } = params;
+    this.validateAttack(userId, pos);
+
+    const player = this.getPlayerByUserId(userId)!;
+    const a = Math.floor(amount);
+    if (!Number.isFinite(a) || a <= 0) throw new Error("invalid_amount");
+    if (player.resources.soldiers < a) throw new Error("not_enough_soldiers");
+
+    // Reserve soldiers immediately (like build costs) to avoid overspending multiple queued actions.
+    player.resources.soldiers -= a;
+
+    const map = this.attacks.get(player.id) ?? new Map<number, number>();
+    const index = idx(pos, this.width);
+    map.set(index, a);
+    this.attacks.set(player.id, map);
   }
 
   build(userId: string, intent: BuildIntent) {

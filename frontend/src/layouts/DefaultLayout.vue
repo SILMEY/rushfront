@@ -13,8 +13,8 @@ function openProfile() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-950 to-zinc-900">
-    <header class="sticky top-0 z-10 border-b border-white/10 bg-zinc-950/60 backdrop-blur">
+  <div class="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-900">
+    <header class="sticky top-0 z-10 border-b border-white/10 bg-zinc-900/60 backdrop-blur">
       <div class="flex h-14 w-full items-center justify-between px-4 lg:px-6">
         <div class="flex items-center gap-3">
           <img
@@ -22,7 +22,7 @@ function openProfile() {
             class="h-8 w-8 rounded ring-1 ring-white/10"
             alt="Rushfront"
           />
-          <div class="font-semibold tracking-wide text-emerald-200">Rushfront</div>
+          <div class="font-semibold tracking-wide text-amber-300">Rushfront</div>
         </div>
         <div v-if="auth.user" class="flex items-center gap-3">
           <button class="rounded-full ring-1 ring-white/10 hover:ring-white/20" @click="openProfile()" title="Profil">

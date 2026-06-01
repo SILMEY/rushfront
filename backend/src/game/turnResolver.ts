@@ -17,7 +17,7 @@ type TurnInput = {
   tileBuildings: Array<number | null>;
   tileContestedUntil: Array<number | null>;
   claims: Map<string, Set<number>>;
-  attacks: Map<string, Set<number>>;
+  attacks: Map<string, Map<number, number>>;
   pendingBuilds: Map<string, BuildIntent[]>;
 };
 
@@ -81,7 +81,7 @@ export function resolveTurn(input: TurnInput) {
     if (tileOwners[tileIndex]) continue;
 
     const tileType = tileTypes[tileIndex] as TileType;
-    if (tileType === TileType.Water) continue;
+    if (tileType !== TileType.Plain) continue;
 
     if (claimers.length !== 1) {
       tileContestedUntil[tileIndex] = currentTurn + 1;
@@ -125,40 +125,81 @@ export function resolveTurn(input: TurnInput) {
   input.claims.clear();
 
   // Attacks: capture enemy tiles for a fixed soldier cost.
-  const ATTACK_COST = 10;
-  const tileAttackers = new Map<number, string[]>(); // tileIndex -> playerIds
-  for (const [pid, set] of input.attacks) {
-    for (const tileIndex of set) {
+  // Combat resolution: attacker sends N soldiers; defender has D soldiers.
+  // Both lose min(N, D). If N > D, attacker captures the tile.
+  // Reserved soldiers were already subtracted when queuing the attack; surviving attackers return to the pool.
+  const tileAttackers = new Map<number, Array<{ pid: string; amount: number }>>(); // tileIndex -> attackers
+  for (const [pid, map] of input.attacks) {
+    for (const [tileIndex, amount] of map.entries()) {
       const list = tileAttackers.get(tileIndex) ?? [];
-      list.push(pid);
+      list.push({ pid, amount });
       tileAttackers.set(tileIndex, list);
     }
   }
 
   for (const [tileIndex, attackers] of tileAttackers) {
+    const refundAll = () => {
+      for (const { pid, amount } of attackers) {
+        const attacker = players.find((p) => p.id === pid);
+        if (!attacker) continue;
+        const N = Math.max(0, Math.floor(amount));
+        attacker.resources.soldiers += N;
+      }
+    };
+
     const contestedUntil = tileContestedUntil[tileIndex];
-    if (contestedUntil != null && contestedUntil >= currentTurn) continue;
+    if (contestedUntil != null && contestedUntil >= currentTurn) {
+      refundAll();
+      continue;
+    }
+
     const owner = tileOwners[tileIndex];
-    if (!owner) continue; // only enemy-owned tiles can be attacked
+    if (!owner) {
+      refundAll();
+      continue;
+    }
 
     const tileType = tileTypes[tileIndex] as TileType;
-    if (tileType === TileType.Water) continue;
+    if (tileType !== TileType.Plain) {
+      refundAll();
+      continue;
+    }
 
     if (attackers.length !== 1) {
+      refundAll();
       tileContestedUntil[tileIndex] = currentTurn + 1;
       continue;
     }
 
-    const pid = attackers[0]!;
-    const player = players.find((p) => p.id === pid);
-    if (!player) continue;
-    if (owner === pid) continue;
+    const { pid, amount } = attackers[0]!;
+    const attacker = players.find((p) => p.id === pid);
+    if (!attacker) continue;
+    if (owner === pid) {
+      attacker.resources.soldiers += Math.max(0, Math.floor(amount));
+      continue;
+    }
 
-    if (player.resources.soldiers < ATTACK_COST) continue;
+    const defender = players.find((p) => p.id === owner);
+    if (!defender) {
+      attacker.resources.soldiers += Math.max(0, Math.floor(amount));
+      continue;
+    }
 
-    player.resources.soldiers -= ATTACK_COST;
-    tileOwners[tileIndex] = pid;
-    tileContestedUntil[tileIndex] = null;
+    const N = Math.max(0, Math.floor(amount));
+    if (N <= 0) continue;
+
+    const D = Math.max(0, defender.resources.soldiers);
+    const loss = Math.min(N, D);
+
+    defender.resources.soldiers -= loss;
+
+    const attackerSurvivors = N - loss;
+    if (attackerSurvivors > 0) attacker.resources.soldiers += attackerSurvivors;
+
+    if (N > D) {
+      tileOwners[tileIndex] = pid;
+      tileContestedUntil[tileIndex] = null;
+    }
   }
 
   input.attacks.clear();
