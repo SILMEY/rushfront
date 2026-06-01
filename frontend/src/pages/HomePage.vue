@@ -8,6 +8,8 @@ const router = useRouter();
 
 onMounted(() => lobby.refresh());
 
+import heroBgUrl from "../assets/bggame.png";
+
 const hasAnyLobby = computed(() => lobby.lobbies.length > 0);
 function hostNameOf(g: any) {
   return g?.players?.find((p: any) => p.userId === g.hostUserId)?.name ?? "???";
@@ -23,14 +25,14 @@ function hostNameOf(g: any) {
         <div class="absolute inset-0">
           <img
             class="h-full w-full object-cover opacity-70"
-            src="/bggame.png"
+            :src="heroBgUrl"
             alt="Rushfront"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
         </div>
 
-        <div class="relative mx-auto w-full max-w-4xl px-container-margin text-center">
-          <h1 class="font-headline text-6xl font-bold uppercase tracking-tighter text-primary drop-shadow-2xl md:text-8xl">
+        <div class="relative mx-auto -mt-12 w-full max-w-4xl px-container-margin text-center md:-mt-16">
+          <h1 class="font-headline whitespace-nowrap text-5xl font-bold uppercase tracking-tighter text-primary drop-shadow-2xl md:text-7xl">
             COMMANDER L'AVENIR
           </h1>
           <p class="mx-auto mt-4 max-w-3xl text-lg italic text-secondary md:text-xl">
@@ -40,8 +42,8 @@ function hostNameOf(g: any) {
       </section>
 
       <!-- Mission Selection -->
-      <section id="missions" class="mx-auto flex max-w-7xl flex-col items-center px-container-margin py-24">
-        <h2 class="mb-20 text-center font-headline text-3xl uppercase tracking-[0.25em] text-primary md:text-5xl">Choisissez votre mission</h2>
+      <section id="missions" class="mx-auto flex max-w-7xl flex-col items-center px-container-margin py-10">
+        <h2 class="mb-6 text-center font-headline text-3xl uppercase tracking-[0.25em] text-primary md:text-5xl">Choisissez votre mission</h2>
 
         <div class="grid gap-12 md:grid-cols-2">
           <!-- Card 1: Online -->
@@ -92,7 +94,7 @@ function hostNameOf(g: any) {
 
               <div class="mt-6 flex items-center gap-2">
                 <button
-                  class="antique-gradient burnished-gold-glow rounded-md border border-primary/50 px-7 py-3 text-sm font-headline font-extrabold uppercase tracking-[0.25em] text-on-primary shadow-lg transition hover:brightness-105 active:scale-[0.98]"
+                  class="burnished-gold-glow rounded-md border border-primary/60 bg-gradient-to-r from-primary to-primary/80 px-7 py-3 text-sm font-headline font-extrabold uppercase tracking-[0.25em] text-on-primary shadow-lg transition hover:brightness-110 active:scale-[0.98]"
                   @click="lobby.createLobby()"
                 >
                   Créer
