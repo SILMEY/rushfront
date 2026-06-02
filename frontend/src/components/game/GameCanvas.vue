@@ -11,13 +11,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "tile-click", pos: Vec2): void;
+  (e: "tile-dblclick", pos: Vec2): void;
   (e: "tile-hover", pos: Vec2 | null): void;
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const tileSize = 64;
 
-const { camera, screenToWorld, pan, zoomAt } = useCamera();
+const { camera, screenToWorld, worldToScreen, pan, zoomAt } = useCamera();
 const { render } = useGameRenderer();
 const game = useGameStore();
 
@@ -59,6 +60,37 @@ function draw() {
     camera,
     hovered: hovered.value
   });
+
+  // Dessin du marqueur de cible d'expansion
+  const target = game.expandTarget;
+  if (target) {
+    const wx = (target.x + 0.5) * tileSize;
+    const wy = (target.y + 0.5) * tileSize;
+    const { x: sx, y: sy } = worldToScreen(wx, wy);
+    const pulse = 0.7 + 0.3 * Math.sin(Date.now() / 250);
+    const r = tileSize * camera.zoom * 0.45 * pulse;
+
+    ctx.save();
+    ctx.strokeStyle = `rgba(212,175,55,${0.9 * pulse})`;
+    ctx.lineWidth = 2;
+
+    // Cercle
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Croix
+    const arm = r * 0.55;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(sx - arm, sy); ctx.lineTo(sx + arm, sy);
+    ctx.moveTo(sx, sy - arm); ctx.lineTo(sx, sy + arm);
+    ctx.stroke();
+    ctx.restore();
+
+    // Continue d'animer tant qu'il y a une cible
+    scheduleDraw();
+  }
 }
 
 watch(
@@ -80,6 +112,8 @@ let selecting = false;
 let dragStart: { x: number; y: number } | null = null;
 let dragMoved = 0;
 let lastSelectedKey: string | null = null;
+let lastClickTime = 0;
+let lastClickTile: Vec2 | null = null;
 
 function toTile(clientX: number, clientY: number): Vec2 | null {
   const canvas = canvasRef.value;
@@ -155,7 +189,21 @@ function onPointerUp(e: PointerEvent) {
   (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
   if (wasDragging && dragMoved < 6) {
     const tile = toTile(e.clientX, e.clientY);
-    if (tile) emit("tile-click", tile);
+    if (tile) {
+      const now = Date.now();
+      const isDouble = now - lastClickTime < 350
+        && lastClickTile?.x === tile.x
+        && lastClickTile?.y === tile.y;
+      if (isDouble) {
+        emit("tile-dblclick", tile);
+        lastClickTime = 0;
+        lastClickTile = null;
+      } else {
+        emit("tile-click", tile);
+        lastClickTime = now;
+        lastClickTile = tile;
+      }
+    }
   }
 }
 

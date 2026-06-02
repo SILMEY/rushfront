@@ -28,7 +28,9 @@ export const useGameStore = defineStore("game", {
     selectedBuilding: null as BuildingType | null,
     currentGameId: null as string | null,
     optimisticClaims: {} as Record<string, true>,
-    gameOver: null as GameOverEvent | null
+    gameOver: null as GameOverEvent | null,
+    expandTarget: null as Vec2 | null,
+    _expandIntervalId: null as number | null
   }),
   getters: {
     mePlayer(state) {
@@ -108,6 +110,7 @@ export const useGameStore = defineStore("game", {
         this.hoveredTile = null;
         this.optimisticClaims = {};
         this.gameOver = null;
+        this.clearExpandTarget();
       }
       socket.emit("game:get_state", { gameId });
     },
@@ -203,6 +206,76 @@ export const useGameStore = defineStore("game", {
         }
       }
       return this.claimTile(this.state.gameId, pos);
+    },
+
+    setExpandTarget(pos: Vec2) {
+      // Double-clic sur la même cible = annuler
+      if (this.expandTarget?.x === pos.x && this.expandTarget?.y === pos.y) {
+        this.clearExpandTarget();
+        return;
+      }
+      this.expandTarget = pos;
+      if (this._expandIntervalId === null) {
+        this._expandIntervalId = window.setInterval(() => void this.autoExpand(), 800);
+      }
+      void this.autoExpand();
+    },
+
+    clearExpandTarget() {
+      this.expandTarget = null;
+      if (this._expandIntervalId !== null) {
+        window.clearInterval(this._expandIntervalId);
+        this._expandIntervalId = null;
+      }
+    },
+
+    autoExpand() {
+      const state = this.state;
+      const target = this.expandTarget;
+      if (!state || !target || state.status !== "ACTIVE") return;
+
+      const myId = this.mePlayer?.id;
+      const myVillagers = this.mePlayer?.resources.villagers ?? 0;
+      if (!myId || myVillagers < 1) return;
+
+      // Cible déjà atteinte ?
+      if (state.tiles.owners[target.y * state.width + target.x] === myId) {
+        this.clearExpandTarget();
+        return;
+      }
+
+      // Trouver toutes les cases frontière (cases vides adjacentes à notre territoire)
+      const frontierSet = new Set<string>();
+      const frontier: Vec2[] = [];
+      for (let i = 0; i < state.tiles.owners.length; i++) {
+        if (state.tiles.owners[i] !== myId) continue;
+        const x = i % state.width;
+        const y = Math.floor(i / state.width);
+        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]] as [number,number][]) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= state.width || ny >= state.height) continue;
+          const key = `${nx},${ny}`;
+          if (frontierSet.has(key)) continue;
+          const ni = ny * state.width + nx;
+          if (state.tiles.owners[ni] === null && (state.tiles.types[ni] as TileType) === TileType.Plain) {
+            frontier.push({ x: nx, y: ny });
+            frontierSet.add(key);
+          }
+        }
+      }
+
+      if (frontier.length === 0) { this.clearExpandTarget(); return; }
+
+      // Trier par distance à la cible (les plus proches d'abord)
+      frontier.sort((a, b) => {
+        const da = (a.x - target.x) ** 2 + (a.y - target.y) ** 2;
+        const db = (b.x - target.x) ** 2 + (b.y - target.y) ** 2;
+        return da - db;
+      });
+
+      // Réclamer jusqu'à 5 cases par tick (limité par les villageois dispo)
+      const batch = frontier.slice(0, Math.min(5, myVillagers));
+      void this.claimTiles(state.gameId, batch);
     }
   }
 });

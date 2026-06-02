@@ -3,9 +3,19 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { GameStateSnapshot, Vec2 } from "../../types/game";
 import { BuildingType, TileType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
+import { useGameStore } from "../../stores/gameStore";
+import { getSocket } from "../../composables/useSocket";
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
 const auth = useAuthStore();
+const game = useGameStore();
+
+async function surrender() {
+  if (!props.state) return;
+  if (!window.confirm("Se rendre ? Vous perdrez la partie.")) return;
+  const socket = await getSocket();
+  socket.emit("game:surrender", { gameId: props.state.gameId });
+}
 
 const me = computed(() => props.state?.players.find((p) => p.userId === auth.user?.id) ?? null);
 
@@ -115,7 +125,7 @@ function rate(raw: number): string {
 <template>
   <div
     v-if="me"
-    class="wood-texture etched-line flex w-full items-center justify-center gap-10 border-b-2 border-outline-variant px-8 py-2 shadow-xl"
+    class="wood-texture etched-line flex w-full items-center gap-10 border-b-2 border-outline-variant px-8 py-2 shadow-xl"
   >
     <div class="flex items-center gap-3 cursor-default">
       <div class="h-4 w-4 rounded-full border border-black/40 shadow-[0_0_10px_rgba(242,202,80,0.15)]" :style="{ backgroundColor: me.color }"></div>
@@ -152,6 +162,15 @@ function rate(raw: number): string {
         POSEZ VOTRE BASE — {{ placingSecondsLeft }}s
       </span>
     </div>
+
+    <button
+      v-if="props.state?.status === 'ACTIVE' && !me.eliminated && !game.gameOver"
+      class="ml-auto flex items-center gap-1 rounded border border-red-900/50 px-3 py-1 font-label-sm text-red-400/70 transition hover:border-red-500/60 hover:text-red-400"
+      @click="surrender"
+    >
+      <span class="material-symbols-outlined text-[14px]">flag</span>
+      SE RENDRE
+    </button>
   </div>
 </template>
 

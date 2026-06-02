@@ -91,16 +91,7 @@ watch(
     </div>
   </Transition>
 
-  <!-- ── Bouton reddition ──────────────────────────────── -->
-  <div v-if="game.state?.status === 'ACTIVE' && mePlayer && !isEliminated && !game.gameOver"
-       class="fixed bottom-4 left-4 z-50">
-    <button
-      class="rounded-md border border-red-900/50 bg-black/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-red-400/70 backdrop-blur transition hover:border-red-500/50 hover:text-red-400"
-      @click="surrender()"
-    >Se rendre</button>
-  </div>
-
-  <!-- MAIN GAMEPLAY CANVAS (layout inspired by `public/codejeu.html`) -->
+<!-- MAIN GAMEPLAY CANVAS (layout inspired by `public/codejeu.html`) -->
   <div class="rf-game">
     <main class="tactical-overlay flex h-[calc(100vh-64px)] flex-col overflow-hidden pr-80">
       <!-- Resource Bar (Wooden Beam) -->
@@ -111,7 +102,7 @@ watch(
       <!-- Grid Area -->
       <div class="relative flex-1 overflow-auto bg-stone-950 p-4">
         <div class="min-h-full min-w-max border-4 border-outline-variant bg-stone-900/40 shadow-2xl">
-          <GameCanvas class="h-[calc(100vh-170px)] min-h-[720px] w-full" :state="game.state" @tile-click="game.onTileClick" />
+          <GameCanvas class="h-[calc(100vh-170px)] min-h-[720px] w-full" :state="game.state" @tile-click="game.onTileClick" @tile-dblclick="game.setExpandTarget" />
         </div>
       </div>
     </main>
