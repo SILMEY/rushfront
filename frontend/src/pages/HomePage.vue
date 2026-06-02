@@ -2,11 +2,18 @@
 import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
+import { useAuthStore } from "../stores/authStore";
 
 const lobby = useLobbyStore();
 const router = useRouter();
+const auth = useAuthStore();
 
-onMounted(() => lobby.refresh());
+onMounted(() => { if (auth.user) lobby.refresh(); });
+
+function requireAuth(action: () => void) {
+  if (!auth.user) { router.push("/login"); return; }
+  action();
+}
 
 const hasAnyLobby = computed(() => lobby.lobbies.length > 0);
 function hostNameOf(g: any) {
@@ -72,13 +79,13 @@ function hostNameOf(g: any) {
                 <div class="flex items-center gap-2">
                   <button
                     class="burnished-gold-glow rounded-md border border-[#d4af37]/80 bg-gradient-to-r from-[#d4af37] to-[#f2ca50] px-5 py-2 text-sm font-headline font-extrabold uppercase tracking-[0.25em] text-[#241a00] shadow-lg transition hover:brightness-110 active:scale-[0.98]"
-                    @click="lobby.createLobby()"
+                    @click="requireAuth(() => lobby.createLobby())"
                   >
                     Créer
                   </button>
                   <button
                     class="rounded-md border border-outline-variant/30 bg-white/5 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-secondary/80 transition hover:bg-white/10 hover:text-secondary"
-                    @click="lobby.refresh()"
+                    @click="requireAuth(() => lobby.refresh())"
                   >
                     Rafraîchir
                   </button>
@@ -101,7 +108,7 @@ function hostNameOf(g: any) {
                       </div>
                       <button
                         class="border border-primary/30 px-3 py-1 text-xs font-headline font-bold uppercase text-primary transition-all hover:bg-primary hover:text-on-primary"
-                        @click="router.push(`/lobby/${g.id}`)"
+                        @click="requireAuth(() => router.push(`/lobby/${g.id}`))"
                       >
                         Rejoindre
                       </button>

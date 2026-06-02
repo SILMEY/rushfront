@@ -54,6 +54,13 @@ const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).jo
         <span class="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-[10px]">{{ initials }}</span>
         Logout
       </button>
+      <button
+        v-else
+        class="hidden items-center gap-2 rounded-md border border-[#d4af37]/40 bg-[#d4af37]/10 px-3 py-2 text-xs font-bold uppercase tracking-widest text-[#d4af37] transition hover:bg-[#d4af37]/20 md:flex"
+        @click="router.push('/login')"
+      >
+        Se connecter
+      </button>
     </div>
   </nav>
 </template>

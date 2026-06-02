@@ -19,10 +19,12 @@ export const router = createRouter({
   ]
 });
 
+const PUBLIC_PATHS = ["/", "/login", "/leaderboard"];
+
 router.beforeEach(async (to) => {
   const auth = useAuthStore();
   if (!auth.ready) await auth.fetchMe();
-  if (!auth.user && to.path !== "/login") return "/login";
+  if (!auth.user && !PUBLIC_PATHS.includes(to.path)) return "/login";
   if (auth.user && to.path === "/login") return "/";
   return true;
 });
