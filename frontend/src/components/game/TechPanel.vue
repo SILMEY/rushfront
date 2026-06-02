@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import type { GameStateSnapshot } from "../../types/game";
 import { BuildingType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
@@ -27,17 +27,22 @@ const hasUniversity = computed(() => {
 });
 
 const techs = ref<TechDef[]>([]);
+let techsRequested = false;
 
-onMounted(async () => {
-  const state = props.state;
-  if (!state) return;
-  const socket = await getSocket();
-  socket.off("game:techs");
-  socket.on("game:techs", ({ techs: t }: { techs: TechDef[] }) => {
-    techs.value = t;
-  });
-  socket.emit("game:list_techs", { gameId: state.gameId });
-});
+watch(
+  () => props.state?.gameId,
+  async (gameId) => {
+    if (!gameId || techsRequested) return;
+    techsRequested = true;
+    const socket = await getSocket();
+    socket.off("game:techs");
+    socket.on("game:techs", ({ techs: t }: { techs: TechDef[] }) => {
+      techs.value = t;
+    });
+    socket.emit("game:list_techs", { gameId });
+  },
+  { immediate: true }
+);
 
 async function buy(techId: string) {
   const state = props.state;

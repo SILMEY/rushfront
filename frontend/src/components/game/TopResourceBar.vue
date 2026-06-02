@@ -117,11 +117,6 @@ const habitants = computed(() => {
   return player.resources.villagers + player.resources.soldiers;
 });
 
-const wonderSecondsLeft = computed(() => {
-  const s = props.state;
-  if (!s || !s.wonderEndsAt) return null;
-  return Math.max(0, Math.ceil((s.wonderEndsAt - nowMs.value) / 1000));
-});
 
 const placingSecondsLeft = computed(() => {
   const s = props.state;
@@ -173,14 +168,7 @@ function rate(raw: number): string {
       </span>
     </div>
 
-    <div v-if="wonderSecondsLeft !== null" class="flex items-center gap-2 cursor-default wonder-timer">
-      <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1">temple_hindu</span>
-      <span class="font-label-sm italic font-bold">
-        MERVEILLE — {{ Math.floor((wonderSecondsLeft ?? 0) / 60) }}:{{ String((wonderSecondsLeft ?? 0) % 60).padStart(2, '0') }}
-      </span>
-    </div>
-
-    <div v-if="placingSecondsLeft !== null" class="flex items-center gap-2 cursor-default placing-timer" :class="{ urgent: placingSecondsLeft <= 3 }">
+<div v-if="placingSecondsLeft !== null" class="flex items-center gap-2 cursor-default placing-timer" :class="{ urgent: placingSecondsLeft <= 3 }">
       <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">timer</span>
       <span class="font-label-sm italic font-bold">
         POSEZ VOTRE BASE — {{ placingSecondsLeft }}s
@@ -221,10 +209,6 @@ function rate(raw: number): string {
 }
 .placing-timer {
   color: #ffd700;
-}
-.wonder-timer {
-  color: #e879f9;
-  animation: pulse 1s ease-in-out infinite alternate;
 }
 .placing-timer.urgent {
   color: #ff4444;

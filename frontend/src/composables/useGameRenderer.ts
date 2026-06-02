@@ -166,13 +166,19 @@ export function useGameRenderer() {
         const cy = (y + 0.5) * tileSize;
         const half = tileSize * 2; // 4×4 tiles total
 
+        // Clamp aux bornes de la map
+        const left   = Math.max(0,                   cx - half);
+        const top    = Math.max(0,                   cy - half);
+        const right  = Math.min(state.width  * tileSize, cx + half);
+        const bottom = Math.min(state.height * tileSize, cy + half);
+
         // Halo coloré
         ctx.fillStyle = rgba(ownerColor, 0.18);
-        ctx.fillRect(cx - half, cy - half, half * 2, half * 2);
+        ctx.fillRect(left, top, right - left, bottom - top);
         ctx.strokeStyle = rgba(ownerColor, 0.7);
         ctx.lineWidth = 2 / scale;
         ctx.setLineDash([4 / scale, 4 / scale]);
-        ctx.strokeRect(cx - half, cy - half, half * 2, half * 2);
+        ctx.strokeRect(left, top, right - left, bottom - top);
         ctx.setLineDash([]);
 
         // Icône centrale

@@ -17,6 +17,17 @@ function getInstance(gameManager: GameManager, gameId: string) {
 }
 
 export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: Socket, gameManager: GameManager) {
+  socket.on("game:chat", (payload: { gameId: string; text: string; authorName: string; authorColor: string }) => {
+    const text = String(payload.text ?? "").slice(0, 300).trim();
+    if (!text) return;
+    io.to(`game:${payload.gameId}`).emit("game:chat", {
+      authorName: String(payload.authorName ?? "?").slice(0, 32),
+      authorColor: String(payload.authorColor ?? "#ffffff"),
+      text,
+      timestamp: Date.now()
+    });
+  });
+
   socket.on("game:leave", async (payload: { gameId: string }) => {
     try {
       await socket.leave(`game:${payload.gameId}`);
@@ -139,10 +150,15 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
         throw new Error("invalid_building");
       const change = instance.build(userId, { x: payload.x, y: payload.y, building: payload.building as BuildingType });
       const player = instance.getPlayerByUserId(userId)!;
-      io.to(`game:${payload.gameId}`).emit("game:tile_update", {
-        changes: [change],
-        players: [{ id: player.id, resources: player.resources }]
-      });
+      // La merveille modifie wonderEndsAt/wonderPlayerId dans le snapshot → full state pour tous
+      if (payload.building === BuildingType.Wonder) {
+        io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+      } else {
+        io.to(`game:${payload.gameId}`).emit("game:tile_update", {
+          changes: [change],
+          players: [{ id: player.id, resources: player.resources }]
+        });
+      }
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }

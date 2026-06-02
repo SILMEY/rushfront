@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
 import { useAuthStore } from "../stores/authStore";
+import LobbyLeftPanel from "../components/game/LobbyLeftPanel.vue";
 
 const lobby = useLobbyStore();
 const auth = useAuthStore();
@@ -107,7 +108,8 @@ onBeforeRouteLeave(() => {
 
 <template>
   <div class="rf-lobby relative">
-    <div class="mx-auto w-full max-w-7xl px-container-margin py-6">
+    <LobbyLeftPanel :game-id="gameId" :player-color="me?.color" />
+    <div class="mx-auto w-full max-w-7xl px-container-margin py-6 pl-[calc(18rem+24px)]">
       <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div class="text-xs font-headline font-bold uppercase tracking-[0.3em] text-primary/80">War Room</div>

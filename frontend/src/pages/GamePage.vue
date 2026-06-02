@@ -9,6 +9,7 @@ import ResourceBar from "../components/game/ResourceBar.vue";
 import TopResourceBar from "../components/game/TopResourceBar.vue";
 import TechPanel from "../components/game/TechPanel.vue";
 import CompositionPanel from "../components/game/CompositionPanel.vue";
+import GameLeftPanel from "../components/game/GameLeftPanel.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route  = useRoute();
@@ -93,7 +94,8 @@ watch(
 
 <!-- MAIN GAMEPLAY CANVAS (layout inspired by `public/codejeu.html`) -->
   <div class="rf-game">
-    <main class="tactical-overlay flex h-[calc(100vh-64px)] flex-col overflow-hidden pr-80">
+    <GameLeftPanel :state="game.state" />
+    <main class="tactical-overlay flex h-[calc(100vh-64px)] flex-col overflow-hidden pr-80 pl-72">
       <!-- Resource Bar (Wooden Beam) -->
       <div class="z-10">
         <TopResourceBar :state="game.state" />

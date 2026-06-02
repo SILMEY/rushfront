@@ -81,6 +81,17 @@ export function registerLobbyHandlers(_app: FastifyInstance, io: Server, socket:
     }
   });
 
+  socket.on("lobby:chat", (payload: { gameId: string; text: string; authorName: string; authorColor: string }) => {
+    const text = String(payload.text ?? "").slice(0, 300).trim();
+    if (!text) return;
+    io.to(`game:${payload.gameId}`).emit("lobby:chat", {
+      authorName: String(payload.authorName ?? "?").slice(0, 32),
+      authorColor: String(payload.authorColor ?? "#ffffff"),
+      text,
+      timestamp: Date.now()
+    });
+  });
+
   socket.on("lobby:start", async (payload: { gameId: string }) => {
     try {
       const userId = userIdOf(socket);
