@@ -98,7 +98,7 @@ onBeforeUnmount(() => {
         <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-amber-300/80">Royal Access</div>
         <h1 class="mt-4 text-5xl font-headline font-extrabold uppercase tracking-[0.12em] text-amber-300">Connexion</h1>
         <p class="mt-5 text-lg italic leading-relaxed text-slate-200/80">
-          Entre dans l’Empire. Connecte-toi pour créer ou rejoindre une partie.
+          Entre dans l'Empire. Connecte-toi pour créer ou rejoindre une partie.
         </p>
       </div>
 
@@ -124,7 +124,7 @@ onBeforeUnmount(() => {
 
       <div class="mt-12 text-center">
         <div class="text-xs uppercase tracking-[0.25em] text-slate-200/60">
-          En continuant, tu acceptes les règles de l’Empire.
+          En continuant, tu acceptes les règles de l'Empire.
         </div>
       </div>
     </section>

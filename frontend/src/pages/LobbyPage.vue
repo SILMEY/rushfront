@@ -191,7 +191,7 @@ watch(
                   <span class="material-symbols-outlined text-4xl">person_add</span>
                   <div class="text-center">
                     <div class="text-xl font-headline">Emplacement vide</div>
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-primary/60">En attente d’un allié</div>
+                    <div class="text-[10px] font-bold uppercase tracking-widest text-primary/60">En attente d'un allié</div>
                   </div>
                 </div>
               </div>
@@ -213,13 +213,13 @@ watch(
                       :key="civ.id"
                       class="flex flex-col items-start gap-0.5 border p-2.5 text-left transition-all duration-200 hover:border-primary/60 hover:bg-white/5"
                       :class="me?.civilization === civ.id
-                        ? ‘border-primary bg-primary/10’
-                        : ‘border-outline-variant/30 bg-black/20’"
+                        ? 'border-primary bg-primary/10'
+                        : 'border-outline-variant/30 bg-black/20'"
                       @click="lobby.setCivilization(gameId, civ.id)"
                     >
                       <span class="text-xl leading-none">{{ civ.icon }}</span>
-                      <span class="mt-1 text-[11px] font-bold leading-tight" :class="me?.civilization === civ.id ? ‘text-primary’ : ‘text-secondary’">{{ civ.name }}</span>
-                      <span class="text-[9px] uppercase tracking-widest" :class="me?.civilization === civ.id ? ‘text-primary/70’ : ‘text-secondary/50’">{{ civ.role }}</span>
+                      <span class="mt-1 text-[11px] font-bold leading-tight" :class="me?.civilization === civ.id ? 'text-primary' : 'text-secondary'">{{ civ.name }}</span>
+                      <span class="text-[9px] uppercase tracking-widest" :class="me?.civilization === civ.id ? 'text-primary/70' : 'text-secondary/50'">{{ civ.role }}</span>
                     </button>
                   </div>
                   <p v-if="me?.civilization" class="mt-2 text-[10px] italic text-secondary/60">
@@ -230,7 +230,7 @@ watch(
                 <div>
                   <h3 class="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-secondary">
                     <span class="material-symbols-outlined text-sm">palette</span>
-                    Couleur d’héraldique
+                    Couleur d'héraldique
                   </h3>
                   <div class="flex flex-wrap gap-3">
                     <button
