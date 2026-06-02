@@ -119,8 +119,12 @@ function onPointerDown(e: PointerEvent) {
 function onPointerMove(e: PointerEvent) {
   if (!hasState.value) return;
   const tile = toTile(e.clientX, e.clientY);
+  const prev = hovered.value;
   hovered.value = tile;
   emit("tile-hover", tile);
+
+  // Redraw immediately when hovered tile changes (purely client-side, no server round-trip)
+  if (tile?.x !== prev?.x || tile?.y !== prev?.y) scheduleDraw();
 
   if (!dragStart) return;
 
