@@ -82,8 +82,11 @@ function hostNameOf(g: any) {
             </div>
 
             <!-- Card 2: Custom -->
-            <div class="group relative cursor-pointer border border-outline-variant/30 bg-stone-900/70 p-1 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)]">
-              <div class="flex h-full w-full flex-col border border-primary/10 p-6">
+            <div class="group relative cursor-pointer border border-outline-variant/30 p-1 transition-all duration-500 hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] overflow-hidden">
+              <!-- Image de fond de la carte -->
+              <img class="absolute inset-0 h-full w-full object-cover object-center" src="/img2.png" alt="" aria-hidden="true" />
+              <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(19,19,18,0.55) 0%, rgba(19,19,18,0.75) 100%)"></div>
+              <div class="relative flex h-full w-full flex-col border border-primary/10 p-6">
                 <h3 class="mb-2 font-headline text-2xl leading-none text-primary">Partie personnalisée</h3>
                 <p class="mb-4 text-sm italic leading-relaxed text-secondary/80">Organisez une bataille privée avec vos amis.</p>
                 <div class="flex items-center gap-2">
