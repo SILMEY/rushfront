@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
+import AppFooter from "../components/AppFooter.vue";
 
 const auth = useAuthStore();
-const router = useRouter();
 
 // ── Pseudo ────────────────────────────────────────────────
 const pseudo = ref(auth.user?.pseudo ?? "");
@@ -110,18 +109,11 @@ async function savePreferences() {
           <div v-if="error" class="text-sm text-red-400">{{ error }}</div>
         </div>
 
-        <div class="flex flex-col gap-2">
-          <button
-            class="w-full rounded-lg border border-amber-400/40 bg-amber-500/20 py-2.5 text-sm font-bold uppercase tracking-widest text-amber-300 transition hover:bg-amber-500/30 disabled:opacity-50"
-            @click="save()"
-            :disabled="saving"
-          >{{ saving ? "Sauvegarde…" : "Sauvegarder" }}</button>
-          <button
-            class="w-full py-2 text-xs font-bold uppercase tracking-widest text-slate-500 transition hover:text-slate-300"
-            @click="router.back()"
-            :disabled="saving"
-          >Retour</button>
-        </div>
+        <button
+          class="mt-auto w-full rounded-lg border border-amber-400/40 bg-amber-500/20 py-2.5 text-sm font-bold uppercase tracking-widest text-amber-300 transition hover:bg-amber-500/30 disabled:opacity-50"
+          @click="save()"
+          :disabled="saving"
+        >{{ saving ? "Sauvegarde…" : "Sauvegarder" }}</button>
       </section>
 
       <!-- ── Carte Préférences ── -->
@@ -187,4 +179,5 @@ async function savePreferences() {
 
     </div>
   </div>
+  <AppFooter />
 </template>
