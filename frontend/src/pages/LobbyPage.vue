@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
 import { useAuthStore } from "../stores/authStore";
-import LobbyLeftPanel from "../components/game/LobbyLeftPanel.vue";
+import ChatPanel from "../components/game/ChatPanel.vue";
 
 const lobby = useLobbyStore();
 const auth = useAuthStore();
@@ -108,8 +108,9 @@ onBeforeRouteLeave(() => {
 
 <template>
   <div class="rf-lobby relative">
-    <LobbyLeftPanel :game-id="gameId" :player-color="me?.color" />
-    <div class="mx-auto w-full max-w-7xl px-container-margin py-6 pl-[calc(18rem+24px)]">
+    <div class="mx-auto w-full max-w-7xl px-container-margin py-6">
+
+      <!-- Header pleine largeur -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div class="text-xs font-headline font-bold uppercase tracking-[0.3em] text-primary/80">War Room</div>
@@ -128,6 +129,29 @@ onBeforeRouteLeave(() => {
         </div>
       </div>
 
+      <!-- Contenu : chat à gauche + card à droite, alignés -->
+      <div class="flex gap-6 items-start">
+
+        <!-- Chat panel — même hauteur que la card -->
+        <div class="w-72 shrink-0 sticky top-20 overflow-hidden rounded-2xl border border-outline-variant/30 bg-black/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex flex-col" style="height: 560px">
+          <div class="scroll-banner flex items-center gap-4 px-6 py-4 shrink-0">
+            <div>
+              <div class="text-[10px] font-headline font-bold uppercase tracking-[0.25em] text-primary/80">Salon</div>
+              <div class="text-base font-headline font-bold uppercase tracking-widest text-primary">Chat</div>
+            </div>
+          </div>
+          <div class="flex-1 min-h-0">
+            <ChatPanel
+              :game-id="gameId"
+              event-name="lobby:chat"
+              :my-name="auth.user?.pseudo ?? auth.user?.name ?? '?'"
+              :my-color="me?.color ?? '#ffffff'"
+            />
+          </div>
+        </div>
+
+        <!-- Card principale -->
+        <div class="flex-1 min-w-0">
       <div class="overflow-hidden rounded-2xl border border-outline-variant/30 bg-black/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
         <div class="scroll-banner flex items-center justify-between gap-6 px-6 py-5">
           <div class="flex items-center gap-4">
@@ -291,8 +315,11 @@ onBeforeRouteLeave(() => {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </div> <!-- fin card principale -->
+
+        </div> <!-- fin flex-1 card wrapper -->
+      </div> <!-- fin flex gap-6 -->
+    </div> <!-- fin max-w-7xl -->
 
     <div
       class="pointer-events-none fixed bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-primary/40 to-transparent shadow-[0_-4px_20px_rgba(242,202,80,0.2)]"
