@@ -51,8 +51,7 @@ export const useAuthStore = defineStore("auth", {
         this.setAccessToken(null);
         this.user = null;
         disconnectSocket();
-        const base = (import.meta.env.BASE_URL as string) || "/";
-        window.location.assign(`${base.replace(/\/+$/, "/")}login`);
+        window.location.assign("/");
       }
     },
     async setPseudo(pseudo: string) {
