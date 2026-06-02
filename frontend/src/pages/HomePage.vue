@@ -1,97 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
-
 
 const lobby = useLobbyStore();
 const router = useRouter();
 
 onMounted(() => lobby.refresh());
-
-const canvasRef = ref<HTMLCanvasElement | null>(null);
-let raf: number | null = null;
-
-type Particle = {
-  x: number;
-  y: number;
-  size: number;
-  speedX: number;
-  speedY: number;
-  alpha: number;
-  color: string;
-};
-
-function initParticle(w: number, h: number): Particle {
-  return {
-    x: Math.random() * w,
-    y: Math.random() * h,
-    size: Math.random() * 1.5 + 0.5,
-    speedX: Math.random() * 0.4 - 0.2,
-    speedY: Math.random() * -0.4 - 0.05,
-    alpha: Math.random() * 0.4 + 0.1,
-    color: Math.random() > 0.5 ? "242, 202, 80" : "212, 175, 55"
-  };
-}
-
-onMounted(() => {
-  const canvas = canvasRef.value;
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  const particles: Particle[] = [];
-  const resize = () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  };
-  const init = () => {
-    particles.length = 0;
-    for (let i = 0; i < 60; i++) particles.push(initParticle(canvas.width, canvas.height));
-  };
-
-  const onResize = () => {
-    resize();
-    init();
-  };
-  window.addEventListener("resize", onResize);
-  resize();
-  init();
-
-  const animate = () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const p of particles) {
-      p.x += p.speedX;
-      p.y += p.speedY;
-      if (p.y < -10 || p.x < 0 || p.x > canvas.width) {
-        const np = initParticle(canvas.width, canvas.height);
-        p.x = np.x;
-        p.y = np.y;
-        p.size = np.size;
-        p.speedX = np.speedX;
-        p.speedY = np.speedY;
-        p.alpha = np.alpha;
-        p.color = np.color;
-      }
-      ctx.shadowBlur = 4;
-      ctx.shadowColor = `rgba(${p.color}, ${p.alpha})`;
-      ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    raf = requestAnimationFrame(animate);
-  };
-  raf = requestAnimationFrame(animate);
-
-  onBeforeUnmount(() => {
-    window.removeEventListener("resize", onResize);
-  });
-});
-
-onBeforeUnmount(() => {
-  if (raf != null) cancelAnimationFrame(raf);
-});
 
 const hasAnyLobby = computed(() => lobby.lobbies.length > 0);
 function hostNameOf(g: any) {
@@ -102,7 +17,6 @@ function hostNameOf(g: any) {
 <template>
   <!-- Structure aligned with `frontend/public/code_accueil.html` (without the local nav; global TopNavBar is used). -->
   <div class="bg-background text-on-background selection:bg-primary selection:text-on-primary">
-    <canvas ref="canvasRef" class="pointer-events-none fixed inset-0 z-[5] opacity-35" />
     <main>
       <!-- Hero + Missions -->
       <div style="min-height: calc(100vh - 64px)" class="flex flex-col">

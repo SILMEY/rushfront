@@ -1,98 +1,11 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useAuthStore } from "../stores/authStore";
 
 const auth = useAuthStore();
-
-const canvasRef = ref<HTMLCanvasElement | null>(null);
-let raf: number | null = null;
-
-type Particle = {
-  x: number;
-  y: number;
-  size: number;
-  speedX: number;
-  speedY: number;
-  alpha: number;
-  color: string;
-};
-
-function initParticle(w: number, h: number): Particle {
-  return {
-    x: Math.random() * w,
-    y: Math.random() * h,
-    size: Math.random() * 1.5 + 0.5,
-    speedX: Math.random() * 0.4 - 0.2,
-    speedY: Math.random() * -0.4 - 0.05,
-    alpha: Math.random() * 0.4 + 0.1,
-    color: Math.random() > 0.5 ? "242, 202, 80" : "212, 175, 55"
-  };
-}
-
-onMounted(() => {
-  const canvas = canvasRef.value;
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  const particles: Particle[] = [];
-  const resize = () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  };
-  const init = () => {
-    particles.length = 0;
-    for (let i = 0; i < 60; i++) particles.push(initParticle(canvas.width, canvas.height));
-  };
-
-  const onResize = () => {
-    resize();
-    init();
-  };
-  window.addEventListener("resize", onResize);
-  resize();
-  init();
-
-  const animate = () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (const p of particles) {
-      p.x += p.speedX;
-      p.y += p.speedY;
-      if (p.y < -10 || p.x < 0 || p.x > canvas.width) {
-        const np = initParticle(canvas.width, canvas.height);
-        p.x = np.x;
-        p.y = np.y;
-        p.size = np.size;
-        p.speedX = np.speedX;
-        p.speedY = np.speedY;
-        p.alpha = np.alpha;
-        p.color = np.color;
-      }
-      ctx.shadowBlur = 4;
-      ctx.shadowColor = `rgba(${p.color}, ${p.alpha})`;
-      ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    raf = requestAnimationFrame(animate);
-  };
-  raf = requestAnimationFrame(animate);
-
-  onBeforeUnmount(() => {
-    window.removeEventListener("resize", onResize);
-  });
-});
-
-onBeforeUnmount(() => {
-  if (raf != null) cancelAnimationFrame(raf);
-});
 </script>
 
 <template>
   <div class="relative mx-auto grid max-w-5xl gap-10 py-10 px-6">
-    <canvas ref="canvasRef" class="pointer-events-none fixed inset-0 z-0 opacity-40" />
-
     <section class="relative z-10 mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-black/40 p-10 backdrop-blur">
       <div class="text-center">
         <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-amber-300/80">Royal Access</div>
