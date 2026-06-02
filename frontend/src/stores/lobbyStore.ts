@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { LobbySummary } from "../types/lobby";
+import type { CivilizationId, LobbySummary } from "../types/lobby";
 import { getSocket } from "../composables/useSocket";
 import { router } from "../router";
 
@@ -69,6 +69,11 @@ export const useLobbyStore = defineStore("lobby", {
       await this.ensureConnected();
       const socket = await getSocket();
       socket.emit("lobby:set_color", { gameId, color });
+    },
+    async setCivilization(gameId: string, civilization: CivilizationId) {
+      await this.ensureConnected();
+      const socket = await getSocket();
+      socket.emit("lobby:set_civilization", { gameId, civilization });
     }
   }
 });

@@ -1,8 +1,18 @@
 import { BuildingType, TileType, type BuildIntent, type Vec2 } from "./types.js";
-import { buildCost, claimCost, idx, inBounds, orthogonalNeighbors, withinRadius } from "./rules.js";
+import { PROD_SCALE, buildCost, claimCost, idx, inBounds, orthogonalNeighbors, withinRadius } from "./rules.js";
+
+// Stochastic rounding: preserves expected value at any PROD_SCALE.
+// E[pGain(n)] = n * PROD_SCALE regardless of how small PROD_SCALE is.
+function pGain(n: number): number {
+  if (n <= 0) return 0;
+  const expected = n * PROD_SCALE;
+  const base = Math.floor(expected);
+  return base + (Math.random() < expected - base ? 1 : 0);
+}
 
 type RuntimePlayer = {
   id: string;
+  civilization?: string;
   resources: { villagers: number; soldiers: number; wood: number; stone: number };
 };
 
@@ -98,7 +108,15 @@ export function resolveTurn(input: TurnInput) {
     const techs = new Set((player as any).techs as string[] | undefined);
     if (techs.has("logistics")) cost = Math.max(1, cost - 1);
 
+    // Civilization claim cost modifiers
     const pos = tilePos(tileIndex, width);
+    const civ = player.civilization;
+    if (civ === "steppe_horde") {
+      cost = 0; // Horde claims are always free
+    } else if (civ === "sylvan_elves" && adjacentCountOfType(tileTypes, pos, width, height, TileType.Forest) > 0) {
+      cost = 0; // Elfes claim for free when adjacent to a forest
+    }
+
     const barracks = barracksByPlayer.get(pid) ?? [];
     const canLocal = inBarracksRange(barracks, pos);
     let local = localPoints.get(pid) ?? 0;
@@ -189,14 +207,24 @@ export function resolveTurn(input: TurnInput) {
     if (N <= 0) continue;
 
     const D = Math.max(0, defender.resources.soldiers);
-    const loss = Math.min(N, D);
 
-    defender.resources.soldiers -= loss;
+    // Civilization combat multipliers
+    const atkMult = attacker.civilization === "steppe_horde" ? 1.5
+                  : attacker.civilization === "iron_dwarves"  ? 0.75 : 1.0;
+    const defMult = defender.civilization === "iron_dwarves"  ? 1.5
+                  : defender.civilization === "steppe_horde"  ? 0.75 : 1.0;
 
-    const attackerSurvivors = N - loss;
+    const N_eff = Math.round(N * atkMult); // effective attack power
+    const D_eff = Math.round(D * defMult); // effective defense power
+
+    const defenderLoss = Math.min(N_eff, D);   // bounded by actual troops
+    const attackerLoss  = Math.min(D_eff, N);
+
+    defender.resources.soldiers -= defenderLoss;
+    const attackerSurvivors = N - attackerLoss;
     if (attackerSurvivors > 0) attacker.resources.soldiers += attackerSurvivors;
 
-    if (N > D) {
+    if (N_eff > D_eff) {
       tileOwners[tileIndex] = pid;
       tileContestedUntil[tileIndex] = null;
     }
@@ -232,6 +260,8 @@ export function resolveTurn(input: TurnInput) {
   input.pendingBuilds.clear();
 
   // Production (applies at resolution, usable next turn).
+  // All raw values are the same as the original 10s-turn design;
+  // pGain() scales them down so the real-time economy rate is unchanged.
   for (const player of players) {
     const ownedTiles = countOwned(tileOwners, player.id);
     const techs = new Set((player as any).techs as string[] | undefined);
@@ -241,13 +271,14 @@ export function resolveTurn(input: TurnInput) {
       if (tileOwners[i] === player.id && tileBuildings[i] === BuildingType.FishingHut) fishingHuts++;
     }
 
-    // Soldiers gain is intentionally slow (strategic pacing).
-    const recruitFromVillagers = Math.floor(player.resources.villagers / 10);
-    const recruitFromTerritory = 1 + Math.floor(ownedTiles / 12) + Math.floor(fishingHuts / 2);
-    const recruits = recruitFromVillagers + recruitFromTerritory + (techs.has("mil_training") ? 1 : 0);
+    const baseRecruits =
+      Math.floor(player.resources.villagers / 10) +
+      1 + Math.floor(ownedTiles / 12) + Math.floor(fishingHuts / 2) +
+      (techs.has("mil_training") ? 1 : 0);
+    const rawRecruits = player.civilization === "steppe_horde"
+      ? Math.round(baseRecruits * 1.5) : baseRecruits;
+    const recruits = pGain(rawRecruits);
 
-    // Split new recruits between villagers/soldiers using the player's desired ratio.
-    // This keeps the UI slider stable and makes growth follow the chosen composition.
     const desiredPctRaw = (player as any).desiredSoldierPct;
     const desiredPct =
       typeof desiredPctRaw === "number" && Number.isFinite(desiredPctRaw) ? Math.max(0, Math.min(100, desiredPctRaw)) : 0;
@@ -262,32 +293,42 @@ export function resolveTurn(input: TurnInput) {
     player.resources.soldiers += addSoldiers;
     player.resources.villagers += addVillagers;
 
-    // Passive economy from villagers (small baseline so the split matters even early-game).
-    player.resources.wood += Math.floor(player.resources.villagers / 12);
-    player.resources.stone += Math.floor(player.resources.villagers / 24);
+    const passiveWoodBase  = Math.floor(player.resources.villagers / 12);
+    const passiveStoneBase = Math.floor(player.resources.villagers / 24);
+    player.resources.wood  += pGain(player.civilization === "sylvan_elves" ? passiveWoodBase  * 2 : passiveWoodBase);
+    player.resources.stone += pGain(player.civilization === "iron_dwarves" ? passiveStoneBase * 2 : passiveStoneBase);
 
-    let woodGain = 0;
+    let rawWood = 0;
     let sawmills = 0;
     for (let i = 0; i < tileBuildings.length; i++) {
       if (tileOwners[i] !== player.id) continue;
       if (tileBuildings[i] !== BuildingType.Sawmill) continue;
       sawmills++;
       const pos = tilePos(i, width);
-      woodGain += Math.min(3, adjacentCountOfType(tileTypes, pos, width, height, TileType.Forest));
+      rawWood += Math.min(3, adjacentCountOfType(tileTypes, pos, width, height, TileType.Forest));
     }
-    if (techs.has("eco_tools")) woodGain += sawmills * 1;
-    player.resources.wood += woodGain;
+    if (techs.has("eco_tools")) rawWood += sawmills * 1;
+    if (player.civilization === "sylvan_elves") rawWood *= 2;
+    player.resources.wood += pGain(rawWood);
 
-    let stoneGain = 0;
+    let rawStone = 0;
     let mines = 0;
     for (let i = 0; i < tileBuildings.length; i++) {
       if (tileOwners[i] !== player.id) continue;
       if (tileBuildings[i] !== BuildingType.Mine) continue;
       mines++;
       const pos = tilePos(i, width);
-      stoneGain += Math.min(3, adjacentCountOfType(tileTypes, pos, width, height, TileType.Quarry));
+      rawStone += Math.min(3, adjacentCountOfType(tileTypes, pos, width, height, TileType.Quarry));
     }
-    if (techs.has("eco_tools")) stoneGain += mines * 1;
-    player.resources.stone += stoneGain;
+    if (techs.has("eco_tools")) rawStone += mines * 1;
+    if (player.civilization === "iron_dwarves") rawStone *= 2;
+    player.resources.stone += pGain(rawStone);
+
+    // Empire d'Aurélien: passive territorial income (+1 wood +1 stone per 10 owned tiles)
+    if (player.civilization === "aurelian_empire") {
+      const territoryBonus = Math.floor(ownedTiles / 10);
+      player.resources.wood  += pGain(territoryBonus);
+      player.resources.stone += pGain(territoryBonus);
+    }
   }
 }

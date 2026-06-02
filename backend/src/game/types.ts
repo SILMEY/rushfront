@@ -1,3 +1,14 @@
+export type CivilizationId = "iron_dwarves" | "sylvan_elves" | "steppe_horde" | "aurelian_empire";
+
+export const CIVILIZATIONS: Record<CivilizationId, { name: string; role: string }> = {
+  iron_dwarves:    { name: "Nains de Fer",        role: "Défense"   },
+  sylvan_elves:    { name: "Elfes Sylvains",       role: "Équilibré" },
+  steppe_horde:    { name: "Horde des Steppes",    role: "Attaque"   },
+  aurelian_empire: { name: "Empire d'Aurélien",    role: "Économie"  }
+};
+
+export const DEFAULT_CIVILIZATION: CivilizationId = "iron_dwarves";
+
 export enum TileType {
   Plain = 0,
   Water = 1,
@@ -36,6 +47,7 @@ export type GamePlayerState = {
   name: string;
   avatarUrl?: string | null;
   color: string;
+  civilization: CivilizationId;
   isReady: boolean;
   hasChosenStart: boolean;
   basePosition: Vec2 | null;

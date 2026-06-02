@@ -2,7 +2,11 @@ import { BuildingType, TileType, type Vec2 } from "./types.js";
 
 export const MAP_WIDTH = 140;
 export const MAP_HEIGHT = 70;
-export const TURN_SECONDS = 10;
+export const TURN_MS = 100; // 100ms per turn — near-instantaneous
+export const TURN_SECONDS = TURN_MS / 1000;
+// Scale factor applied to all per-turn production so real-time economy stays the same pace
+// as when turns were 10s long. (0.1s / 10s = 0.01)
+export const PROD_SCALE = TURN_MS / 10_000;
 export const MAX_PLAYERS = 10;
 
 // Lobby/player colors (avoid terrain-like greens/blues/greys).

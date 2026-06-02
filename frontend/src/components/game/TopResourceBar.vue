@@ -119,22 +119,17 @@ const habitants = computed(() => {
 
     <div class="flex items-center gap-3 cursor-default">
       <span class="material-symbols-outlined text-[#ffd700]" style="font-variation-settings: 'FILL' 1">forest</span>
-      <span class="font-label-sm italic font-bold text-primary-fixed">BOIS: {{ me.resources.wood }} (+{{ production.wood }})</span>
+      <span class="font-label-sm italic font-bold text-primary-fixed">BOIS: {{ me.resources.wood }}</span>
     </div>
 
     <div class="flex items-center gap-3 cursor-default">
       <span class="material-symbols-outlined text-[#a0a0a0]" style="font-variation-settings: 'FILL' 1">foundation</span>
-      <span class="font-label-sm italic font-bold text-primary-fixed">PIERRE: {{ me.resources.stone }} (+{{ production.stone }})</span>
+      <span class="font-label-sm italic font-bold text-primary-fixed">PIERRE: {{ me.resources.stone }}</span>
     </div>
 
     <div class="flex items-center gap-3 cursor-default">
       <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">groups</span>
-      <span class="font-label-sm italic font-bold text-primary-fixed">HABITANTS: {{ habitants }} (+{{ production.recruits }})</span>
-    </div>
-
-    <div v-if="turnRemaining" class="flex items-center gap-3 cursor-default">
-      <span class="material-symbols-outlined text-primary-fixed" style="font-variation-settings: 'FILL' 1">hourglass_top</span>
-      <span class="font-label-sm italic font-bold text-primary-fixed">PROCHAIN TOUR: {{ turnRemaining }}</span>
+      <span class="font-label-sm italic font-bold text-primary-fixed">HABITANTS: {{ habitants }}</span>
     </div>
   </div>
 </template>

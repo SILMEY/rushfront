@@ -85,6 +85,18 @@ export async function authRoutes(app: FastifyInstance) {
     reply.setCookie("tr_session", jwt, cookieOpts).redirect(redirectUrl);
   });
 
+  function serializeUser(user: any) {
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      pseudo: user.pseudo,
+      avatarUrl: user.avatarUrl,
+      preferredColor: user.preferredColor ?? null,
+      preferredCivilization: user.preferredCivilization ?? null
+    };
+  }
+
   app.get("/auth/me", async (req, reply) => {
     try {
       await req.jwtVerify();
@@ -93,15 +105,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
     const user = await app.prisma.user.findUnique({ where: { id: req.user.userId } });
     if (!user) return reply.code(200).send({ user: null });
-    return reply.send({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        pseudo: user.pseudo,
-        avatarUrl: user.avatarUrl
-      }
-    });
+    return reply.send({ user: serializeUser(user) });
   });
 
   const PseudoSchema = z
@@ -131,20 +135,32 @@ export async function authRoutes(app: FastifyInstance) {
         where: { id: req.user.userId },
         data: { pseudo }
       });
-      return reply.send({
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          pseudo: user.pseudo,
-          avatarUrl: user.avatarUrl
-        }
-      });
+      return reply.send({ user: serializeUser(user) });
     } catch (e: any) {
-      // Prisma unique violation
       if (e?.code === "P2002") return reply.code(409).send({ error: "pseudo_taken" });
       throw e;
     }
+  });
+
+  const VALID_CIVS = ["iron_dwarves", "sylvan_elves", "steppe_horde", "aurelian_empire"];
+  const VALID_COLORS = ["#3b82f6","#ef4444","#a855f7","#fde047","#f97316","#ffffff","#22c55e","#f472b6","#06b6d4","#e11d48"];
+
+  app.put("/profile/preferences", async (req, reply) => {
+    try {
+      await req.jwtVerify();
+    } catch {
+      return reply.code(401).send({ error: "unauthorized" });
+    }
+    const body = (req.body ?? {}) as any;
+    const color = body.preferredColor ?? null;
+    const civ   = body.preferredCivilization ?? null;
+    if (color !== null && !VALID_COLORS.includes(color)) return reply.code(400).send({ error: "invalid_color" });
+    if (civ   !== null && !VALID_CIVS.includes(civ))     return reply.code(400).send({ error: "invalid_civilization" });
+    const user = await app.prisma.user.update({
+      where: { id: req.user.userId },
+      data: { preferredColor: color, preferredCivilization: civ }
+    });
+    return reply.send({ user: serializeUser(user) });
   });
 
   app.post("/auth/logout", async (req, reply) => {

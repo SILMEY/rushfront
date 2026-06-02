@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { Server, Socket } from "socket.io";
 import { GameManager } from "../game/GameManager.js";
+import type { CivilizationId } from "../game/types.js";
 
 function userIdOf(socket: Socket) {
   const uid = (socket as any).userId as string | undefined;
@@ -64,6 +65,16 @@ export function registerLobbyHandlers(_app: FastifyInstance, io: Server, socket:
     try {
       const userId = userIdOf(socket);
       await gameManager.setColor(payload.gameId, userId, payload.color);
+      io.emit("lobby:updated", await gameManager.listLobbies());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  socket.on("lobby:set_civilization", async (payload: { gameId: string; civilization: CivilizationId }) => {
+    try {
+      const userId = userIdOf(socket);
+      await gameManager.setCivilization(payload.gameId, userId, payload.civilization);
       io.emit("lobby:updated", await gameManager.listLobbies());
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });

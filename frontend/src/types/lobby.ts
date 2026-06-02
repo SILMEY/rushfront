@@ -1,9 +1,12 @@
+export type CivilizationId = "iron_dwarves" | "sylvan_elves" | "steppe_horde" | "aurelian_empire";
+
 export type LobbyPlayer = {
   id: string;
   userId: string;
   name: string;
   avatarUrl?: string | null;
   color: string;
+  civilization: CivilizationId;
   isReady: boolean;
 };
 

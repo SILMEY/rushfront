@@ -60,6 +60,13 @@ export const useAuthStore = defineStore("auth", {
         body: JSON.stringify({ pseudo })
       });
       this.user = res.user;
+    },
+    async setPreferences(preferredColor: string | null, preferredCivilization: string | null) {
+      const res = await apiFetch<{ user: User }>("/profile/preferences", {
+        method: "PUT",
+        body: JSON.stringify({ preferredColor, preferredCivilization })
+      });
+      this.user = res.user;
     }
   }
 });

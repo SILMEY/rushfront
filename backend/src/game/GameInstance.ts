@@ -4,12 +4,13 @@ import {
   BuildingType,
   TileType,
   type BuildIntent,
+  type CivilizationId,
   type ClaimIntent,
   type GamePlayerState,
   type GameStateSnapshot,
   type Vec2
 } from "./types.js";
-import { TURN_SECONDS, buildCost, idx, inBounds, orthogonalNeighbors } from "./rules.js";
+import { TURN_MS, buildCost, idx, inBounds, orthogonalNeighbors } from "./rules.js";
 import { resolveTurn } from "./turnResolver.js";
 import { TECHS, isTechId } from "./tech.js";
 
@@ -54,6 +55,7 @@ export class GameInstance {
       name: p.user.pseudo ?? p.user.name,
       avatarUrl: p.user.avatarUrl,
       color: p.color,
+      civilization: p.civilization as CivilizationId,
       isReady: p.isReady,
       hasChosenStart: p.hasChosenStart,
       basePosition: p.baseX != null && p.baseY != null ? { x: p.baseX, y: p.baseY } : null,
@@ -71,16 +73,16 @@ export class GameInstance {
     this.tileContestedUntil = Array.from({ length: this.width * this.height }, () => null);
 
     this.currentTurn = 0;
-    this.turnEndsAt = Date.now() + TURN_SECONDS * 1000;
+    this.turnEndsAt = Date.now() + TURN_MS;
   }
 
   start() {
     if (this.timer) return;
     this.status = "ACTIVE";
-    this.turnEndsAt = Date.now() + TURN_SECONDS * 1000;
+    this.turnEndsAt = Date.now() + TURN_MS;
     this.timer = setInterval(() => {
       void this.tick();
-    }, 250);
+    }, 50);
   }
 
   stop() {
@@ -91,10 +93,12 @@ export class GameInstance {
   private async tick() {
     if (this.status !== "ACTIVE") return;
     const now = Date.now();
-    if (now < this.turnEndsAt) return;
-    await this.resolveTurn();
-    this.currentTurn++;
-    this.turnEndsAt = Date.now() + TURN_SECONDS * 1000;
+    // Process all overdue turns in one shot (important at 100ms turns / 50ms tick)
+    while (this.turnEndsAt <= now) {
+      await this.resolveTurn();
+      this.currentTurn++;
+      this.turnEndsAt += TURN_MS;
+    }
   }
 
   snapshot(): GameStateSnapshot {

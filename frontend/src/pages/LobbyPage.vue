@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
 import { useAuthStore } from "../stores/authStore";
@@ -17,6 +17,37 @@ const hostName = computed(() => current.value?.players.find((p) => p.userId === 
 
 const MAX_PLAYERS = 10;
 
+const CIVILIZATIONS = [
+  {
+    id: "iron_dwarves" as const,
+    name: "Nains de Fer",
+    icon: "🏔️",
+    role: "Défense",
+    bonus: "Pierre +éco · Défense ↑ · Attaque ↓"
+  },
+  {
+    id: "sylvan_elves" as const,
+    name: "Elfes Sylvains",
+    icon: "🌲",
+    role: "Équilibré",
+    bonus: "Bois +éco · Équilibré"
+  },
+  {
+    id: "steppe_horde" as const,
+    name: "Horde des Steppes",
+    icon: "⚔️",
+    role: "Attaque",
+    bonus: "Expansion rapide · Attaque ↑ · Défense ↓"
+  },
+  {
+    id: "aurelian_empire" as const,
+    name: "Empire d'Aurélien",
+    icon: "🏛️",
+    role: "Économie",
+    bonus: "Routes · Territoire compact · Éco/case"
+  }
+];
+
 const COLORS = [
   "#3b82f6",
   "#ef4444",
@@ -31,6 +62,18 @@ const COLORS = [
 ];
 
 const usedColors = computed(() => new Set((current.value?.players ?? []).map((p) => p.color)));
+const readyCount = computed(() => current.value?.players.filter((p) => p.isReady).length ?? 0);
+
+const shakeReady = ref(false);
+function tryStartGame() {
+  if (readyCount.value < 2) {
+    shakeReady.value = false;
+    requestAnimationFrame(() => { shakeReady.value = true; });
+    setTimeout(() => { shakeReady.value = false; }, 600);
+    return;
+  }
+  lobby.startGame(gameId.value);
+}
 
 onMounted(async () => {
   await lobby.ensureConnected();
@@ -83,8 +126,10 @@ watch(
               <div class="text-lg font-headline font-bold uppercase tracking-widest text-primary">Salon de jeu</div>
             </div>
           </div>
-          <div class="text-[10px] font-bold uppercase tracking-[0.25em] text-secondary/60">
-            Prêts requis: 2+
+          <div
+            :class="['text-[10px] font-bold uppercase tracking-[0.25em] transition-colors', shakeReady ? 'text-red-400 shake-alert' : 'text-secondary/60']"
+          >
+            Prêts requis: {{ readyCount }}/2
           </div>
         </div>
 
@@ -115,7 +160,12 @@ watch(
                     </div>
                   </div>
 
-                  <div class="flex items-center gap-12">
+                  <div class="flex items-center gap-8">
+                    <div class="flex flex-col items-center">
+                      <span class="mb-1 text-[10px] font-bold uppercase tracking-widest text-secondary">Civilisation</span>
+                      <span class="text-2xl">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.icon ?? "🏔️" }}</span>
+                      <span class="mt-0.5 text-[10px] text-secondary/70">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.name ?? "?" }}</span>
+                    </div>
                     <div class="flex flex-col items-center">
                       <span class="mb-1 text-[10px] font-bold uppercase tracking-widest text-secondary">Héraldique</span>
                       <div class="h-8 w-12 border-2 border-black/20 shadow-md" :style="{ background: p.color }"></div>
@@ -153,6 +203,31 @@ watch(
             <div class="border-t-2 border-outline-variant bg-black/60 p-6 lg:border-l-2 lg:border-t-0">
               <div class="grid gap-6">
                 <div>
+                  <h3 class="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-secondary">
+                    <span class="material-symbols-outlined text-sm">castle</span>
+                    Civilisation
+                  </h3>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button
+                      v-for="civ in CIVILIZATIONS"
+                      :key="civ.id"
+                      class="flex flex-col items-start gap-0.5 border p-2.5 text-left transition-all duration-200 hover:border-primary/60 hover:bg-white/5"
+                      :class="me?.civilization === civ.id
+                        ? ‘border-primary bg-primary/10’
+                        : ‘border-outline-variant/30 bg-black/20’"
+                      @click="lobby.setCivilization(gameId, civ.id)"
+                    >
+                      <span class="text-xl leading-none">{{ civ.icon }}</span>
+                      <span class="mt-1 text-[11px] font-bold leading-tight" :class="me?.civilization === civ.id ? ‘text-primary’ : ‘text-secondary’">{{ civ.name }}</span>
+                      <span class="text-[9px] uppercase tracking-widest" :class="me?.civilization === civ.id ? ‘text-primary/70’ : ‘text-secondary/50’">{{ civ.role }}</span>
+                    </button>
+                  </div>
+                  <p v-if="me?.civilization" class="mt-2 text-[10px] italic text-secondary/60">
+                    {{ CIVILIZATIONS.find(c => c.id === me?.civilization)?.bonus }}
+                  </p>
+                </div>
+
+                <div>
                   <h3 class="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-secondary">
                     <span class="material-symbols-outlined text-sm">palette</span>
                     Couleur d’héraldique
@@ -188,7 +263,7 @@ watch(
                   <button
                     v-if="isHost"
                     class="mt-3 h-16 metallic-crest w-full rounded-md text-on-primary shadow-xl transition-all hover:brightness-110 active:scale-95"
-                    @click="lobby.startGame(gameId)"
+                    @click="tryStartGame()"
                   >
                     <span class="flex items-center justify-center gap-4 text-2xl font-headline">
                       <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1">swords</span>
@@ -304,6 +379,20 @@ watch(
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #52482b;
+}
+
+@keyframes shake {
+  0%   { transform: translateX(0); }
+  15%  { transform: translateX(-6px); }
+  30%  { transform: translateX(6px); }
+  45%  { transform: translateX(-5px); }
+  60%  { transform: translateX(5px); }
+  75%  { transform: translateX(-3px); }
+  90%  { transform: translateX(3px); }
+  100% { transform: translateX(0); }
+}
+.shake-alert {
+  animation: shake 0.55s ease;
 }
 </style>
 

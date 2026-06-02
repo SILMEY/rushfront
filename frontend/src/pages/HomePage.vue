@@ -104,18 +104,13 @@ function hostNameOf(g: any) {
   <div class="bg-background text-on-background selection:bg-primary selection:text-on-primary">
     <canvas ref="canvasRef" class="pointer-events-none fixed inset-0 z-[5] opacity-35" />
     <main>
-      <!-- Hero + Missions : un seul bloc avec fond partagé, tout visible sans scroll -->
-      <div class="relative overflow-hidden" style="min-height: calc(100vh - 64px)">
-        <!-- Image de fond couvrant tout le bloc -->
-        <div class="absolute inset-0 z-0">
-          <img class="h-full w-full object-cover object-top" src="/bggame.png" alt="battlefield" />
-          <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(19,19,18,0.65) 40%, #131312 80%)"></div>
-        </div>
+      <!-- Hero + Missions -->
+      <div style="min-height: calc(100vh - 64px)" class="flex flex-col">
 
         <!-- Titre compact -->
-        <div class="relative z-10 pt-10 pb-6 text-center px-6">
+        <div class="pt-10 pb-6 text-center px-6">
           <h1 class="font-headline text-4xl font-bold uppercase tracking-tighter text-primary drop-shadow-2xl md:text-6xl">
-            COMMANDER L'AVENIR
+            PRENEZ LE FRONT
           </h1>
           <p class="mx-auto mt-2 max-w-2xl text-base italic text-secondary md:text-lg">
             Gérez vos ressources, déployez vos troupes et dominez le champ de bataille sur une grille millimétrée.
@@ -123,13 +118,16 @@ function hostNameOf(g: any) {
         </div>
 
         <!-- Mission Selection -->
-        <section id="missions" class="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-6 pb-8">
+        <section id="missions" class="mx-auto flex w-full max-w-7xl flex-1 flex-col items-center px-6 pb-8">
           <h2 class="mb-5 text-center font-headline text-xl uppercase tracking-[0.25em] text-primary md:text-2xl">Choisissez votre mission</h2>
 
-          <div class="grid w-full gap-6 md:grid-cols-2">
-            <!-- Card 1: Online -->
-            <div class="group relative cursor-pointer border border-outline-variant/30 bg-stone-900/70 p-1 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)]">
-              <div class="flex h-full w-full flex-col border border-primary/10 p-6">
+          <div class="grid w-full flex-1 gap-6 md:grid-cols-2">
+            <!-- Card 1: Online — avec image de fond -->
+            <div class="group relative cursor-pointer border border-outline-variant/30 p-1 transition-all duration-500 hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] overflow-hidden">
+              <!-- Image de fond de la carte -->
+              <img class="absolute inset-0 h-full w-full object-cover object-center" src="/bggame.png" alt="" aria-hidden="true" />
+              <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(19,19,18,0.55) 0%, rgba(19,19,18,0.75) 100%)"></div>
+              <div class="relative flex h-full w-full flex-col border border-primary/10 p-6">
                 <h3 class="mb-2 font-headline text-2xl leading-none text-primary">Lancer une partie rapide</h3>
                 <p class="mb-4 text-sm italic leading-relaxed text-secondary/80">
                   Affrontez des commandants inconnus à travers le royaume et gravissez les échelons de la ligue impériale.

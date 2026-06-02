@@ -20,8 +20,10 @@ model User {
   googleId  String   @unique
   email     String   @unique
   name      String
-  pseudo    String?  @unique
-  avatarUrl String?
+  pseudo                String?  @unique
+  avatarUrl             String?
+  preferredColor        String?
+  preferredCivilization String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -53,6 +55,7 @@ model GamePlayer {
   user          User     @relation(fields: [userId], references: [id])
 
   color         String
+  civilization  String   @default("iron_dwarves")
   isReady       Boolean  @default(false)
   hasChosenStart Boolean @default(false)
   baseX         Int?

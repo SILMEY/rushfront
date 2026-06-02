@@ -1,6 +1,7 @@
 import { prisma } from "../prisma/client.js";
 import { GameInstance } from "./GameInstance.js";
 import { MAX_PLAYERS, PLAYER_COLORS } from "./rules.js";
+import { DEFAULT_CIVILIZATION, type CivilizationId } from "./types.js";
 
 export class GameManager {
   private active = new Map<string, GameInstance>();
@@ -30,22 +31,22 @@ export class GameManager {
         name: p.user.pseudo ?? p.user.name,
         avatarUrl: p.user.avatarUrl,
         color: p.color,
+        civilization: p.civilization as CivilizationId,
         isReady: p.isReady
       }))
     }));
   }
 
   async createLobby(hostUserId: string) {
+    const host = await prisma.user.findUnique({ where: { id: hostUserId } });
+    const color = host?.preferredColor ?? PLAYER_COLORS[0]!;
+    const civilization = (host?.preferredCivilization as CivilizationId | null) ?? DEFAULT_CIVILIZATION;
     const game = await prisma.game.create({
       data: {
         hostUserId,
         status: "LOBBY",
         players: {
-          create: {
-            userId: hostUserId,
-            color: PLAYER_COLORS[0]!,
-            isReady: false
-          }
+          create: { userId: hostUserId, color, civilization, isReady: false }
         }
       }
     });
@@ -60,11 +61,20 @@ export class GameManager {
     const existing = game.players.find((p) => p.userId === userId);
     if (existing) return existing.id;
 
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     const usedColors = new Set(game.players.map((p) => p.color));
-    const color = PLAYER_COLORS.find((c) => !usedColors.has(c)) ?? PLAYER_COLORS[game.players.length % PLAYER_COLORS.length]!;
+
+    let color: string;
+    if (user?.preferredColor && !usedColors.has(user.preferredColor)) {
+      color = user.preferredColor;
+    } else {
+      color = PLAYER_COLORS.find((c) => !usedColors.has(c)) ?? PLAYER_COLORS[game.players.length % PLAYER_COLORS.length]!;
+    }
+
+    const civilization = (user?.preferredCivilization as CivilizationId | null) ?? DEFAULT_CIVILIZATION;
 
     const gp = await prisma.gamePlayer.create({
-      data: { gameId, userId, color }
+      data: { gameId, userId, color, civilization }
     });
     return gp.id;
   }
@@ -93,6 +103,15 @@ export class GameManager {
     await prisma.gamePlayer.update({
       where: { gameId_userId: { gameId, userId } },
       data: { isReady }
+    });
+  }
+
+  async setCivilization(gameId: string, userId: string, civilization: CivilizationId) {
+    const VALID: CivilizationId[] = ["iron_dwarves", "sylvan_elves", "steppe_horde", "aurelian_empire"];
+    if (!VALID.includes(civilization)) throw new Error("invalid_civilization");
+    await prisma.gamePlayer.update({
+      where: { gameId_userId: { gameId, userId } },
+      data: { civilization }
     });
   }
 
