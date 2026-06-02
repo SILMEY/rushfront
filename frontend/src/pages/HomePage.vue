@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
 import { useAuthStore } from "../stores/authStore";
@@ -15,6 +15,15 @@ function requireAuth(action: () => void) {
   if (!auth.user) { router.push("/login"); return; }
   action();
 }
+
+const search = ref("");
+const filteredLobbies = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) return lobby.lobbies;
+  return lobby.lobbies.filter((g) =>
+    g.players.some((p) => p.name.toLowerCase().includes(q))
+  );
+});
 
 const hasAnyLobby = computed(() => lobby.lobbies.length > 0);
 function hostNameOf(g: any) {
@@ -93,13 +102,26 @@ function hostNameOf(g: any) {
                 </div>
 
                 <div class="mt-4 border-t border-outline-variant/30 pt-4">
-                  <h4 class="mb-3 font-headline text-xs font-bold uppercase tracking-widest text-primary">Parties disponibles</h4>
+                  <div class="mb-3 flex items-center gap-2">
+                    <h4 class="font-headline text-xs font-bold uppercase tracking-widest text-primary">Parties disponibles</h4>
+                    <span v-if="lobby.lobbies.length > 0" class="ml-auto text-[10px] text-secondary/40">{{ filteredLobbies.length }} / {{ lobby.lobbies.length }}</span>
+                  </div>
+                  <div v-if="lobby.lobbies.length > 0" class="mb-2">
+                    <input
+                      v-model="search"
+                      class="w-full rounded border border-outline-variant/30 bg-black/30 px-3 py-1.5 text-xs text-secondary/80 outline-none placeholder-secondary/30 focus:border-primary/40 focus:bg-black/50"
+                      placeholder="Rechercher par nom de joueur…"
+                    />
+                  </div>
                   <div v-if="!hasAnyLobby" class="rounded border border-outline-variant/20 bg-white/5 p-3 text-sm text-secondary/60">
                     Aucune partie en lobby.
                   </div>
+                  <div v-else-if="filteredLobbies.length === 0" class="rounded border border-outline-variant/20 bg-white/5 p-3 text-sm text-secondary/60">
+                    Aucun résultat pour « {{ search }} ».
+                  </div>
                   <div v-else class="space-y-2">
                     <div
-                      v-for="g in lobby.lobbies"
+                      v-for="g in filteredLobbies"
                       :key="g.id"
                       class="flex items-center justify-between border border-outline-variant/20 bg-white/5 p-3 transition-colors hover:bg-white/10"
                     >
