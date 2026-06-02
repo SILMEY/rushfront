@@ -29,31 +29,8 @@ export async function registerSockets(app: FastifyInstance, gameManager: GameMan
     registerGameHandlers(app, io, socket, gameManager);
   });
 
-  const lastTurns = new Map<string, number>();
-  const interval = setInterval(() => {
-    for (const instance of gameManager.listActive()) {
-      const room = `game:${instance.id}`;
-      io.to(room).emit("game:turn_tick", {
-        gameId: instance.id,
-        currentTurn: instance.currentTurn,
-        turnEndsAt: instance.turnEndsAt,
-        status: instance.status
-      });
-      const prev = lastTurns.get(instance.id);
-      if (prev == null) {
-        lastTurns.set(instance.id, instance.currentTurn);
-        continue;
-      }
-      if (instance.currentTurn !== prev) {
-        lastTurns.set(instance.id, instance.currentTurn);
-        io.to(room).emit("game:turn_resolved", { gameId: instance.id, currentTurn: instance.currentTurn });
-        io.to(room).emit("game:state", instance.snapshot());
-      }
-    }
-  }, 1000);
-
   app.addHook("onClose", async () => {
-    clearInterval(interval);
+    // nothing to clear — resource ticks are managed per-GameInstance
   });
 
   return io;
