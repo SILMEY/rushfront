@@ -13,12 +13,23 @@ const props = defineProps<{
 
 const messages = ref<ChatMsg[]>([]);
 const input = ref("");
-const listRef = ref<HTMLElement | null>(null);
+const scrollRef = ref<HTMLElement | null>(null);
+// Si l'utilisateur a scrollé vers le haut, on ne force pas le scroll bas
+const userScrolled = ref(false);
 
 function scrollBottom() {
   nextTick(() => {
-    if (listRef.value) listRef.value.scrollTop = listRef.value.scrollHeight;
+    const el = scrollRef.value;
+    if (!el || userScrolled.value) return;
+    el.scrollTop = el.scrollHeight;
   });
+}
+
+function onScroll() {
+  const el = scrollRef.value;
+  if (!el) return;
+  // Si à moins de 60px du bas → suivi auto
+  userScrolled.value = el.scrollHeight - el.scrollTop - el.clientHeight > 60;
 }
 
 let cleanup: (() => void) | null = null;
@@ -39,6 +50,7 @@ async function send() {
   const text = input.value.trim();
   if (!text || !props.gameId) return;
   input.value = "";
+  userScrolled.value = false; // reprendre le suivi auto
   const socket = await getSocket();
   socket.emit(props.eventName, {
     gameId: props.gameId,
@@ -50,38 +62,93 @@ async function send() {
 </script>
 
 <template>
-  <div class="flex flex-col h-full min-h-0">
-    <div class="px-4 py-2 border-b border-white/10">
-      <span class="text-[10px] font-bold uppercase tracking-widest text-primary/70">Chat</span>
-    </div>
+  <div class="chat-root flex flex-col h-full min-h-0">
 
-    <div ref="listRef" class="flex-1 overflow-y-auto px-3 py-2 space-y-1 min-h-0">
-      <div v-if="messages.length === 0" class="text-[10px] italic text-white/20 text-center pt-4">
-        Aucun message
-      </div>
-      <div v-for="(m, i) in messages" :key="i" class="flex items-start gap-2">
-        <div class="mt-1 h-2 w-2 shrink-0 rounded-full" :style="{ backgroundColor: m.authorColor }"></div>
-        <div class="min-w-0">
-          <span class="text-[10px] font-bold" :style="{ color: m.authorColor }">{{ m.authorName }}</span>
-          <span class="ml-1 text-[11px] text-white/70 break-words">{{ m.text }}</span>
+    <!-- Zone messages : ancrée en bas comme Twitch -->
+    <div
+      ref="scrollRef"
+      class="chat-scroll flex-1 min-h-0 overflow-y-auto px-3 pb-2"
+      @scroll="onScroll"
+    >
+      <!-- Spacer qui pousse les messages vers le bas -->
+      <div class="flex flex-col justify-end min-h-full pt-4">
+        <div v-if="messages.length === 0" class="text-[10px] italic text-white/15 text-center pb-2">
+          Aucun message pour l'instant
+        </div>
+        <div
+          v-for="(m, i) in messages"
+          :key="i"
+          class="chat-line px-1 py-0.5 rounded leading-snug"
+        >
+          <span
+            class="font-bold text-[11px] mr-1 cursor-default select-none"
+            :style="{ color: m.authorColor }"
+          >{{ m.authorName }}</span><span
+            class="text-[11px] text-white/75 break-words"
+          >{{ m.text }}</span>
         </div>
       </div>
     </div>
 
-    <form class="px-3 py-2 border-t border-white/10 flex gap-2" @submit.prevent="send">
+    <!-- Indicateur "nouveau message" quand scrollé vers le haut -->
+    <div
+      v-if="userScrolled && messages.length"
+      class="mx-3 mb-1 rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] text-primary/70 text-center cursor-pointer select-none"
+      @click="userScrolled = false; scrollBottom()"
+    >
+      ↓ nouveau message
+    </div>
+
+    <!-- Input -->
+    <form
+      class="chat-input-bar px-3 py-2 flex gap-2 border-t border-white/8"
+      @submit.prevent="send"
+    >
       <input
         v-model="input"
         maxlength="300"
-        placeholder="Message…"
-        class="flex-1 min-w-0 rounded bg-white/5 border border-white/10 px-2 py-1 text-[11px] text-white/80 placeholder-white/20 outline-none focus:border-primary/40"
+        placeholder="Envoyer un message"
+        autocomplete="off"
+        class="flex-1 min-w-0 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-[11px] text-white/85 placeholder-white/20 outline-none focus:border-primary/30 focus:bg-white/8 transition"
         @keydown.enter.exact.prevent="send"
       />
       <button
         type="submit"
-        class="shrink-0 rounded border border-primary/30 px-2 py-1 text-[10px] font-bold text-primary/70 hover:bg-primary/10"
+        class="shrink-0 rounded bg-primary/10 border border-primary/25 px-2.5 text-[11px] font-bold text-primary/80 hover:bg-primary/20 transition"
       >
-        ↵
+        Envoyer
       </button>
     </form>
   </div>
 </template>
+
+<style scoped>
+.chat-root {
+  background: transparent;
+}
+.chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212,175,55,0.2) transparent;
+}
+.chat-scroll::-webkit-scrollbar { width: 4px; }
+.chat-scroll::-webkit-scrollbar-track { background: transparent; }
+.chat-scroll::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.2); border-radius: 2px; }
+
+.chat-line {
+  transition: background 0.1s;
+}
+.chat-line:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.chat-input-bar {
+  background: rgba(0,0,0,0.2);
+}
+.text-primary\/70 { color: rgba(212,175,55,0.7); }
+.text-primary\/80 { color: rgba(212,175,55,0.8); }
+.border-primary\/25 { border-color: rgba(212,175,55,0.25); }
+.border-primary\/30 { border-color: rgba(212,175,55,0.3); }
+.bg-primary\/10 { background: rgba(212,175,55,0.1); }
+.bg-primary\/20 { background: rgba(212,175,55,0.2); }
+.border-white\/8 { border-color: rgba(255,255,255,0.08); }
+</style>
