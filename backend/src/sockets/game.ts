@@ -10,6 +10,12 @@ function userIdOf(socket: Socket) {
   return uid;
 }
 
+function getInstance(gameManager: GameManager, gameId: string) {
+  const instance = gameManager.getActive(gameId);
+  if (!instance) throw new Error("game_not_active");
+  return instance;
+}
+
 export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: Socket, gameManager: GameManager) {
   socket.on("game:leave", async (payload: { gameId: string }) => {
     try {
@@ -21,9 +27,12 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
 
   socket.on("game:get_state", async (payload: { gameId: string }) => {
     try {
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
+      const instance = getInstance(gameManager, payload.gameId);
       await socket.join(`game:${payload.gameId}`);
+      // Wire up the resource tick broadcaster (idempotent — always uses io.to room)
+      instance.onResourceTick = (players) => {
+        io.to(`game:${payload.gameId}`).emit("game:resources_update", { players });
+      };
       socket.emit("game:state", instance.snapshot());
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
@@ -33,8 +42,7 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
   socket.on("game:choose_start", async (payload: { gameId: string; x: number; y: number }) => {
     try {
       const userId = userIdOf(socket);
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
+      const instance = getInstance(gameManager, payload.gameId);
       instance.chooseStart(userId, { x: payload.x, y: payload.y });
       io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
     } catch (e: any) {
@@ -42,13 +50,18 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     }
   });
 
+  // ── Claim ────────────────────────────────────────────────────────────────
+
   socket.on("game:claim_tile", async (payload: { gameId: string; x: number; y: number }) => {
     try {
       const userId = userIdOf(socket);
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
-      instance.claimTile(userId, { x: payload.x, y: payload.y });
-      // Don't broadcast full state on every claim; clients render optimistically.
+      const instance = getInstance(gameManager, payload.gameId);
+      const change = instance.claimTile(userId, { x: payload.x, y: payload.y });
+      const player = instance.getPlayerByUserId(userId)!;
+      io.to(`game:${payload.gameId}`).emit("game:tile_update", {
+        changes: [change],
+        players: [{ id: player.id, resources: player.resources }]
+      });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
@@ -57,62 +70,67 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
   socket.on("game:claim_tiles", async (payload: { gameId: string; tiles: Array<{ x: number; y: number }> }) => {
     try {
       const userId = userIdOf(socket);
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
-      for (const t of payload.tiles) instance.claimTile(userId, { x: t.x, y: t.y });
-      // No full state broadcast here either.
+      const instance = getInstance(gameManager, payload.gameId);
+      const changes = instance.claimTiles(userId, payload.tiles);
+      if (changes.length === 0) return;
+      const player = instance.getPlayerByUserId(userId)!;
+      io.to(`game:${payload.gameId}`).emit("game:tile_update", {
+        changes,
+        players: [{ id: player.id, resources: player.resources }]
+      });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
   });
+
+  // ── Attack ───────────────────────────────────────────────────────────────
 
   socket.on("game:attack_tile", async (payload: { gameId: string; x: number; y: number; amount: number }) => {
     try {
       const userId = userIdOf(socket);
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
-      instance.queueAttack(userId, { pos: { x: payload.x, y: payload.y }, amount: payload.amount });
-      // Don't broadcast full state on every attack; clients render optimistically.
+      const instance = getInstance(gameManager, payload.gameId);
+      const change = instance.attackTile(userId, { x: payload.x, y: payload.y }, payload.amount);
+      const attacker = instance.getPlayerByUserId(userId)!;
+      const defender = instance.players.find((p) => p.id !== attacker.id && p.id === change.owner)
+                    ?? instance.players.find((p) => p.id !== attacker.id); // fallback
+      const playerPatches = [{ id: attacker.id, resources: attacker.resources }];
+      // Include defender resource update so their soldier count is accurate for everyone
+      if (defender) playerPatches.push({ id: defender.id, resources: defender.resources });
+      io.to(`game:${payload.gameId}`).emit("game:tile_update", { changes: [change], players: playerPatches });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
   });
 
-  socket.on("game:cancel_claim", async (payload: { gameId: string; x: number; y: number }) => {
-    try {
-      const userId = userIdOf(socket);
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
-      instance.cancelClaim(userId, { x: payload.x, y: payload.y });
-      // No full snapshot needed.
-    } catch (e: any) {
-      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
-    }
-  });
+  // ── Build ────────────────────────────────────────────────────────────────
 
   socket.on("game:build", async (payload: { gameId: string; x: number; y: number; building: number }) => {
     try {
       const userId = userIdOf(socket);
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
-      if (typeof payload.building !== "number" || !(payload.building in BuildingType)) throw new Error("invalid_building");
-      instance.build(userId, { x: payload.x, y: payload.y, building: payload.building as BuildingType });
-      io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+      const instance = getInstance(gameManager, payload.gameId);
+      if (typeof payload.building !== "number" || !(payload.building in BuildingType))
+        throw new Error("invalid_building");
+      const change = instance.build(userId, { x: payload.x, y: payload.y, building: payload.building as BuildingType });
+      const player = instance.getPlayerByUserId(userId)!;
+      io.to(`game:${payload.gameId}`).emit("game:tile_update", {
+        changes: [change],
+        players: [{ id: player.id, resources: player.resources }]
+      });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
   });
 
+  // ── Composition ──────────────────────────────────────────────────────────
+
   socket.on("game:set_composition", async (payload: { gameId: string; soldierPct?: number; soldiers?: number }) => {
     try {
       const userId = userIdOf(socket);
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
+      const instance = getInstance(gameManager, payload.gameId);
       const player = instance.getPlayerByUserId(userId);
       if (!player) throw new Error("not_in_game");
 
       const total = player.resources.villagers + player.resources.soldiers;
-
       if (typeof payload.soldierPct === "number" && Number.isFinite(payload.soldierPct)) {
         const pct = Math.max(0, Math.min(100, Math.round(payload.soldierPct)));
         (player as any).desiredSoldierPct = pct;
@@ -123,20 +141,20 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
         const soldiers = Math.max(0, Math.min(total, Math.floor(payload.soldiers ?? 0)));
         player.resources.soldiers = soldiers;
         player.resources.villagers = total - soldiers;
-        const pct = total > 0 ? Math.round((soldiers / total) * 100) : 0;
-        (player as any).desiredSoldierPct = pct;
+        (player as any).desiredSoldierPct = total > 0 ? Math.round((soldiers / total) * 100) : 0;
       }
-
-      io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+      // Only the requesting player needs to see their updated resources
+      socket.emit("game:resources_update", { players: [{ id: player.id, resources: player.resources }] });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
   });
 
+  // ── Tech ─────────────────────────────────────────────────────────────────
+
   socket.on("game:list_techs", async (payload: { gameId: string }) => {
     try {
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
+      getInstance(gameManager, payload.gameId);
       socket.emit("game:techs", { techs: TECHS });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
@@ -146,8 +164,7 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
   socket.on("game:buy_tech", async (payload: { gameId: string; techId: string }) => {
     try {
       const userId = userIdOf(socket);
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
+      const instance = getInstance(gameManager, payload.gameId);
       instance.buyTech(userId, payload.techId);
       io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
     } catch (e: any) {
@@ -155,11 +172,12 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     }
   });
 
+  // ── Brouillage ───────────────────────────────────────────────────────────
+
   socket.on("game:brouillage", async (payload: { gameId: string; tiles: Array<{ x: number; y: number }> }) => {
     try {
       const userId = userIdOf(socket);
-      const instance = gameManager.getActive(payload.gameId);
-      if (!instance) throw new Error("game_not_active");
+      const instance = getInstance(gameManager, payload.gameId);
       instance.setBrouillage(userId, payload.tiles);
       io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
     } catch (e: any) {

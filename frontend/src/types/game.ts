@@ -42,17 +42,28 @@ export type GameStateSnapshot = {
   status: "PLACING" | "ACTIVE";
   width: number;
   height: number;
-  currentTurn: number;
-  turnEndsAt: number;
   players: GamePlayerState[];
   tiles: {
     types: number[];
     owners: (string | null)[];
     buildings: (number | null)[];
-    contestedUntil: (number | null)[];
   };
-  claims: Record<string, Array<{ x: number; y: number }>>;
-  attacks?: Record<string, Array<{ x: number; y: number }>>;
-  pendingBuilds: Record<string, Array<{ x: number; y: number; building: number }>>;
-  brouillage: Array<{ casterPlayerId: string; x: number; y: number; untilTurn: number }>;
+  brouillage: Array<{ casterPlayerId: string; x: number; y: number; expiresAt: number }>;
+};
+
+// Lightweight patch events (no full snapshot needed)
+export type TileChangePatch = {
+  x: number;
+  y: number;
+  owner: string | null;
+  building: number | null;
+};
+
+export type TileUpdateEvent = {
+  changes: TileChangePatch[];
+  players: Array<{ id: string; resources: PlayerResources }>;
+};
+
+export type ResourceUpdateEvent = {
+  players: Array<{ id: string; resources: PlayerResources }>;
 };

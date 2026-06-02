@@ -11,7 +11,7 @@ export function tileAt(state: GameStateSnapshot, x: number, y: number) {
     type: state.tiles.types[i] as TileType,
     owner: state.tiles.owners[i],
     building: state.tiles.buildings[i] as BuildingType | null,
-    contestedUntil: state.tiles.contestedUntil[i]
+    contested: false
   };
 }
 

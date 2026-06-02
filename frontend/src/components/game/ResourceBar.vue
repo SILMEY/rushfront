@@ -85,10 +85,6 @@ onBeforeUnmount(() => {
   if (timer != null) window.clearInterval(timer);
 });
 
-const secondsLeft = computed(() => {
-  if (!props.state) return 0;
-  return Math.ceil(Math.max(0, props.state.turnEndsAt - now.value) / 1000);
-});
 
 const compositionPct = ref(0);
 watch(
@@ -117,16 +113,6 @@ function scheduleCommit() {
 <template>
   <div class="grid gap-2">
     <div class="flex flex-wrap items-center gap-3">
-      <div
-        v-if="state"
-        class="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm"
-        title="Fin de tour"
-      >
-        <span class="text-slate-300">⏱</span>
-        <span class="font-mono">{{ secondsLeft }}s</span>
-        <span class="text-slate-400">Tour {{ state.currentTurn }}</span>
-      </div>
-
       <div
         v-if="me"
         class="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm"

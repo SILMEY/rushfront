@@ -59,7 +59,6 @@ export function useGameRenderer() {
         const type = state.tiles.types[i] as TileType;
         const owner = state.tiles.owners[i];
         const building = state.tiles.buildings[i] as BuildingType | null;
-        const contestedUntil = state.tiles.contestedUntil[i];
 
         const base = TILE_COLORS[type] ?? TILE_COLORS[TileType.Plain];
         const ownerColor = owner ? (colorByPlayer.get(owner) ?? "#64748b") : null;
@@ -94,17 +93,6 @@ export function useGameRenderer() {
           ctx.globalAlpha = 0.85;
           ctx.fillRect(sx, sy, tileSize, tileSize);
           ctx.globalAlpha = 1;
-        }
-
-        if (contestedUntil != null && contestedUntil >= state.currentTurn) {
-          ctx.fillStyle = rgba("#eab308", 0.18);
-          ctx.fillRect(sx, sy, tileSize, tileSize);
-          ctx.strokeStyle = rgba("#eab308", 0.35);
-          ctx.lineWidth = 1 / scale;
-          ctx.beginPath();
-          ctx.moveTo(sx, sy + tileSize);
-          ctx.lineTo(sx + tileSize, sy);
-          ctx.stroke();
         }
 
         // Terrain icons (Material Symbols ligatures) like `codejeu.html`
@@ -178,17 +166,6 @@ export function useGameRenderer() {
       ctx.stroke();
     }
 
-    for (const [pid, intents] of Object.entries(state.claims)) {
-      const color = colorByPlayer.get(pid);
-      if (!color) continue;
-      ctx.fillStyle = lighten(color, 0.45);
-      ctx.globalAlpha = 0.7;
-      for (const c of intents) {
-        ctx.fillRect(c.x * tileSize, c.y * tileSize, tileSize, tileSize);
-      }
-      ctx.globalAlpha = 1;
-    }
-
     const myPlayerId = game.mePlayer?.id ?? null;
     const myColor = myPlayerId ? colorByPlayer.get(myPlayerId) ?? null : null;
 
@@ -207,24 +184,9 @@ export function useGameRenderer() {
       ctx.strokeRect(sx + 0.5 / scale, sy + 0.5 / scale, tileSize - 1 / scale, tileSize - 1 / scale);
     }
 
-    for (const builds of Object.values(state.pendingBuilds ?? {})) {
-      if (tsScreen < 18) break;
-      for (const b of builds) {
-        const sx = b.x * tileSize;
-        const sy = b.y * tileSize;
-        ctx.fillStyle = rgba("#000000", 0.25);
-        ctx.fillRect(sx, sy, tileSize, tileSize);
-
-        ctx.fillStyle = rgba("#ffffff", 0.9);
-        ctx.font = `${Math.max(10 / scale, tileSize * 0.45)}px ui-sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("🏗", sx + tileSize / 2, sy + tileSize / 2);
-      }
-    }
-
+    const now = Date.now();
     for (const b of state.brouillage ?? []) {
-      if (b.untilTurn < state.currentTurn) continue;
+      if (b.expiresAt <= now) continue;
       const sx = b.x * tileSize;
       const sy = b.y * tileSize;
       ctx.fillStyle = rgba("#ef4444", 0.12);

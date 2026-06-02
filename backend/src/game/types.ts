@@ -56,21 +56,18 @@ export type GamePlayerState = {
   desiredSoldierPct?: number; // 0..100
 };
 
-export type ClaimIntent = {
-  x: number;
-  y: number;
-};
-
-export type AttackIntent = {
-  x: number;
-  y: number;
-  amount: number;
-};
-
 export type BuildIntent = {
   x: number;
   y: number;
   building: BuildingType;
+};
+
+// Represents a single tile whose state changed — sent as a lightweight patch event
+export type TileChange = {
+  x: number;
+  y: number;
+  owner: string | null;
+  building: number | null;
 };
 
 export type GameStateSnapshot = {
@@ -78,17 +75,11 @@ export type GameStateSnapshot = {
   status: "PLACING" | "ACTIVE";
   width: number;
   height: number;
-  currentTurn: number;
-  turnEndsAt: number; // unix ms
   players: GamePlayerState[];
   tiles: {
-    types: number[]; // length w*h (TileType)
-    owners: (string | null)[]; // length w*h (GamePlayer.id)
-    buildings: (number | null)[]; // length w*h (BuildingType)
-    contestedUntil: (number | null)[]; // length w*h
+    types: number[];
+    owners: (string | null)[];
+    buildings: (number | null)[];
   };
-  claims: Record<string, ClaimIntent[]>; // by playerId
-  attacks?: Record<string, AttackIntent[]>; // by playerId
-  pendingBuilds: Record<string, BuildIntent[]>; // by playerId
-  brouillage: Array<{ casterPlayerId: string; x: number; y: number; untilTurn: number }>;
+  brouillage: Array<{ casterPlayerId: string; x: number; y: number; expiresAt: number }>;
 };

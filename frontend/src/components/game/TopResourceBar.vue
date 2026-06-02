@@ -93,12 +93,6 @@ const production = computed(() => {
   return { recruits, wood, stone };
 });
 
-const turnRemaining = computed(() => {
-  const state = props.state;
-  if (!state?.turnEndsAt) return null;
-  const remainingSec = (state.turnEndsAt - nowMs.value) / 1000;
-  return formatClock(remainingSec);
-});
 
 const habitants = computed(() => {
   const player = me.value;

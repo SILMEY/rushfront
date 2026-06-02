@@ -5,35 +5,36 @@ import {
   TileType,
   type BuildIntent,
   type CivilizationId,
-  type ClaimIntent,
   type GamePlayerState,
   type GameStateSnapshot,
+  type TileChange,
   type Vec2
 } from "./types.js";
-import { TURN_MS, buildCost, idx, inBounds, orthogonalNeighbors } from "./rules.js";
-import { resolveTurn } from "./turnResolver.js";
+import { buildCost, idx, inBounds, orthogonalNeighbors } from "./rules.js";
+import { applyProduction } from "./turnResolver.js";
 import { TECHS, isTechId } from "./tech.js";
 
 type RuntimePlayer = GamePlayerState;
+
+type ResourcePatch = { id: string; resources: RuntimePlayer["resources"] };
 
 export class GameInstance {
   readonly id: string;
   status: "PLACING" | "ACTIVE" = "PLACING";
   width = 200;
   height = 200;
-  currentTurn = 0;
-  turnEndsAt = 0;
 
-  tileTypes!: Uint8Array; // TileType
-  tileOwners!: Array<string | null>; // GamePlayer.id
-  tileBuildings!: Array<number | null>; // BuildingType
-  tileContestedUntil!: Array<number | null>;
+  tileTypes!: Uint8Array;
+  tileOwners!: Array<string | null>;
+  tileBuildings!: Array<number | null>;
 
   players: RuntimePlayer[] = [];
-  claims = new Map<string, Set<number>>(); // playerId -> tile index
-  attacks = new Map<string, Map<number, number>>(); // playerId -> tileIndex -> amount (enemy-owned)
-  pendingBuilds = new Map<string, BuildIntent[]>(); // playerId -> builds
-  brouillageTiles = new Map<number, { casterPlayerId: string; untilTurn: number }>(); // tileIndex -> effect
+
+  // Brouillage: time-based expiry (no turns)
+  brouillageTiles = new Map<number, { casterPlayerId: string; expiresAt: number }>();
+
+  // Called every 1s with updated player resources
+  onResourceTick: ((players: ResourcePatch[]) => void) | null = null;
 
   private timer: NodeJS.Timeout | null = null;
 
@@ -70,19 +71,27 @@ export class GameInstance {
     this.tileTypes = map.types;
     this.tileOwners = Array.from({ length: this.width * this.height }, () => null);
     this.tileBuildings = Array.from({ length: this.width * this.height }, () => null);
-    this.tileContestedUntil = Array.from({ length: this.width * this.height }, () => null);
-
-    this.currentTurn = 0;
-    this.turnEndsAt = Date.now() + TURN_MS;
   }
 
   start() {
     if (this.timer) return;
     this.status = "ACTIVE";
-    this.turnEndsAt = Date.now() + TURN_MS;
     this.timer = setInterval(() => {
-      void this.tick();
-    }, 50);
+      applyProduction({
+        players: this.players,
+        tileOwners: this.tileOwners,
+        tileBuildings: this.tileBuildings,
+        tileTypes: this.tileTypes,
+        width: this.width,
+        height: this.height
+      });
+      // Expire brouillage
+      const now = Date.now();
+      for (const [i, e] of this.brouillageTiles) {
+        if (e.expiresAt <= now) this.brouillageTiles.delete(i);
+      }
+      this.onResourceTick?.(this.players.map((p) => ({ id: p.id, resources: p.resources })));
+    }, 1000);
   }
 
   stop() {
@@ -90,40 +99,12 @@ export class GameInstance {
     this.timer = null;
   }
 
-  private async tick() {
-    if (this.status !== "ACTIVE") return;
-    const now = Date.now();
-    // Process all overdue turns in one shot (important at 100ms turns / 50ms tick)
-    while (this.turnEndsAt <= now) {
-      await this.resolveTurn();
-      this.currentTurn++;
-      this.turnEndsAt += TURN_MS;
-    }
-  }
-
   snapshot(): GameStateSnapshot {
-    const claims: Record<string, ClaimIntent[]> = {};
-    for (const [pid, set] of this.claims) {
-      claims[pid] = Array.from(set).map((i) => ({ x: i % this.width, y: Math.floor(i / this.width) }));
-    }
-
-    const attacks: Record<string, Array<{ x: number; y: number; amount: number }>> = {};
-    for (const [pid, map] of this.attacks) {
-      attacks[pid] = Array.from(map.entries()).map(([i, amount]) => ({
-        x: i % this.width,
-        y: Math.floor(i / this.width),
-        amount
-      }));
-    }
-
-    const pendingBuilds: Record<string, BuildIntent[]> = {};
-    for (const [pid, builds] of this.pendingBuilds) pendingBuilds[pid] = builds;
-
     const brouillage = Array.from(this.brouillageTiles.entries()).map(([i, v]) => ({
       casterPlayerId: v.casterPlayerId,
       x: i % this.width,
       y: Math.floor(i / this.width),
-      untilTurn: v.untilTurn
+      expiresAt: v.expiresAt
     }));
 
     return {
@@ -131,18 +112,12 @@ export class GameInstance {
       status: this.status,
       width: this.width,
       height: this.height,
-      currentTurn: this.currentTurn,
-      turnEndsAt: this.turnEndsAt,
       players: this.players,
       tiles: {
         types: Array.from(this.tileTypes),
         owners: this.tileOwners,
-        buildings: this.tileBuildings,
-        contestedUntil: this.tileContestedUntil
+        buildings: this.tileBuildings
       },
-      claims,
-      attacks,
-      pendingBuilds,
       brouillage
     };
   }
@@ -151,33 +126,7 @@ export class GameInstance {
     return this.players.find((p) => p.userId === userId) ?? null;
   }
 
-  buyTech(userId: string, techId: string) {
-    if (this.status !== "ACTIVE") throw new Error("not_active");
-    const player = this.getPlayerByUserId(userId);
-    if (!player) throw new Error("not_in_game");
-    if (!isTechId(techId)) throw new Error("invalid_tech");
-
-    // Require at least one University owned by the player.
-    let hasUniversity = false;
-    for (let i = 0; i < this.tileBuildings.length; i++) {
-      if (this.tileOwners[i] === player.id && this.tileBuildings[i] === BuildingType.University) {
-        hasUniversity = true;
-        break;
-      }
-    }
-    if (!hasUniversity) throw new Error("need_university");
-
-    const techs = new Set((player as any).techs as string[] | undefined);
-    if (techs.has(techId)) throw new Error("tech_already_bought");
-
-    const def = TECHS.find((t) => t.id === techId)!;
-    if (player.resources.wood < def.cost.wood || player.resources.stone < def.cost.stone) throw new Error("not_enough_resources");
-
-    player.resources.wood -= def.cost.wood;
-    player.resources.stone -= def.cost.stone;
-    techs.add(techId);
-    (player as any).techs = Array.from(techs);
-  }
+  // ── Placement ─────────────────────────────────────────────────────────────
 
   chooseStart(userId: string, pos: Vec2) {
     if (this.status !== "PLACING") throw new Error("not_placing");
@@ -192,18 +141,17 @@ export class GameInstance {
     if (type !== TileType.Plain) throw new Error("start_must_be_plain");
     if (this.tileOwners[index]) throw new Error("occupied");
 
-    const minDist = 12;
     for (const other of this.players) {
       if (!other.basePosition) continue;
-      const d = Math.abs(other.basePosition.x - pos.x) + Math.abs(other.basePosition.y - pos.y);
-      if (d < minDist) throw new Error("too_close_to_other_base");
+      if (Math.abs(other.basePosition.x - pos.x) + Math.abs(other.basePosition.y - pos.y) < 12)
+        throw new Error("too_close_to_other_base");
     }
 
     player.hasChosenStart = true;
     player.basePosition = pos;
-    (player as any).techs = (player as any).techs ?? [];
-    (player as any).desiredSoldierPct = (player as any).desiredSoldierPct ?? 50;
-    player.resources = { villagers: 10, soldiers: 0, wood: 5, stone: 0 };
+    (player as any).techs = [];
+    (player as any).desiredSoldierPct = 50;
+    player.resources = { villagers: 10, soldiers: 5, wood: 5, stone: 0 };
     this.tileOwners[index] = player.id;
     this.tileBuildings[index] = BuildingType.Base;
 
@@ -212,25 +160,27 @@ export class GameInstance {
       data: { hasChosenStart: true, baseX: pos.x, baseY: pos.y }
     });
 
-    const allChosen = this.players.every((p) => p.hasChosenStart);
-    if (allChosen) {
+    if (this.players.every((p) => p.hasChosenStart)) {
       this.start();
       void prisma.game.update({ where: { id: this.id }, data: { status: "ACTIVE" } });
     }
   }
 
-  claimTile(userId: string, pos: Vec2) {
+  // ── Claim (immediate) ─────────────────────────────────────────────────────
+
+  claimTile(userId: string, pos: Vec2): TileChange {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
     if (!inBounds(pos, this.width, this.height)) throw new Error("out_of_bounds");
 
     const index = idx(pos, this.width);
-    const block = this.brouillageTiles.get(index);
-    if (block && block.untilTurn >= this.currentTurn && block.casterPlayerId !== player.id) throw new Error("tile_blocked");
 
-    const type = this.tileTypes[index] as TileType;
-    if (type !== TileType.Plain) throw new Error("invalid_tile");
+    const block = this.brouillageTiles.get(index);
+    if (block && block.expiresAt > Date.now() && block.casterPlayerId !== player.id)
+      throw new Error("tile_blocked");
+
+    if ((this.tileTypes[index] as TileType) !== TileType.Plain) throw new Error("invalid_tile");
     if (this.tileOwners[index]) throw new Error("already_owned");
 
     const neighborOwned = orthogonalNeighbors(pos).some((n) => {
@@ -239,20 +189,42 @@ export class GameInstance {
     });
     if (!neighborOwned) throw new Error("not_adjacent");
 
-    const set = this.claims.get(player.id) ?? new Set<number>();
-    set.add(index);
-    this.claims.set(player.id, set);
+    // Civilization claim cost
+    let cost = 1;
+    if (player.civilization === "steppe_horde") {
+      cost = 0;
+    } else if (player.civilization === "sylvan_elves") {
+      const adjForest = orthogonalNeighbors(pos).some((n) => {
+        if (!inBounds(n, this.width, this.height)) return false;
+        return (this.tileTypes[idx(n, this.width)] as TileType) === TileType.Forest;
+      });
+      if (adjForest) cost = 0;
+    }
+    const techs = new Set((player as any).techs as string[] | undefined);
+    if (techs.has("logistics")) cost = Math.max(0, cost - 1);
+
+    if (player.resources.soldiers < cost) throw new Error("not_enough_soldiers");
+    player.resources.soldiers -= cost;
+
+    this.tileOwners[index] = player.id;
+    return { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null };
   }
 
-  cancelClaim(userId: string, pos: Vec2) {
-    const player = this.getPlayerByUserId(userId);
-    if (!player) throw new Error("not_in_game");
-    if (!inBounds(pos, this.width, this.height)) return;
-    const index = idx(pos, this.width);
-    this.claims.get(player.id)?.delete(index);
+  claimTiles(userId: string, positions: Vec2[]): TileChange[] {
+    const changes: TileChange[] = [];
+    for (const pos of positions) {
+      try {
+        changes.push(this.claimTile(userId, pos));
+      } catch {
+        // Skip invalid tiles silently (common when painting)
+      }
+    }
+    return changes;
   }
 
-  private validateAttack(userId: string, pos: Vec2) {
+  // ── Attack (immediate) ────────────────────────────────────────────────────
+
+  attackTile(userId: string, pos: Vec2, amount: number): TileChange {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
@@ -260,85 +232,91 @@ export class GameInstance {
 
     const index = idx(pos, this.width);
     const block = this.brouillageTiles.get(index);
-    if (block && block.untilTurn >= this.currentTurn && block.casterPlayerId !== player.id) throw new Error("tile_blocked");
+    if (block && block.expiresAt > Date.now() && block.casterPlayerId !== player.id)
+      throw new Error("tile_blocked");
 
-    const type = this.tileTypes[index] as TileType;
-    if (type !== TileType.Plain) throw new Error("invalid_tile");
-
+    if ((this.tileTypes[index] as TileType) !== TileType.Plain) throw new Error("invalid_tile");
     const owner = this.tileOwners[index];
     if (!owner) throw new Error("not_owned");
-    if (owner === player.id) throw new Error("already_owned");
+    if (owner === player.id) throw new Error("already_own");
 
     const neighborOwned = orthogonalNeighbors(pos).some((n) => {
       if (!inBounds(n, this.width, this.height)) return false;
       return this.tileOwners[idx(n, this.width)] === player.id;
     });
     if (!neighborOwned) throw new Error("not_adjacent");
+
+    const N = Math.max(0, Math.floor(amount));
+    if (N <= 0) throw new Error("invalid_amount");
+    if (player.resources.soldiers < N) throw new Error("not_enough_soldiers");
+
+    const defender = this.players.find((p) => p.id === owner)!;
+    const D = Math.max(0, defender.resources.soldiers);
+
+    const atkMult = player.civilization === "steppe_horde" ? 1.5
+                  : player.civilization === "iron_dwarves"  ? 0.75 : 1.0;
+    const defMult = defender.civilization === "iron_dwarves"  ? 1.5
+                  : defender.civilization === "steppe_horde"  ? 0.75 : 1.0;
+
+    const N_eff = Math.round(N * atkMult);
+    const D_eff = Math.round(D * defMult);
+
+    defender.resources.soldiers -= Math.min(N_eff, D);
+    player.resources.soldiers   -= Math.min(D_eff, N);
+
+    const captured = N_eff > D_eff;
+    if (captured) this.tileOwners[index] = player.id;
+
+    return { x: pos.x, y: pos.y, owner: captured ? player.id : owner, building: this.tileBuildings[index] ?? null };
   }
 
-  queueAttack(userId: string, params: { pos: Vec2; amount: number }) {
-    const { pos, amount } = params;
-    this.validateAttack(userId, pos);
+  // ── Build (immediate) ─────────────────────────────────────────────────────
 
-    const player = this.getPlayerByUserId(userId)!;
-    const a = Math.floor(amount);
-    if (!Number.isFinite(a) || a <= 0) throw new Error("invalid_amount");
-    if (player.resources.soldiers < a) throw new Error("not_enough_soldiers");
-
-    // Reserve soldiers immediately (like build costs) to avoid overspending multiple queued actions.
-    player.resources.soldiers -= a;
-
-    const map = this.attacks.get(player.id) ?? new Map<number, number>();
-    const index = idx(pos, this.width);
-    map.set(index, a);
-    this.attacks.set(player.id, map);
-  }
-
-  build(userId: string, intent: BuildIntent) {
+  build(userId: string, intent: BuildIntent): TileChange {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
-    if (!inBounds({ x: intent.x, y: intent.y }, this.width, this.height)) throw new Error("out_of_bounds");
 
     const pos = { x: intent.x, y: intent.y };
+    if (!inBounds(pos, this.width, this.height)) throw new Error("out_of_bounds");
     const tileIndex = idx(pos, this.width);
+
     const block = this.brouillageTiles.get(tileIndex);
-    if (block && block.untilTurn >= this.currentTurn && block.casterPlayerId !== player.id) throw new Error("tile_blocked");
+    if (block && block.expiresAt > Date.now() && block.casterPlayerId !== player.id)
+      throw new Error("tile_blocked");
+
     if (this.tileOwners[tileIndex] !== player.id) throw new Error("must_own_tile");
     if (this.tileBuildings[tileIndex] != null) throw new Error("tile_has_building");
     if ((this.tileTypes[tileIndex] as TileType) === TileType.Water) throw new Error("invalid_tile");
 
     const cost = buildCost(intent.building);
-    if (player.resources.wood < cost.wood || player.resources.stone < cost.stone) throw new Error("not_enough_resources");
+    if (player.resources.wood < cost.wood || player.resources.stone < cost.stone)
+      throw new Error("not_enough_resources");
 
     const neighbors = orthogonalNeighbors(pos).filter((n) => inBounds(n, this.width, this.height));
     const adjTypes = neighbors.map((n) => this.tileTypes[idx(n, this.width)] as TileType);
-    if (intent.building === BuildingType.FishingHut) {
-      if (!adjTypes.some((t) => t === TileType.Water)) throw new Error("needs_adjacent_water");
-    }
-    if (intent.building === BuildingType.Sawmill) {
-      if (!adjTypes.some((t) => t === TileType.Forest)) throw new Error("needs_adjacent_forest");
-    }
-    if (intent.building === BuildingType.Mine) {
-      if (!adjTypes.some((t) => t === TileType.Quarry)) throw new Error("needs_adjacent_quarry");
-    }
+    if (intent.building === BuildingType.FishingHut && !adjTypes.some((t) => t === TileType.Water))
+      throw new Error("needs_adjacent_water");
+    if (intent.building === BuildingType.Sawmill && !adjTypes.some((t) => t === TileType.Forest))
+      throw new Error("needs_adjacent_forest");
+    if (intent.building === BuildingType.Mine && !adjTypes.some((t) => t === TileType.Quarry))
+      throw new Error("needs_adjacent_quarry");
 
-    // Reserve resources immediately to provide feedback and avoid queuing overspends.
-    player.resources.wood -= cost.wood;
+    player.resources.wood  -= cost.wood;
     player.resources.stone -= cost.stone;
+    this.tileBuildings[tileIndex] = intent.building;
 
-    const builds = this.pendingBuilds.get(player.id) ?? [];
-    builds.push(intent);
-    this.pendingBuilds.set(player.id, builds);
+    return { x: intent.x, y: intent.y, owner: player.id, building: intent.building };
   }
 
-  setBrouillage(userId: string, tiles: Vec2[]) {
+  // ── Tech ──────────────────────────────────────────────────────────────────
+
+  buyTech(userId: string, techId: string) {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
-    if (tiles.length < 1 || tiles.length > 3) throw new Error("invalid_tiles_count");
+    if (!isTechId(techId)) throw new Error("invalid_tech");
 
-    // Require at least one University owned by the player.
     let hasUniversity = false;
     for (let i = 0; i < this.tileBuildings.length; i++) {
       if (this.tileOwners[i] === player.id && this.tileBuildings[i] === BuildingType.University) {
@@ -348,42 +326,43 @@ export class GameInstance {
     }
     if (!hasUniversity) throw new Error("need_university");
 
-    const untilTurn = this.currentTurn + 1;
+    const techs = new Set((player as any).techs as string[] | undefined);
+    if (techs.has(techId)) throw new Error("tech_already_bought");
+
+    const def = TECHS.find((t) => t.id === techId)!;
+    if (player.resources.wood < def.cost.wood || player.resources.stone < def.cost.stone)
+      throw new Error("not_enough_resources");
+
+    player.resources.wood  -= def.cost.wood;
+    player.resources.stone -= def.cost.stone;
+    techs.add(techId);
+    (player as any).techs = Array.from(techs);
+  }
+
+  // ── Brouillage ────────────────────────────────────────────────────────────
+
+  setBrouillage(userId: string, tiles: Vec2[]) {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    if (tiles.length < 1 || tiles.length > 3) throw new Error("invalid_tiles_count");
+
+    let hasUniversity = false;
+    for (let i = 0; i < this.tileBuildings.length; i++) {
+      if (this.tileOwners[i] === player.id && this.tileBuildings[i] === BuildingType.University) {
+        hasUniversity = true;
+        break;
+      }
+    }
+    if (!hasUniversity) throw new Error("need_university");
+
+    const expiresAt = Date.now() + 3000; // blocks for 3 seconds
     for (const t of tiles) {
       if (!inBounds(t, this.width, this.height)) throw new Error("out_of_bounds");
       const i = idx(t, this.width);
-      const type = this.tileTypes[i] as TileType;
-      if (type === TileType.Water) throw new Error("invalid_tile");
-      // Only neutral tiles can be targeted (prevents locking already-owned enemy tiles).
+      if ((this.tileTypes[i] as TileType) === TileType.Water) throw new Error("invalid_tile");
       if (this.tileOwners[i] != null) throw new Error("must_target_neutral");
-      this.brouillageTiles.set(i, { casterPlayerId: player.id, untilTurn });
+      this.brouillageTiles.set(i, { casterPlayerId: player.id, expiresAt });
     }
-  }
-
-  private async resolveTurn() {
-    resolveTurn({
-      gameId: this.id,
-      width: this.width,
-      height: this.height,
-      currentTurn: this.currentTurn,
-      players: this.players,
-      tileTypes: this.tileTypes,
-      tileOwners: this.tileOwners,
-      tileBuildings: this.tileBuildings,
-      tileContestedUntil: this.tileContestedUntil,
-      claims: this.claims,
-      attacks: this.attacks,
-      pendingBuilds: this.pendingBuilds
-    });
-
-    // Expire brouillage effects.
-    for (const [tileIndex, effect] of this.brouillageTiles) {
-      if (effect.untilTurn <= this.currentTurn) this.brouillageTiles.delete(tileIndex);
-    }
-
-    // Reset per-turn intents (resolver mutates arrays/resources in-place)
-    this.claims = new Map();
-    this.attacks = new Map();
-    this.pendingBuilds = new Map();
   }
 }
