@@ -42,6 +42,9 @@ export const useAuthStore = defineStore("auth", {
     loginWithGoogle() {
       window.location.href = `${apiOrigin()}/auth/google/start`;
     },
+    loginWithDiscord() {
+      window.location.href = `${apiOrigin()}/auth/discord/start`;
+    },
     async logout() {
       try {
         await apiFetch("/auth/logout", { method: "POST" });

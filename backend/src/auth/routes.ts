@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { createGoogleClient, upsertUserFromGoogle } from "./google.js";
+import { discordAuthUrl, exchangeDiscordCode, upsertUserFromDiscord } from "./discord.js";
 import { z } from "zod";
 
 function cookieOptionsForRequest(params: { webOrigin: string; reqHost?: string; isHttps?: boolean }) {
@@ -96,6 +97,41 @@ export async function authRoutes(app: FastifyInstance) {
       preferredCivilization: user.preferredCivilization ?? null
     };
   }
+
+  // ── Discord OAuth ────────────────────────────────────────────────────────
+
+  app.get("/auth/discord/start", async (_req, reply) => {
+    try {
+      return reply.redirect(discordAuthUrl());
+    } catch {
+      return reply.code(503).send({ error: "discord_oauth_not_configured" });
+    }
+  });
+
+  app.get("/auth/discord/callback", async (req, reply) => {
+    const code = (req.query as any)?.code as string | undefined;
+    if (!code) return reply.code(400).send({ error: "missing_code" });
+
+    const profile = await exchangeDiscordCode(code);
+    const user = await upsertUserFromDiscord(profile);
+
+    const jwt = await reply.jwtSign({ userId: user.id });
+    const webOrigin = process.env.WEB_ORIGIN!;
+    const cookieOpts = cookieOptionsForRequest({
+      webOrigin,
+      reqHost: req.hostname,
+      isHttps: (req.headers["x-forwarded-proto"] ?? "").toString().includes("https")
+    });
+
+    const redirectUrl =
+      cookieOpts.sameSite === "none"
+        ? `${webOrigin}/?tr_token=${encodeURIComponent(jwt)}`
+        : webOrigin;
+
+    reply.setCookie("tr_session", jwt, cookieOpts).redirect(redirectUrl);
+  });
+
+  // ── /auth/me ─────────────────────────────────────────────────────────────
 
   app.get("/auth/me", async (req, reply) => {
     try {

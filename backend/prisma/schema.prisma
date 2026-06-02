@@ -17,9 +17,10 @@ enum GameStatus {
 
 model User {
   id        String   @id @default(cuid())
-  googleId  String   @unique
-  email     String   @unique
-  name      String
+  googleId              String?  @unique
+  discordId             String?  @unique
+  email                 String   @unique
+  name                  String
   pseudo                String?  @unique
   avatarUrl             String?
   preferredColor        String?
