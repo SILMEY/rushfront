@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
 import { useAuthStore } from "../stores/authStore";
 
@@ -86,6 +86,13 @@ watch(
     if (id === gameId.value) router.push(`/game/${id}`);
   }
 );
+
+// Quitter le lobby automatiquement si on navigue ailleurs
+onBeforeRouteLeave(() => {
+  if (!lobby.lastStartedGameId) {
+    lobby.leaveLobby(gameId.value);
+  }
+});
 </script>
 
 <template>
@@ -102,12 +109,6 @@ watch(
         <div class="flex items-center gap-2">
           <button
             class="rounded-md border border-primary/30 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-primary transition hover:bg-primary hover:text-on-primary"
-            @click="router.push('/')"
-          >
-            Retour
-          </button>
-          <button
-            class="rounded-md border border-outline-variant/30 bg-black/40 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-secondary/80 transition hover:bg-black/60 hover:text-secondary"
             @click="lobby.leaveLobby(gameId)"
           >
             Quitter
