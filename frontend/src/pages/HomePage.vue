@@ -16,7 +16,7 @@ function hostNameOf(g: any) {
 
 <template>
   <!-- Structure aligned with `frontend/public/code_accueil.html` (without the local nav; global TopNavBar is used). -->
-  <div class="bg-background text-on-background selection:bg-primary selection:text-on-primary">
+  <div>
     <main>
       <!-- Hero + Missions -->
       <div style="min-height: calc(100vh - 64px)" class="flex flex-col">
