@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from "vue-router";
+import AppFooter from "../components/AppFooter.vue";
 const router = useRouter();
 </script>
 
@@ -62,6 +63,7 @@ const router = useRouter();
       >← Retour</button>
     </div>
   </div>
+  <AppFooter />
 </template>
 
 <style scoped>

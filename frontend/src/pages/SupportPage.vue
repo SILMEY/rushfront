@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
+import AppFooter from "../components/AppFooter.vue";
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -107,6 +108,7 @@ function send() {
       >← Retour</button>
     </div>
   </div>
+  <AppFooter />
 </template>
 
 <style scoped>

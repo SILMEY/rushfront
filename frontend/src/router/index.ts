@@ -11,6 +11,7 @@ import SupportPage from "../pages/SupportPage.vue";
 
 export const router = createRouter({
   history: createWebHistory(),
+  scrollBehavior: () => ({ top: 0 }),
   routes: [
     { path: "/login",       component: LoginPage },
     { path: "/",            component: HomePage },

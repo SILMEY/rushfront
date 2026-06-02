@@ -3,6 +3,7 @@ import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
 import { useAuthStore } from "../stores/authStore";
+import AppFooter from "../components/AppFooter.vue";
 
 const lobby = useLobbyStore();
 const router = useRouter();
@@ -121,21 +122,7 @@ function hostNameOf(g: any) {
         </section>
       </div>
 
-      <!-- Footer (from `code_accueil.html`) -->
-      <footer class="stone-block border-t border-white/5 px-container-margin py-20">
-        <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-12 md:flex-row">
-          <div class="font-headline text-3xl font-bold tracking-[0.4em] text-primary">RUSHFRONT</div>
-          <div class="flex gap-12">
-            <button class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" @click="router.push('/privacy')">
-              Confidentialité
-            </button>
-            <button class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" @click="router.push('/support')">
-              Support
-            </button>
-          </div>
-          <div class="font-headline text-[10px] uppercase tracking-[0.3em] text-secondary/40">© 2026 RUSHFRONT EMPIRE.</div>
-        </div>
-      </footer>
+      <AppFooter />
     </main>
   </div>
 </template>
