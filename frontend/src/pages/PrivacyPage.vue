@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { useRouter } from "vue-router";
 import AppFooter from "../components/AppFooter.vue";
-const router = useRouter();
 </script>
 
 <template>
@@ -56,12 +54,6 @@ const router = useRouter();
 
     </div>
 
-    <div class="mt-8 flex justify-center">
-      <button
-        class="font-headline text-sm uppercase tracking-widest text-secondary/50 transition hover:text-primary"
-        @click="router.back()"
-      >← Retour</button>
-    </div>
   </div>
   <AppFooter />
 </template>

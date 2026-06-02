@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
 import AppFooter from "../components/AppFooter.vue";
 
-const router = useRouter();
 const auth = useAuthStore();
 
 const name    = ref(auth.user?.pseudo ?? auth.user?.name ?? "");
@@ -101,12 +99,6 @@ function send() {
       </form>
     </div>
 
-    <div class="mt-8 flex justify-center">
-      <button
-        class="font-headline text-sm uppercase tracking-widest text-secondary/50 transition hover:text-primary"
-        @click="router.back()"
-      >← Retour</button>
-    </div>
   </div>
   <AppFooter />
 </template>
