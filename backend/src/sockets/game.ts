@@ -40,6 +40,9 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       instance.onGameOver = (winner) => {
         io.to(room).emit("game:over", { winnerId: winner?.id ?? null, winnerName: winner?.name ?? null });
       };
+      instance.onPlacingTimeout = () => {
+        io.to(room).emit("game:state", instance.snapshot());
+      };
 
       socket.emit("game:state", instance.snapshot());
     } catch (e: any) {

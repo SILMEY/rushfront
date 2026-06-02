@@ -100,6 +100,12 @@ const habitants = computed(() => {
   return player.resources.villagers + player.resources.soldiers;
 });
 
+const placingSecondsLeft = computed(() => {
+  const s = props.state;
+  if (!s || s.status !== "PLACING" || !s.placingEndsAt) return null;
+  return Math.max(0, Math.ceil((s.placingEndsAt - nowMs.value) / 1000));
+});
+
 // PROD_SCALE = 0.01 (100ms turns, 1 tick/s) — expected gain per second
 const PROD_SCALE = 0.01;
 function rate(raw: number): string {
@@ -143,6 +149,13 @@ function rate(raw: number): string {
         <span v-if="production.recruits" class="opacity-60">{{ rate(production.recruits) }}</span>
       </span>
     </div>
+
+    <div v-if="placingSecondsLeft !== null" class="flex items-center gap-2 cursor-default placing-timer" :class="{ urgent: placingSecondsLeft <= 3 }">
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">timer</span>
+      <span class="font-label-sm italic font-bold">
+        POSEZ VOTRE BASE — {{ placingSecondsLeft }}s
+      </span>
+    </div>
   </div>
 </template>
 
@@ -166,5 +179,16 @@ function rate(raw: number): string {
   font-size: 12px;
   line-height: 16px;
   letter-spacing: 0.1em;
+}
+.placing-timer {
+  color: #ffd700;
+}
+.placing-timer.urgent {
+  color: #ff4444;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+@keyframes pulse {
+  from { opacity: 1; }
+  to { opacity: 0.5; }
 }
 </style>

@@ -36,8 +36,12 @@ export class GameInstance {
   onResourceTick:      ((players: ResourcePatch[]) => void) | null = null;
   onPlayerEliminated:  ((playerId: string, changes: TileChange[]) => void) | null = null;
   onGameOver:          ((winner: RuntimePlayer | null) => void) | null = null;
+  onPlacingTimeout:    (() => void) | null = null; // fired when placing timer ends
+
+  placingEndsAt = 0; // unix ms countdown for start selection
 
   private timer: NodeJS.Timeout | null = null;
+  private placingTimer: NodeJS.Timeout | null = null;
 
   constructor(id: string) {
     this.id = id;
@@ -72,6 +76,11 @@ export class GameInstance {
     this.tileTypes = map.types;
     this.tileOwners = Array.from({ length: this.width * this.height }, () => null);
     this.tileBuildings = Array.from({ length: this.width * this.height }, () => null);
+
+    // 10-second window for players to choose their starting tile
+    const PLACING_MS = 10_000;
+    this.placingEndsAt = Date.now() + PLACING_MS;
+    this.placingTimer = setTimeout(() => void this.handlePlacingTimeout(), PLACING_MS);
   }
 
   start() {
@@ -98,6 +107,41 @@ export class GameInstance {
   stop() {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    if (this.placingTimer) clearTimeout(this.placingTimer);
+    this.placingTimer = null;
+  }
+
+  private async handlePlacingTimeout() {
+    if (this.status !== "PLACING") return;
+
+    // Mark unchosen players as eliminated — they missed the window
+    for (const p of this.players) {
+      if (!p.hasChosenStart) p.eliminated = true;
+    }
+
+    const chosen = this.players.filter((p) => p.hasChosenStart);
+
+    if (chosen.length === 0) {
+      // Nobody chose — just end the game
+      this.status = "FINISHED" as any;
+      void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
+      this.onGameOver?.(null);
+      return;
+    }
+
+    // Start the game with whoever chose in time
+    this.start();
+    void prisma.game.update({ where: { id: this.id }, data: { status: "ACTIVE" } });
+    this.onPlacingTimeout?.(); // ask socket layer to broadcast fresh state
+
+    // If only 1 player chose → immediate win
+    if (chosen.length === 1) {
+      const winner = chosen[0]!;
+      this.stop();
+      void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
+      void prisma.user.update({ where: { id: winner.userId }, data: { quickGameWins: { increment: 1 } } });
+      this.onGameOver?.(winner);
+    }
   }
 
   // ── Elimination & win condition ───────────────────────────────────────────
@@ -163,6 +207,7 @@ export class GameInstance {
     return {
       gameId: this.id,
       status: this.status,
+      placingEndsAt: this.status === "PLACING" ? this.placingEndsAt : undefined,
       width: this.width,
       height: this.height,
       players: this.players,

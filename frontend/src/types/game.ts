@@ -41,6 +41,7 @@ export type GamePlayerState = {
 export type GameStateSnapshot = {
   gameId: string;
   status: "PLACING" | "ACTIVE" | "FINISHED";
+  placingEndsAt?: number;
   width: number;
   height: number;
   players: GamePlayerState[];
