@@ -110,17 +110,17 @@ async function savePreferences() {
           <div v-if="error" class="text-sm text-red-400">{{ error }}</div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-col gap-2">
           <button
-            class="flex-1 rounded-lg border border-white/10 bg-white/5 py-2.5 text-sm font-bold uppercase tracking-widest text-slate-300 transition hover:bg-white/10"
-            @click="router.back()"
-            :disabled="saving"
-          >Retour</button>
-          <button
-            class="flex-1 rounded-lg border border-amber-400/40 bg-amber-500/20 py-2.5 text-sm font-bold uppercase tracking-widest text-amber-300 transition hover:bg-amber-500/30 disabled:opacity-50"
+            class="w-full rounded-lg border border-amber-400/40 bg-amber-500/20 py-2.5 text-sm font-bold uppercase tracking-widest text-amber-300 transition hover:bg-amber-500/30 disabled:opacity-50"
             @click="save()"
             :disabled="saving"
           >{{ saving ? "Sauvegarde…" : "Sauvegarder" }}</button>
+          <button
+            class="w-full py-2 text-xs font-bold uppercase tracking-widest text-slate-500 transition hover:text-slate-300"
+            @click="router.back()"
+            :disabled="saving"
+          >Retour</button>
         </div>
       </section>
 
@@ -175,16 +175,14 @@ async function savePreferences() {
           <div v-if="prefColor" class="mt-1 text-[10px] text-slate-500 italic">Cliquer à nouveau pour annuler la sélection.</div>
         </div>
 
-        <button
-          class="mt-auto rounded-lg border py-2.5 text-sm font-bold uppercase tracking-widest transition disabled:opacity-50"
-          :class="prefSaved
-            ? 'border-green-400/50 bg-green-500/20 text-green-300'
-            : 'border-amber-400/40 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'"
-          @click="savePreferences()"
-          :disabled="savingPrefs"
-        >
-          {{ prefSaved ? "✓ Enregistré" : savingPrefs ? "Sauvegarde…" : "Sauvegarder les préférences" }}
-        </button>
+        <div class="mt-auto flex flex-col gap-2">
+          <button
+            class="w-full rounded-lg border border-amber-400/40 bg-amber-500/20 py-2.5 text-sm font-bold uppercase tracking-widest text-amber-300 transition hover:bg-amber-500/30 disabled:opacity-50"
+            :class="prefSaved ? '!border-green-400/50 !bg-green-500/20 !text-green-300' : ''"
+            @click="savePreferences()"
+            :disabled="savingPrefs"
+          >{{ prefSaved ? "✓ Enregistré" : savingPrefs ? "Sauvegarde…" : "Sauvegarder" }}</button>
+        </div>
       </section>
 
     </div>
