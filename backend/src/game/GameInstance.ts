@@ -311,7 +311,7 @@ export class GameInstance {
 
   // ── Attack (immediate) ────────────────────────────────────────────────────
 
-  attackTile(userId: string, pos: Vec2, amount: number): TileChange {
+  attackTile(userId: string, pos: Vec2): { change: TileChange; defenderId: string } {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
@@ -333,32 +333,25 @@ export class GameInstance {
     });
     if (!neighborOwned) throw new Error("not_adjacent");
 
-    const N = Math.max(0, Math.floor(amount));
-    if (N <= 0) throw new Error("invalid_amount");
-    if (player.resources.soldiers < N) throw new Error("not_enough_soldiers");
-
     const defender = this.players.find((p) => p.id === owner)!;
-    const D = Math.max(0, defender.resources.soldiers);
 
-    const atkMult = player.civilization === "steppe_horde" ? 1.5
-                  : player.civilization === "iron_dwarves"  ? 0.75 : 1.0;
-    const defMult = defender.civilization === "iron_dwarves"  ? 1.5
-                  : defender.civilization === "steppe_horde"  ? 0.75 : 1.0;
+    // Perte proportionnelle : loss = round(soldats_défenseur / cases_défenseur)
+    const defenderTiles = this.tileOwners.filter((o) => o === defender.id).length;
+    const loss = defenderTiles > 0 ? Math.round(defender.resources.soldiers / defenderTiles) : 0;
 
-    const N_eff = Math.round(N * atkMult);
-    const D_eff = Math.round(D * defMult);
+    if (loss > 0 && player.resources.soldiers < loss) throw new Error("not_enough_soldiers");
 
-    defender.resources.soldiers -= Math.min(N_eff, D);
-    player.resources.soldiers   -= Math.min(D_eff, N);
+    defender.resources.soldiers = Math.max(0, defender.resources.soldiers - loss);
+    player.resources.soldiers   = Math.max(0, player.resources.soldiers   - loss);
 
-    const captured = N_eff > D_eff;
-    if (captured) {
-      this.tileOwners[index] = player.id;
-      // Check if defender lost all territory
-      this.checkEliminationOf(defender.id);
-    }
+    // La case est toujours prise
+    this.tileOwners[index] = player.id;
+    this.checkEliminationOf(defender.id);
 
-    return { x: pos.x, y: pos.y, owner: captured ? player.id : owner, building: this.tileBuildings[index] ?? null };
+    return {
+      change: { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null },
+      defenderId: defender.id
+    };
   }
 
   // ── Build (immediate) ─────────────────────────────────────────────────────

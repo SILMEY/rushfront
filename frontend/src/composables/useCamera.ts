@@ -28,7 +28,7 @@ export function useCamera() {
 
   function zoomAt(factor: number, anchorX: number, anchorY: number) {
     const before = screenToWorld(anchorX, anchorY);
-    camera.zoom = Math.max(0.5, Math.min(3, camera.zoom * factor));
+    camera.zoom = Math.max(0.1, Math.min(3, camera.zoom * factor));
     const after = screenToWorld(anchorX, anchorY);
     camera.x += (after.x - before.x) * camera.zoom;
     camera.y += (after.y - before.y) * camera.zoom;

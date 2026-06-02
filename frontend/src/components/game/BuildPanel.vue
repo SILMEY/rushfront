@@ -16,7 +16,7 @@ const items: Array<{
   cost: string;
   hint: string;
 }> = [
-  { type: null, label: "Territoire vide", icon: "flag", cost: "Coût: 1 militaire", hint: "Revendiquer une case neutre adjacente" },
+  { type: null, label: "Territoire vide", icon: "flag", cost: "Coût: 1 habitant", hint: "Revendiquer une case neutre adjacente" },
   { type: BuildingType.FishingHut, label: "Cabane de pêche", icon: "sailing", cost: "Coût: 5 bois", hint: "Adjacente à l'eau" },
   { type: BuildingType.Sawmill, label: "Scierie", icon: "forest", cost: "Coût: 5 bois", hint: "Adjacente à une forêt" },
   { type: BuildingType.Mine, label: "Mine", icon: "construction", cost: "Coût: 5 bois", hint: "Adjacente à une carrière" },

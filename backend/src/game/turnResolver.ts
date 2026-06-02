@@ -63,7 +63,7 @@ export function applyProduction(input: {
     const currentPop = player.resources.villagers + player.resources.soldiers;
 
     if (currentPop < maxPop) {
-      const ratePerTick = ownedTiles * 0.1;
+      const ratePerTick = ownedTiles * 0.03;
       const accumulated = ((player as any).habitantFraction ?? 0) + ratePerTick;
       const floored = Math.floor(accumulated);
       const newHabitants = Math.min(floored, maxPop - currentPop);

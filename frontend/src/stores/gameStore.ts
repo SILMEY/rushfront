@@ -153,7 +153,7 @@ export const useGameStore = defineStore("game", {
       socket.emit("game:claim_tiles", { gameId, tiles: valid });
     },
 
-    async attackTile(gameId: string, pos: Vec2, amount: number) {
+    async attackTile(gameId: string, pos: Vec2) {
       if (!this.state) return;
       const meId = this.mePlayer?.id;
       if (!meId) return;
@@ -163,13 +163,9 @@ export const useGameStore = defineStore("game", {
       const owner = this.state.tiles.owners[i];
       if (!owner || owner === meId) return;
       if (!canClaimOptimistic(this.state, meId, pos)) return;
-      const a = Math.floor(amount);
-      if (!Number.isFinite(a) || a <= 0) return;
-      if ((this.mePlayer?.resources.soldiers ?? 0) < a) return;
 
-      this.optimisticClaims[`${pos.x},${pos.y}`] = true;
       const socket = await getSocket();
-      socket.emit("game:attack_tile", { gameId, x: pos.x, y: pos.y, amount: a });
+      socket.emit("game:attack_tile", { gameId, x: pos.x, y: pos.y });
     },
 
     async build(gameId: string, pos: Vec2, building: BuildingType) {
@@ -197,12 +193,7 @@ export const useGameStore = defineStore("game", {
         const i = tileIndex(pos.x, pos.y, this.state.width);
         const owner = this.state.tiles.owners[i];
         if (owner && owner !== meId) {
-          const max = this.mePlayer?.resources.soldiers ?? 0;
-          if (max <= 0) return;
-          const raw = window.prompt(`Combien de soldats envoyer ? (1-${max})`, String(Math.min(10, max)));
-          if (raw == null) return;
-          const amount = Math.max(1, Math.min(max, Number.parseInt(raw, 10) || 0));
-          return this.attackTile(this.state.gameId, pos, amount);
+          return this.attackTile(this.state.gameId, pos);
         }
       }
       return this.claimTile(this.state.gameId, pos);

@@ -113,16 +113,14 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
 
   // ── Attack ───────────────────────────────────────────────────────────────
 
-  socket.on("game:attack_tile", async (payload: { gameId: string; x: number; y: number; amount: number }) => {
+  socket.on("game:attack_tile", async (payload: { gameId: string; x: number; y: number }) => {
     try {
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
-      const change = instance.attackTile(userId, { x: payload.x, y: payload.y }, payload.amount);
+      const { change, defenderId } = instance.attackTile(userId, { x: payload.x, y: payload.y });
       const attacker = instance.getPlayerByUserId(userId)!;
-      const defender = instance.players.find((p) => p.id !== attacker.id && p.id === change.owner)
-                    ?? instance.players.find((p) => p.id !== attacker.id); // fallback
+      const defender = instance.players.find((p) => p.id === defenderId);
       const playerPatches = [{ id: attacker.id, resources: attacker.resources }];
-      // Include defender resource update so their soldier count is accurate for everyone
       if (defender) playerPatches.push({ id: defender.id, resources: defender.resources });
       io.to(`game:${payload.gameId}`).emit("game:tile_update", { changes: [change], players: playerPatches });
     } catch (e: any) {
