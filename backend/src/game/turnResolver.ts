@@ -59,11 +59,15 @@ export function applyProduction(input: {
     }
 
     // Habitants: 0.01 per owned tile per second × villager multiplier
-    // villagerMult = 1 + villagers/1000  (ex: 10 villageois → ×1.01)
+    // Uses fractional accumulation per player so production is smooth/deterministic
+    // (not stochastic like pGain, which gives 0 on 99% of ticks at low tile counts)
     const villagerMult = 1 + player.resources.villagers / 1000;
     const civBonus = player.civilization === "steppe_horde" ? 1.5 : 1.0;
-    const rawHabitants = ownedTiles * villagerMult * civBonus;
-    const newHabitants = pGain(rawHabitants);
+    const ratePerTick = ownedTiles * villagerMult * civBonus * PROD_SCALE;
+    const prevFraction = (player as any).habitantFraction ?? 0;
+    const accumulated = prevFraction + ratePerTick;
+    const newHabitants = Math.floor(accumulated);
+    (player as any).habitantFraction = accumulated - newHabitants;
 
     const desiredPct = (() => {
       const v = (player as any).desiredSoldierPct;
