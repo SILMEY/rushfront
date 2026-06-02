@@ -87,9 +87,19 @@ watch(
   }
 );
 
-// Quitter le lobby automatiquement si on navigue ailleurs
+let leaving = false;
+
+function quitLobby() {
+  if (leaving) return;
+  leaving = true;
+  lobby.leaveLobby(gameId.value);
+  router.push("/");
+}
+
+// Quitter le lobby si on navigue ailleurs (clic navbar, etc.)
 onBeforeRouteLeave(() => {
-  if (!lobby.lastStartedGameId) {
+  if (!leaving && !lobby.lastStartedGameId) {
+    leaving = true;
     lobby.leaveLobby(gameId.value);
   }
 });
@@ -109,7 +119,7 @@ onBeforeRouteLeave(() => {
         <div class="flex items-center gap-2">
           <button
             class="rounded-md border border-primary/30 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-primary transition hover:bg-primary hover:text-on-primary"
-            @click="lobby.leaveLobby(gameId)"
+            @click="quitLobby()"
           >
             Quitter
           </button>

@@ -52,8 +52,7 @@ export const useLobbyStore = defineStore("lobby", {
       await this.ensureConnected();
       const socket = await getSocket();
       socket.emit("lobby:leave", { gameId });
-      await this.refresh();
-      router.push("/");
+      this.refresh(); // don't await — fire and forget
     },
     async setReady(gameId: string, isReady: boolean) {
       await this.ensureConnected();
