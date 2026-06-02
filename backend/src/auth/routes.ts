@@ -199,6 +199,16 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.send({ user: serializeUser(user) });
   });
 
+  app.get("/leaderboard", async (_req, reply) => {
+    const players = await app.prisma.user.findMany({
+      where:   { quickGameWins: { gt: 0 } },
+      orderBy: { quickGameWins: "desc" },
+      take:    50,
+      select:  { id: true, pseudo: true, name: true, avatarUrl: true, quickGameWins: true }
+    });
+    return reply.send({ players });
+  });
+
   app.post("/auth/logout", async (req, reply) => {
     const webOrigin = process.env.WEB_ORIGIN!;
     reply

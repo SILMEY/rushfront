@@ -5,12 +5,14 @@ import HomePage from "../pages/HomePage.vue";
 import LobbyPage from "../pages/LobbyPage.vue";
 import GamePage from "../pages/GamePage.vue";
 import ProfilePage from "../pages/ProfilePage.vue";
+import LeaderboardPage from "../pages/LeaderboardPage.vue";
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: "/login", component: LoginPage },
     { path: "/", component: HomePage },
+    { path: "/leaderboard", component: LeaderboardPage },
     { path: "/profile", component: ProfilePage },
     { path: "/lobby/:id", component: LobbyPage, props: true },
     { path: "/game/:id", component: GamePage, props: true }

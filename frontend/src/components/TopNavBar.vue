@@ -27,7 +27,7 @@ const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).jo
       </button>
       <button
         class="font-headline text-sm font-medium uppercase tracking-widest text-[#d4c59f] transition-colors duration-200 hover:text-[#d4af37]"
-        @click="router.push('/')"
+        @click="router.push('/leaderboard')"
       >
         LEADERBOARDS
       </button>
