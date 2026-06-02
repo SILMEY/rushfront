@@ -59,25 +59,15 @@ const ownedTiles = computed(() => {
   return count;
 });
 
-const fishingHuts = computed(() => {
-  const state = props.state;
-  const player = me.value;
-  if (!state || !player) return 0;
-  let count = 0;
-  for (let i = 0; i < state.tiles.buildings.length; i++) {
-    if (state.tiles.owners[i] !== player.id) continue;
-    if (state.tiles.buildings[i] === BuildingType.FishingHut) count++;
-  }
-  return count;
-});
 
 const production = computed(() => {
   const state = props.state;
   const player = me.value;
-  if (!state || !player) return { soldiers: 0, wood: 0, stone: 0 };
+  if (!state || !player) return { habitants: 0, wood: 0, stone: 0 };
 
-  const recruits =
-    Math.floor(player.resources.villagers / 10) + (1 + Math.floor(ownedTiles.value / 12) + Math.floor(fishingHuts.value / 2));
+  const villagerMult = 1 + player.resources.villagers / 1000;
+  const habitants = ownedTiles.value * villagerMult;
+
   let wood = Math.floor(player.resources.villagers / 12);
   let stone = Math.floor(player.resources.villagers / 24);
 
@@ -90,7 +80,7 @@ const production = computed(() => {
     if (b === BuildingType.Mine) stone += Math.min(3, adjacentCountOfType(state, pos, TileType.Quarry));
   }
 
-  return { recruits, wood, stone };
+  return { habitants, wood, stone };
 });
 
 
@@ -146,7 +136,7 @@ function rate(raw: number): string {
       <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">groups</span>
       <span class="font-label-sm italic font-bold text-primary-fixed">
         HABITANTS: {{ habitants }}
-        <span v-if="production.recruits" class="opacity-60">{{ rate(production.recruits) }}</span>
+        <span v-if="production.habitants" class="opacity-60">{{ rate(production.habitants) }}</span>
       </span>
     </div>
 

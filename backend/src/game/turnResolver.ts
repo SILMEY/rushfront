@@ -52,32 +52,28 @@ export function applyProduction(input: {
   for (const player of players) {
     const techs = new Set((player as any).techs as string[] | undefined);
 
-    // Count owned tiles + buildings
-    let ownedTiles = 0, fishingHuts = 0;
+    // Count owned tiles
+    let ownedTiles = 0;
     for (let i = 0; i < tileOwners.length; i++) {
-      if (tileOwners[i] !== player.id) continue;
-      ownedTiles++;
-      if (tileBuildings[i] === BuildingType.FishingHut) fishingHuts++;
+      if (tileOwners[i] === player.id) ownedTiles++;
     }
 
-    // Recruits
-    const baseRecruits =
-      Math.floor(player.resources.villagers / 10) +
-      1 + Math.floor(ownedTiles / 12) + Math.floor(fishingHuts / 2) +
-      (techs.has("mil_training") ? 1 : 0);
-    const rawRecruits = player.civilization === "steppe_horde"
-      ? Math.round(baseRecruits * 1.5) : baseRecruits;
-    const recruits = pGain(rawRecruits);
+    // Habitants: 0.01 per owned tile per second × villager multiplier
+    // villagerMult = 1 + villagers/1000  (ex: 10 villageois → ×1.01)
+    const villagerMult = 1 + player.resources.villagers / 1000;
+    const civBonus = player.civilization === "steppe_horde" ? 1.5 : 1.0;
+    const rawHabitants = ownedTiles * villagerMult * civBonus;
+    const newHabitants = pGain(rawHabitants);
 
     const desiredPct = (() => {
       const v = (player as any).desiredSoldierPct;
       return typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
     })();
-    const total = player.resources.villagers + player.resources.soldiers + recruits;
+    const total = player.resources.villagers + player.resources.soldiers + newHabitants;
     const targetSoldiers = Math.max(0, Math.min(total, Math.round((desiredPct / 100) * total)));
-    const addSoldiers = Math.max(0, Math.min(recruits, targetSoldiers - player.resources.soldiers));
+    const addSoldiers = Math.max(0, Math.min(newHabitants, targetSoldiers - player.resources.soldiers));
     player.resources.soldiers += addSoldiers;
-    player.resources.villagers += recruits - addSoldiers;
+    player.resources.villagers += newHabitants - addSoldiers;
 
     // Passive wood/stone from villagers
     const passiveWood  = Math.floor(player.resources.villagers / 12);

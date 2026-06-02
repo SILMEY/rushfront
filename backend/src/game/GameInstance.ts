@@ -251,7 +251,7 @@ export class GameInstance {
     player.basePosition = pos;
     (player as any).techs = [];
     (player as any).desiredSoldierPct = 50;
-    player.resources = { villagers: 10, soldiers: 5, wood: 5, stone: 0 };
+    player.resources = { villagers: 4, soldiers: 1, wood: 5, stone: 0 };
     this.tileOwners[index] = player.id;
     this.tileBuildings[index] = BuildingType.Base;
 
