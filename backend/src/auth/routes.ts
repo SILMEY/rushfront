@@ -103,8 +103,8 @@ export async function authRoutes(app: FastifyInstance) {
   app.get("/auth/discord/start", async (_req, reply) => {
     try {
       return reply.redirect(discordAuthUrl());
-    } catch {
-      return reply.code(503).send({ error: "discord_oauth_not_configured" });
+    } catch (e: any) {
+      return reply.code(503).send({ error: e?.message ?? "discord_oauth_not_configured" });
     }
   });
 

@@ -4,7 +4,9 @@ function cfg() {
   const clientId     = process.env.DISCORD_CLIENT_ID;
   const clientSecret = process.env.DISCORD_CLIENT_SECRET;
   const redirectUrl  = process.env.DISCORD_REDIRECT_URL;
-  if (!clientId || !clientSecret || !redirectUrl) throw new Error("discord_oauth_not_configured");
+  if (!clientId)     throw new Error("discord_missing_CLIENT_ID");
+  if (!clientSecret) throw new Error("discord_missing_CLIENT_SECRET");
+  if (!redirectUrl)  throw new Error("discord_missing_REDIRECT_URL");
   return { clientId, clientSecret, redirectUrl };
 }
 
