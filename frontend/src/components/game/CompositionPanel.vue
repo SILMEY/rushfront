@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import type { GameStateSnapshot } from "../../types/game";
+import { BuildingType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
 import { useGameStore } from "../../stores/gameStore";
 
@@ -9,6 +10,16 @@ const auth = useAuthStore();
 const game = useGameStore();
 
 const me = computed(() => props.state?.players.find((p) => p.userId === auth.user?.id) ?? null);
+
+const hasBarracks = computed(() => {
+  const state = props.state;
+  const player = me.value;
+  if (!state || !player) return false;
+  for (let i = 0; i < state.tiles.buildings.length; i++) {
+    if (state.tiles.owners[i] === player.id && state.tiles.buildings[i] === BuildingType.Barracks) return true;
+  }
+  return false;
+});
 
 const compositionPct = ref(50);
 watch(
@@ -43,23 +54,28 @@ function scheduleCommit() {
       <span class="w-2 h-2 bg-primary rotate-45"></span> RÉPARTITION
     </h3>
     <div class="bg-black/30 p-4 border-l-4 border-outline shadow-inner">
-      <div class="flex justify-between items-center mb-2">
-        <span class="text-xs font-bold text-on-surface uppercase tracking-tight">Villageois / Militaires</span>
-        <span class="text-[10px] text-on-surface/50 italic">{{ 100 - compositionPct }}% / {{ compositionPct }}%</span>
+      <div v-if="!hasBarracks" class="text-[10px] italic text-on-surface/40 text-center py-1">
+        Construisez une caserne pour former des militaires
       </div>
-      <input
-        v-model.number="compositionPct"
-        type="range"
-        min="0"
-        max="100"
-        step="1"
-        class="w-full accent-[#f2ca50]"
-        @input="scheduleCommit()"
-        @change="commit()"
-      />
-      <div class="mt-2 text-[10px] uppercase tracking-[0.2em] text-on-surface/50">
-        Total: {{ me.resources.villagers + me.resources.soldiers }}
-      </div>
+      <template v-else>
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-bold text-on-surface uppercase tracking-tight">Villageois / Militaires</span>
+          <span class="text-[10px] text-on-surface/50 italic">{{ 100 - compositionPct }}% / {{ compositionPct }}%</span>
+        </div>
+        <input
+          v-model.number="compositionPct"
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          class="w-full accent-[#f2ca50]"
+          @input="scheduleCommit()"
+          @change="commit()"
+        />
+        <div class="mt-2 text-[10px] uppercase tracking-[0.2em] text-on-surface/50">
+          Total: {{ me.resources.villagers + me.resources.soldiers }}
+        </div>
+      </template>
     </div>
   </section>
 </template>

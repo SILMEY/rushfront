@@ -60,13 +60,19 @@ const ownedTiles = computed(() => {
 });
 
 
+const maxHabitants = computed(() => ownedTiles.value * 5);
+
+const habitantGrowthRate = computed(() => {
+  const player = me.value;
+  if (!player) return 0;
+  if (habitants.value >= maxHabitants.value) return 0;
+  return ownedTiles.value * 0.1;
+});
+
 const production = computed(() => {
   const state = props.state;
   const player = me.value;
-  if (!state || !player) return { habitants: 0, wood: 0, stone: 0 };
-
-  const villagerMult = 1 + player.resources.villagers / 1000;
-  const habitants = ownedTiles.value * villagerMult;
+  if (!state || !player) return { wood: 0, stone: 0 };
 
   let wood = Math.floor(player.resources.villagers / 12);
   let stone = Math.floor(player.resources.villagers / 24);
@@ -80,7 +86,7 @@ const production = computed(() => {
     if (b === BuildingType.Mine) stone += Math.min(3, adjacentCountOfType(state, pos, TileType.Quarry));
   }
 
-  return { habitants, wood, stone };
+  return { wood, stone };
 });
 
 
@@ -135,8 +141,8 @@ function rate(raw: number): string {
     <div class="flex items-center gap-3 cursor-default">
       <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">groups</span>
       <span class="font-label-sm italic font-bold text-primary-fixed">
-        HABITANTS: {{ habitants }}
-        <span v-if="production.habitants" class="opacity-60">{{ rate(production.habitants) }}</span>
+        HABITANTS: {{ habitants }}/{{ maxHabitants }}
+        <span v-if="habitantGrowthRate > 0" class="opacity-60">(+{{ habitantGrowthRate.toFixed(1) }}/s)</span>
       </span>
     </div>
 

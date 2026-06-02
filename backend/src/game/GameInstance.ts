@@ -250,8 +250,8 @@ export class GameInstance {
     player.hasChosenStart = true;
     player.basePosition = pos;
     (player as any).techs = [];
-    (player as any).desiredSoldierPct = 50;
-    player.resources = { villagers: 4, soldiers: 1, wood: 5, stone: 0 };
+    (player as any).desiredSoldierPct = 0;
+    player.resources = { villagers: 5, soldiers: 0, wood: 5, stone: 0 };
     this.tileOwners[index] = player.id;
     this.tileBuildings[index] = BuildingType.Base;
 
@@ -289,22 +289,9 @@ export class GameInstance {
     });
     if (!neighborOwned) throw new Error("not_adjacent");
 
-    // Civilization claim cost
-    let cost = 1;
-    if (player.civilization === "steppe_horde") {
-      cost = 0;
-    } else if (player.civilization === "sylvan_elves") {
-      const adjForest = orthogonalNeighbors(pos).some((n) => {
-        if (!inBounds(n, this.width, this.height)) return false;
-        return (this.tileTypes[idx(n, this.width)] as TileType) === TileType.Forest;
-      });
-      if (adjForest) cost = 0;
-    }
-    const techs = new Set((player as any).techs as string[] | undefined);
-    if (techs.has("logistics")) cost = Math.max(0, cost - 1);
-
-    if (player.resources.soldiers < cost) throw new Error("not_enough_soldiers");
-    player.resources.soldiers -= cost;
+    // Claiming costs 1 villager (habitants colonisent les cases)
+    if (player.resources.villagers < 1) throw new Error("not_enough_habitants");
+    player.resources.villagers -= 1;
 
     this.tileOwners[index] = player.id;
     return { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null };

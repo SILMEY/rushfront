@@ -158,6 +158,11 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       const player = instance.getPlayerByUserId(userId);
       if (!player) throw new Error("not_in_game");
 
+      const hasBarracks = instance.tileOwners.some(
+        (o, i) => o === player.id && instance.tileBuildings[i] === BuildingType.Barracks
+      );
+      if (!hasBarracks) throw new Error("need_barracks");
+
       const total = player.resources.villagers + player.resources.soldiers;
       if (typeof payload.soldierPct === "number" && Number.isFinite(payload.soldierPct)) {
         const pct = Math.max(0, Math.min(100, Math.round(payload.soldierPct)));

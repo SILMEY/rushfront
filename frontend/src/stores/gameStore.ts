@@ -121,6 +121,7 @@ export const useGameStore = defineStore("game", {
       if (!this.state) return;
       const meId = this.mePlayer?.id;
       if (!meId) return;
+      if ((this.mePlayer?.resources.villagers ?? 0) < 1) return;
       if (!canClaimOptimistic(this.state, meId, pos)) return;
       const i = tileIndex(pos.x, pos.y, this.state.width);
       if (this.state.tiles.owners[i] != null) return;
@@ -135,9 +136,12 @@ export const useGameStore = defineStore("game", {
       if (!this.state) return;
       const meId = this.mePlayer?.id;
       if (!meId) return;
+      let villagersLeft = this.mePlayer?.resources.villagers ?? 0;
       const valid: Vec2[] = [];
       for (const t of tiles) {
+        if (villagersLeft < 1) break;
         if (!canClaimOptimistic(this.state, meId, t)) continue;
+        villagersLeft--;
         this.optimisticClaims[`${t.x},${t.y}`] = true;
         valid.push(t);
       }

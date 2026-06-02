@@ -58,26 +58,29 @@ export function applyProduction(input: {
       if (tileOwners[i] === player.id) ownedTiles++;
     }
 
-    // Habitants: 0.01 per owned tile per second × villager multiplier
-    // Uses fractional accumulation per player so production is smooth/deterministic
-    // (not stochastic like pGain, which gives 0 on 99% of ticks at low tile counts)
-    const villagerMult = 1 + player.resources.villagers / 1000;
-    const civBonus = player.civilization === "steppe_horde" ? 1.5 : 1.0;
-    const ratePerTick = ownedTiles * villagerMult * civBonus * PROD_SCALE;
-    const prevFraction = (player as any).habitantFraction ?? 0;
-    const accumulated = prevFraction + ratePerTick;
-    const newHabitants = Math.floor(accumulated);
-    (player as any).habitantFraction = accumulated - newHabitants;
+    // Habitants: max = 5 par case, croissance de 0.1/case/s jusqu'au cap
+    const maxPop = ownedTiles * 5;
+    const currentPop = player.resources.villagers + player.resources.soldiers;
 
-    const desiredPct = (() => {
-      const v = (player as any).desiredSoldierPct;
-      return typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
-    })();
-    const total = player.resources.villagers + player.resources.soldiers + newHabitants;
-    const targetSoldiers = Math.max(0, Math.min(total, Math.round((desiredPct / 100) * total)));
-    const addSoldiers = Math.max(0, Math.min(newHabitants, targetSoldiers - player.resources.soldiers));
-    player.resources.soldiers += addSoldiers;
-    player.resources.villagers += newHabitants - addSoldiers;
+    if (currentPop < maxPop) {
+      const ratePerTick = ownedTiles * 0.1;
+      const accumulated = ((player as any).habitantFraction ?? 0) + ratePerTick;
+      const floored = Math.floor(accumulated);
+      const newHabitants = Math.min(floored, maxPop - currentPop);
+      (player as any).habitantFraction = currentPop + newHabitants >= maxPop ? 0 : accumulated - floored;
+
+      const desiredPct = (() => {
+        const v = (player as any).desiredSoldierPct;
+        return typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
+      })();
+      const total = player.resources.villagers + player.resources.soldiers + newHabitants;
+      const targetSoldiers = Math.max(0, Math.min(total, Math.round((desiredPct / 100) * total)));
+      const addSoldiers = Math.max(0, Math.min(newHabitants, targetSoldiers - player.resources.soldiers));
+      player.resources.soldiers += addSoldiers;
+      player.resources.villagers += newHabitants - addSoldiers;
+    } else {
+      (player as any).habitantFraction = 0;
+    }
 
     // Passive wood/stone from villagers
     const passiveWood  = Math.floor(player.resources.villagers / 12);
