@@ -20,6 +20,7 @@ type ResourcePatch = { id: string; resources: RuntimePlayer["resources"] };
 
 export class GameInstance {
   readonly id: string;
+  gameType: "quick" | "custom" = "custom";
   status: "PLACING" | "ACTIVE" = "PLACING";
   width = 200;
   height = 200;
@@ -207,6 +208,7 @@ export class GameInstance {
     return {
       gameId: this.id,
       status: this.status,
+      gameType: this.gameType,
       placingEndsAt: this.status === "PLACING" ? this.placingEndsAt : undefined,
       width: this.width,
       height: this.height,

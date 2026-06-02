@@ -46,6 +46,7 @@ export const useGameStore = defineStore("game", {
         this.state = snapshot;
         this.currentGameId = snapshot.gameId;
         this.optimisticClaims = {};
+        if (snapshot.status !== "FINISHED") this.gameOver = null;
       });
 
       // Lightweight tile patch — immediate result of claim/attack/build
@@ -106,6 +107,7 @@ export const useGameStore = defineStore("game", {
         this.selectedBuilding = null;
         this.hoveredTile = null;
         this.optimisticClaims = {};
+        this.gameOver = null;
       }
       socket.emit("game:get_state", { gameId });
     },

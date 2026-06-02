@@ -154,7 +154,7 @@ export class GameManager {
     });
   }
 
-  async startGame(gameId: string, userId: string) {
+  async startGame(gameId: string, userId: string, gameType: "quick" | "custom" = "custom") {
     const game = await prisma.game.findUnique({ where: { id: gameId }, include: { players: true } });
     if (!game) throw new Error("lobby_not_found");
     if (game.hostUserId !== userId) throw new Error("not_host");
@@ -164,6 +164,7 @@ export class GameManager {
 
     await prisma.game.update({ where: { id: gameId }, data: { status: "PLACING" } });
     const instance = new GameInstance(gameId);
+    instance.gameType = gameType;
     await instance.loadFromDb();
     this.active.set(gameId, instance);
     return instance;
