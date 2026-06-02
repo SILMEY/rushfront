@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { apiFetch } from "../api/http";
+
+const router = useRouter();
 
 type LeaderboardEntry = {
   id: string;
@@ -102,6 +105,18 @@ function displayName(p: LeaderboardEntry) {
       </div>
     </div>
   </div>
+
+  <!-- Footer -->
+  <footer class="stone-block border-t border-white/5 px-6 py-14 mt-12">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 md:flex-row">
+      <div class="font-headline text-2xl font-bold tracking-[0.4em] text-primary">RUSHFRONT</div>
+      <div class="flex gap-10">
+        <button class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" @click="router.push('/privacy')">Confidentialité</button>
+        <button class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" @click="router.push('/support')">Support</button>
+      </div>
+      <div class="font-headline text-[10px] uppercase tracking-[0.3em] text-secondary/40">© 2026 RUSHFRONT EMPIRE.</div>
+    </div>
+  </footer>
 </template>
 
 <style scoped>
@@ -110,4 +125,9 @@ function displayName(p: LeaderboardEntry) {
 .border-outline-variant\/30 { border-color: rgba(77,70,53,0.3); }
 .border-outline-variant\/40 { border-color: rgba(77,70,53,0.4); }
 .divide-outline-variant\/20 > * + * { border-color: rgba(77,70,53,0.2); }
+.stone-block {
+  background-color: #1a1a1a;
+  background-image: url("https://www.transparenttextures.com/patterns/dark-matter.png");
+  box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+}
 </style>

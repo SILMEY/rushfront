@@ -6,20 +6,24 @@ import LobbyPage from "../pages/LobbyPage.vue";
 import GamePage from "../pages/GamePage.vue";
 import ProfilePage from "../pages/ProfilePage.vue";
 import LeaderboardPage from "../pages/LeaderboardPage.vue";
+import PrivacyPage from "../pages/PrivacyPage.vue";
+import SupportPage from "../pages/SupportPage.vue";
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: "/login", component: LoginPage },
-    { path: "/", component: HomePage },
+    { path: "/login",       component: LoginPage },
+    { path: "/",            component: HomePage },
     { path: "/leaderboard", component: LeaderboardPage },
-    { path: "/profile", component: ProfilePage },
-    { path: "/lobby/:id", component: LobbyPage, props: true },
-    { path: "/game/:id", component: GamePage, props: true }
+    { path: "/privacy",     component: PrivacyPage },
+    { path: "/support",     component: SupportPage },
+    { path: "/profile",     component: ProfilePage },
+    { path: "/lobby/:id",   component: LobbyPage, props: true },
+    { path: "/game/:id",    component: GamePage,  props: true }
   ]
 });
 
-const PUBLIC_PATHS = ["/", "/login", "/leaderboard"];
+const PUBLIC_PATHS = ["/", "/login", "/leaderboard", "/privacy", "/support"];
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore();

@@ -126,17 +126,14 @@ function hostNameOf(g: any) {
         <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-12 md:flex-row">
           <div class="font-headline text-3xl font-bold tracking-[0.4em] text-primary">RUSHFRONT</div>
           <div class="flex gap-12">
-            <a class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" href="#">
+            <button class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" @click="router.push('/privacy')">
               Confidentialité
-            </a>
-            <a class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" href="#">
-              Conditions
-            </a>
-            <a class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" href="#">
+            </button>
+            <button class="font-headline text-sm uppercase tracking-widest text-secondary/60 hover:text-primary transition-colors" @click="router.push('/support')">
               Support
-            </a>
+            </button>
           </div>
-          <div class="font-headline text-[10px] uppercase tracking-[0.3em] text-secondary/40">© 2024 RUSHFRONT EMPIRE.</div>
+          <div class="font-headline text-[10px] uppercase tracking-[0.3em] text-secondary/40">© 2026 RUSHFRONT EMPIRE.</div>
         </div>
       </footer>
     </main>
