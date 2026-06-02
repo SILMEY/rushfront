@@ -29,11 +29,36 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     try {
       const instance = getInstance(gameManager, payload.gameId);
       await socket.join(`game:${payload.gameId}`);
-      // Wire up the resource tick broadcaster (idempotent — always uses io.to room)
+      const room = `game:${payload.gameId}`;
+
       instance.onResourceTick = (players) => {
-        io.to(`game:${payload.gameId}`).emit("game:resources_update", { players });
+        io.to(room).emit("game:resources_update", { players });
       };
+      instance.onPlayerEliminated = (playerId, changes) => {
+        io.to(room).emit("game:player_eliminated", { playerId, changes });
+      };
+      instance.onGameOver = (winner) => {
+        io.to(room).emit("game:over", { winnerId: winner?.id ?? null, winnerName: winner?.name ?? null });
+      };
+
       socket.emit("game:state", instance.snapshot());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  socket.on("game:surrender", async (payload: { gameId: string }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = getInstance(gameManager, payload.gameId);
+      const changes = instance.surrenderPlayer(userId);
+      if (changes !== null) {
+        const player = instance.players.find((p) => p.userId === userId);
+        io.to(`game:${payload.gameId}`).emit("game:player_eliminated", {
+          playerId: player?.id,
+          changes
+        });
+      }
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }

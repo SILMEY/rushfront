@@ -35,11 +35,12 @@ export type GamePlayerState = {
   resources: PlayerResources;
   techs?: string[];
   desiredSoldierPct?: number;
+  eliminated?: boolean;
 };
 
 export type GameStateSnapshot = {
   gameId: string;
-  status: "PLACING" | "ACTIVE";
+  status: "PLACING" | "ACTIVE" | "FINISHED";
   width: number;
   height: number;
   players: GamePlayerState[];
@@ -49,6 +50,16 @@ export type GameStateSnapshot = {
     buildings: (number | null)[];
   };
   brouillage: Array<{ casterPlayerId: string; x: number; y: number; expiresAt: number }>;
+};
+
+export type PlayerEliminatedEvent = {
+  playerId: string;
+  changes: TileChangePatch[];
+};
+
+export type GameOverEvent = {
+  winnerId: string | null;
+  winnerName: string | null;
 };
 
 // Lightweight patch events (no full snapshot needed)

@@ -54,6 +54,7 @@ export type GamePlayerState = {
   resources: PlayerResources;
   techs?: string[];
   desiredSoldierPct?: number; // 0..100
+  eliminated?: boolean;
 };
 
 export type BuildIntent = {
@@ -72,7 +73,7 @@ export type TileChange = {
 
 export type GameStateSnapshot = {
   gameId: string;
-  status: "PLACING" | "ACTIVE";
+  status: "PLACING" | "ACTIVE" | "FINISHED";
   width: number;
   height: number;
   players: GamePlayerState[];

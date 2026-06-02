@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useAuthStore } from "../stores/authStore";
+import { getSocket } from "../composables/useSocket";
 import GameCanvas from "../components/game/GameCanvas.vue";
 import BuildPanel from "../components/game/BuildPanel.vue";
 import ResourceBar from "../components/game/ResourceBar.vue";
@@ -9,10 +11,20 @@ import TechPanel from "../components/game/TechPanel.vue";
 import CompositionPanel from "../components/game/CompositionPanel.vue";
 import { useGameStore } from "../stores/gameStore";
 
-const route = useRoute();
+const route  = useRoute();
 const router = useRouter();
-const game = useGameStore();
+const game   = useGameStore();
+const auth   = useAuthStore();
 const gameId = computed(() => String(route.params.id));
+
+const mePlayer   = computed(() => game.mePlayer);
+const isWinner   = computed(() => game.gameOver?.winnerId === mePlayer.value?.id);
+const isEliminated = computed(() => mePlayer.value?.eliminated === true);
+
+async function surrender() {
+  const socket = await getSocket();
+  socket.emit("game:surrender", { gameId: gameId.value });
+}
 
 onMounted(async () => {
   await game.connect(gameId.value);
@@ -28,6 +40,66 @@ watch(
 </script>
 
 <template>
+  <!-- ── Overlay fin de partie ─────────────────────────── -->
+  <Transition name="fade">
+    <div v-if="game.gameOver" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div class="mx-4 max-w-md w-full rounded-2xl border p-10 text-center shadow-[0_0_80px_rgba(0,0,0,0.8)]"
+           :class="isWinner
+             ? 'border-[#d4af37]/60 bg-gradient-to-b from-[#1c1a0e] to-[#131312]'
+             : 'border-white/10 bg-gradient-to-b from-[#1a1212] to-[#131312]'">
+
+        <!-- Victoire -->
+        <template v-if="isWinner">
+          <div class="mb-2 text-6xl">🏆</div>
+          <div class="text-xs font-headline font-bold uppercase tracking-[0.4em] text-[#d4af37]/70">Gloire à l'Empire</div>
+          <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-tight text-[#d4af37] drop-shadow-[0_0_20px_rgba(212,175,55,0.5)]">
+            Victoire !
+          </h1>
+          <p class="mt-4 text-sm italic text-[#d4c59f]/70">
+            Tu as conquis le champ de bataille. Ton nom entre dans la légende.
+          </p>
+        </template>
+
+        <!-- Défaite -->
+        <template v-else-if="isEliminated">
+          <div class="mb-2 text-6xl">⚔️</div>
+          <div class="text-xs font-headline font-bold uppercase tracking-[0.4em] text-slate-400/70">Tombé au combat</div>
+          <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-tight text-slate-300">
+            Éliminé
+          </h1>
+          <p v-if="game.gameOver.winnerName" class="mt-4 text-sm italic text-slate-400">
+            <span class="text-[#d4af37]">{{ game.gameOver.winnerName }}</span> remporte la bataille.
+          </p>
+        </template>
+
+        <!-- Spectateur — quelqu'un a gagné -->
+        <template v-else>
+          <div class="mb-2 text-6xl">🏆</div>
+          <h1 class="font-headline text-4xl font-extrabold uppercase text-[#d4af37]">Partie terminée</h1>
+          <p v-if="game.gameOver.winnerName" class="mt-3 text-sm italic text-slate-400">
+            <span class="text-[#d4af37]">{{ game.gameOver.winnerName }}</span> remporte la bataille.
+          </p>
+        </template>
+
+        <button
+          class="mt-8 w-full rounded-lg border border-[#d4af37]/40 bg-[#d4af37]/10 py-3 font-headline text-sm font-bold uppercase tracking-widest text-[#d4af37] transition hover:bg-[#d4af37]/20"
+          @click="router.push('/')"
+        >
+          Retour à l'accueil
+        </button>
+      </div>
+    </div>
+  </Transition>
+
+  <!-- ── Bouton reddition ──────────────────────────────── -->
+  <div v-if="game.state?.status === 'ACTIVE' && mePlayer && !isEliminated && !game.gameOver"
+       class="fixed bottom-4 left-4 z-50">
+    <button
+      class="rounded-md border border-red-900/50 bg-black/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-red-400/70 backdrop-blur transition hover:border-red-500/50 hover:text-red-400"
+      @click="surrender()"
+    >Se rendre</button>
+  </div>
+
   <!-- MAIN GAMEPLAY CANVAS (layout inspired by `public/codejeu.html`) -->
   <div class="rf-game">
     <main class="tactical-overlay flex h-[calc(100vh-64px)] flex-col overflow-hidden pr-80">
@@ -135,6 +207,9 @@ watch(
   font-weight: 700;
   text-transform: uppercase;
 }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.4s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 .text-primary {
   color: var(--primary);

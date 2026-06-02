@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { GameStateSnapshot, ResourceUpdateEvent, TileUpdateEvent, Vec2 } from "../types/game";
+import type { GameOverEvent, GameStateSnapshot, PlayerEliminatedEvent, ResourceUpdateEvent, TileUpdateEvent, Vec2 } from "../types/game";
 import { BuildingType, TileType } from "../types/game";
 import { getSocket } from "../composables/useSocket";
 import { useAuthStore } from "./authStore";
@@ -27,7 +27,8 @@ export const useGameStore = defineStore("game", {
     hoveredTile: null as Vec2 | null,
     selectedBuilding: null as BuildingType | null,
     currentGameId: null as string | null,
-    optimisticClaims: {} as Record<string, true>
+    optimisticClaims: {} as Record<string, true>,
+    gameOver: null as GameOverEvent | null
   }),
   getters: {
     mePlayer(state) {
@@ -69,6 +70,25 @@ export const useGameStore = defineStore("game", {
           const player = this.state.players.find((pl) => pl.id === p.id);
           if (player) player.resources = p.resources;
         }
+      });
+
+      socket.on("game:player_eliminated", (event: PlayerEliminatedEvent) => {
+        if (!this.state) return;
+        for (const ch of event.changes) {
+          const i = tileIndex(ch.x, ch.y, this.state.width);
+          this.state.tiles.owners[i]    = null;
+          this.state.tiles.buildings[i] = null;
+        }
+        const player = this.state.players.find((p) => p.id === event.playerId);
+        if (player) {
+          player.eliminated = true;
+          player.resources  = { villagers: 0, soldiers: 0, wood: 0, stone: 0 };
+        }
+      });
+
+      socket.on("game:over", (event: GameOverEvent) => {
+        this.gameOver = event;
+        if (this.state) this.state.status = "FINISHED";
       });
 
       socket.on("game:error", ({ error }: { error: string }) => {

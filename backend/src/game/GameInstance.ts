@@ -33,8 +33,9 @@ export class GameInstance {
   // Brouillage: time-based expiry (no turns)
   brouillageTiles = new Map<number, { casterPlayerId: string; expiresAt: number }>();
 
-  // Called every 1s with updated player resources
-  onResourceTick: ((players: ResourcePatch[]) => void) | null = null;
+  onResourceTick:      ((players: ResourcePatch[]) => void) | null = null;
+  onPlayerEliminated:  ((playerId: string, changes: TileChange[]) => void) | null = null;
+  onGameOver:          ((winner: RuntimePlayer | null) => void) | null = null;
 
   private timer: NodeJS.Timeout | null = null;
 
@@ -97,6 +98,58 @@ export class GameInstance {
   stop() {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+  }
+
+  // ── Elimination & win condition ───────────────────────────────────────────
+
+  private doEliminate(playerId: string): TileChange[] {
+    const player = this.players.find((p) => p.id === playerId)!;
+    player.eliminated = true;
+    player.resources = { villagers: 0, soldiers: 0, wood: 0, stone: 0 };
+
+    const changes: TileChange[] = [];
+    for (let i = 0; i < this.tileOwners.length; i++) {
+      if (this.tileOwners[i] === playerId) {
+        this.tileOwners[i] = null;
+        this.tileBuildings[i] = null;
+        changes.push({ x: i % this.width, y: Math.floor(i / this.width), owner: null, building: null });
+      }
+    }
+
+    this.onPlayerEliminated?.(playerId, changes);
+    this.checkGameOver();
+    return changes;
+  }
+
+  private checkGameOver() {
+    const alive = this.players.filter((p) => p.hasChosenStart && !p.eliminated);
+    if (alive.length > 1) return;
+
+    const winner = alive[0] ?? null;
+    this.stop();
+    void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
+    if (winner) {
+      void prisma.user.update({
+        where: { id: winner.userId },
+        data: { quickGameWins: { increment: 1 } }
+      });
+    }
+    this.onGameOver?.(winner);
+  }
+
+  private checkEliminationOf(playerId: string) {
+    const player = this.players.find((p) => p.id === playerId);
+    if (!player || player.eliminated || !player.hasChosenStart) return;
+    if (!this.tileOwners.some((o) => o === playerId)) {
+      this.doEliminate(playerId);
+    }
+  }
+
+  // Surrender called on disconnect or explicit quit — returns changes if player was active
+  surrenderPlayer(userId: string): TileChange[] | null {
+    const player = this.getPlayerByUserId(userId);
+    if (!player || player.eliminated || !player.hasChosenStart || this.status !== "ACTIVE") return null;
+    return this.doEliminate(player.id);
   }
 
   snapshot(): GameStateSnapshot {
@@ -265,7 +318,11 @@ export class GameInstance {
     player.resources.soldiers   -= Math.min(D_eff, N);
 
     const captured = N_eff > D_eff;
-    if (captured) this.tileOwners[index] = player.id;
+    if (captured) {
+      this.tileOwners[index] = player.id;
+      // Check if defender lost all territory
+      this.checkEliminationOf(defender.id);
+    }
 
     return { x: pos.x, y: pos.y, owner: captured ? player.id : owner, building: this.tileBuildings[index] ?? null };
   }

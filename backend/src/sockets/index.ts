@@ -27,6 +27,19 @@ export async function registerSockets(app: FastifyInstance, gameManager: GameMan
   io.on("connection", (socket) => {
     registerLobbyHandlers(app, io, socket, gameManager);
     registerGameHandlers(app, io, socket, gameManager);
+
+    socket.on("disconnect", () => {
+      const userId = (socket as any).userId as string | undefined;
+      if (!userId) return;
+      for (const instance of gameManager.listActive()) {
+        if (instance.status !== "ACTIVE") continue;
+        const changes = instance.surrenderPlayer(userId);
+        if (changes !== null) {
+          // onPlayerEliminated / onGameOver callbacks handle broadcasting
+          break;
+        }
+      }
+    });
   });
 
   app.addHook("onClose", async () => {
