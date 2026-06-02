@@ -3,8 +3,34 @@ import { GameInstance } from "./GameInstance.js";
 import { MAX_PLAYERS, PLAYER_COLORS } from "./rules.js";
 import { DEFAULT_CIVILIZATION, type CivilizationId } from "./types.js";
 
+const LOBBY_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
 export class GameManager {
   private active = new Map<string, GameInstance>();
+  private cleanupInterval: NodeJS.Timeout;
+
+  constructor() {
+    // Run cleanup every 2 minutes
+    this.cleanupInterval = setInterval(() => void this.cleanupStaleLobbies(), 2 * 60 * 1000);
+    void this.cleanupStaleLobbies(); // also run once at startup
+  }
+
+  stop() {
+    clearInterval(this.cleanupInterval);
+  }
+
+  private async cleanupStaleLobbies() {
+    const cutoff = new Date(Date.now() - LOBBY_TTL_MS);
+    const stale = await prisma.game.findMany({
+      where: { status: "LOBBY", updatedAt: { lt: cutoff } },
+      select: { id: true }
+    });
+    if (stale.length === 0) return;
+    await prisma.game.deleteMany({
+      where: { id: { in: stale.map((g) => g.id) } }
+    });
+    console.log(`[cleanup] removed ${stale.length} stale lobby(ies)`);
+  }
 
   getActive(gameId: string) {
     return this.active.get(gameId);
