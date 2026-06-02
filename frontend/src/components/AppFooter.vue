@@ -4,7 +4,7 @@ const router = useRouter();
 </script>
 
 <template>
-  <footer class="stone-block border-t border-white/5 px-container-margin py-20">
+  <footer class="rf-footer px-container-margin py-20">
     <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-12 md:flex-row">
       <div class="font-headline text-3xl font-bold tracking-[0.4em] text-primary">RUSHFRONT</div>
       <div class="flex gap-12">
@@ -26,9 +26,12 @@ const router = useRouter();
 .text-primary   { color: #d4af37; }
 .text-secondary { color: #d4c59f; }
 .px-container-margin { padding-left: 24px; padding-right: 24px; }
-.stone-block {
-  background-color: #1a1a1a;
-  background-image: url("https://www.transparenttextures.com/patterns/dark-matter.png");
-  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+
+.rf-footer {
+  background: linear-gradient(to bottom, #1c1c1a 0%, #111110 100%);
+  border-top: 1px solid rgba(212, 175, 55, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(212, 175, 55, 0.06),
+    inset 0 0 80px rgba(0, 0, 0, 0.6);
 }
 </style>

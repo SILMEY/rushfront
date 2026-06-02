@@ -29,7 +29,8 @@ function displayName(p: LeaderboardEntry) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl px-6 py-12">
+  <div class="flex flex-col" style="min-height: calc(100vh - 4rem)">
+  <div class="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
 
     <!-- En-tête -->
     <div class="mb-10 text-center">
@@ -102,6 +103,7 @@ function displayName(p: LeaderboardEntry) {
         </div>
       </div>
     </div>
+  </div>
   </div>
 
   <AppFooter />
