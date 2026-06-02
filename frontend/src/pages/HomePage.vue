@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
-import heroBgUrl from "../assets/bggame.png";
+
 
 const lobby = useLobbyStore();
 const router = useRouter();
@@ -105,14 +105,12 @@ function hostNameOf(g: any) {
     <canvas ref="canvasRef" class="pointer-events-none fixed inset-0 z-[5] opacity-35" />
     <main>
       <!-- Hero Section -->
-      <section
-        class="relative flex h-[40vh] w-full items-center justify-center overflow-hidden bg-cover bg-center"
-        :style="{ backgroundImage: `url(${heroBgUrl})` }"
-      >
-        <div class="absolute inset-0 z-0 bg-black/30"></div>
-        <div class="absolute inset-0 z-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
-
-        <div class="relative z-10 mx-auto -mt-12 w-full max-w-4xl px-container-margin text-center md:-mt-16">
+      <section class="relative flex h-[90vh] w-full items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 z-0">
+          <img class="h-full w-full object-cover opacity-70" src="/bggame.png" alt="battlefield" />
+          <div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
+        </div>
+        <div class="relative z-10 mx-auto w-full max-w-4xl px-container-margin text-center">
           <h1 class="font-headline whitespace-nowrap text-5xl font-bold uppercase tracking-tighter text-primary drop-shadow-2xl md:text-7xl">
             COMMANDER L'AVENIR
           </h1>
@@ -234,11 +232,11 @@ function hostNameOf(g: any) {
               <div class="mb-2 font-headline text-5xl text-primary">10s</div>
               <div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Durée d’un tour</div>
             </div>
-            <div class="mt-12 border border-outline-variant/30 bg-black/40 p-10 text-center md:mt-24">
+            <div class="border border-outline-variant/30 bg-black/40 p-10 text-center md:mt-24">
               <div class="mb-2 font-headline text-5xl text-primary">10</div>
               <div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Joueurs max</div>
             </div>
-            <div class="-mt-12 border border-outline-variant/30 bg-black/40 p-10 text-center md:-mt-24">
+            <div class="border border-outline-variant/30 bg-black/40 p-10 text-center md:-mt-24">
               <div class="mb-2 font-headline text-5xl text-primary">⚔️</div>
               <div class="text-xs uppercase tracking-[0.2em] text-secondary/60">Attaque / Défense</div>
             </div>
