@@ -63,9 +63,20 @@ export async function upsertUserFromDiscord(params: {
   avatarUrl?: string | null;
 }) {
   const { discordId, email, name, avatarUrl } = params;
-  return prisma.user.upsert({
-    where:  { discordId },
-    update: { email, name, avatarUrl: avatarUrl ?? undefined },
-    create: { discordId, email, name, avatarUrl: avatarUrl ?? undefined }
-  });
+  try {
+    return await prisma.user.upsert({
+      where:  { discordId },
+      update: { email, name, avatarUrl: avatarUrl ?? undefined },
+      create: { discordId, email, name, avatarUrl: avatarUrl ?? undefined }
+    });
+  } catch (e: any) {
+    // Email already used by another provider (e.g. Google) — link discordId to that account
+    if (e?.code === "P2002") {
+      return await prisma.user.update({
+        where: { email },
+        data:  { discordId, avatarUrl: avatarUrl ?? undefined }
+      });
+    }
+    throw e;
+  }
 }
