@@ -113,32 +113,74 @@ export function useGameRenderer() {
           }
         }
 
-        // Buildings: use Material Symbols icons like the control panel.
-        if (building != null && tsScreen >= 28) {
-          if (building === BuildingType.Base) {
-            ctx.fillStyle = ownerColor ? rgba(ownerColor, 0.95) : rgba("#f2ca50", 0.9);
-            ctx.font = `${Math.max(18 / scale, tileSize * 0.6)}px "Material Symbols Outlined"`;
+        // Buildings: bâtiments importants toujours visibles, mineurs seulement si assez zoomé
+        if (building != null) {
+          const important = building === BuildingType.Base
+            || building === BuildingType.Barracks
+            || building === BuildingType.University;
+
+          if (important || tsScreen >= 28) {
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("castle", sx + tileSize / 2, sy + tileSize / 2);
-          } else {
-            const icon =
-              building === BuildingType.FishingHut
-                ? "sailing"
-                : building === BuildingType.Sawmill
-                  ? "forest"
-                  : building === BuildingType.Mine
-                    ? "construction"
-                    : building === BuildingType.Barracks
-                      ? "shield"
-                      : "history_edu";
-            ctx.fillStyle = rgba("#f2ca50", 0.85);
-            ctx.font = `${Math.max(16 / scale, tileSize * 0.55)}px "Material Symbols Outlined"`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(icon, sx + tileSize / 2, sy + tileSize / 2);
+
+            if (building === BuildingType.Base) {
+              ctx.fillStyle = ownerColor ? rgba(ownerColor, 0.95) : rgba("#f2ca50", 0.9);
+              // Taille minimum 10px écran pour rester lisible même très dézoomé
+              ctx.font = `${Math.min(tileSize, Math.max(10 / scale, tileSize * 0.6))}px "Material Symbols Outlined"`;
+              ctx.fillText("castle", sx + tileSize / 2, sy + tileSize / 2);
+            } else if (building === BuildingType.Barracks || building === BuildingType.University || building === BuildingType.City) {
+              ctx.fillStyle = building === BuildingType.City ? rgba("#60a5fa", 0.95) : rgba("#f2ca50", 0.95);
+              ctx.font = `${Math.min(tileSize, Math.max(10 / scale, tileSize * 0.55))}px "Material Symbols Outlined"`;
+              const icon = building === BuildingType.Barracks ? "shield" : building === BuildingType.University ? "history_edu" : "location_city";
+              ctx.fillText(icon, sx + tileSize / 2, sy + tileSize / 2);
+            } else if (building === BuildingType.Bridge) {
+              ctx.fillStyle = rgba("#d97706", 0.9);
+              ctx.font = `${Math.min(tileSize, Math.max(10 / scale, tileSize * 0.5))}px "Material Symbols Outlined"`;
+              ctx.fillText("water", sx + tileSize / 2, sy + tileSize / 2);
+            } else if (building === BuildingType.Wonder) {
+              // Dessiné dans le second pass (overlay 4×4)
+            } else {
+              // Bâtiments mineurs : seulement si tsScreen >= 28
+              const icon =
+                building === BuildingType.FishingHut ? "sailing"
+                : building === BuildingType.Sawmill   ? "forest"
+                :                                       "construction";
+              ctx.fillStyle = rgba("#f2ca50", 0.75);
+              ctx.font = `${Math.max(16 / scale, tileSize * 0.55)}px "Material Symbols Outlined"`;
+              ctx.fillText(icon, sx + tileSize / 2, sy + tileSize / 2);
+            }
           }
         }
+      }
+    }
+
+    // Second pass : merveilles (overlay 4×4 centré sur la case)
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const i = y * state.width + x;
+        if ((state.tiles.buildings[i] as BuildingType) !== BuildingType.Wonder) continue;
+        const owner = state.tiles.owners[i];
+        const ownerColor = owner ? (colorByPlayer.get(owner) ?? "#f2ca50") : "#f2ca50";
+
+        const cx = (x + 0.5) * tileSize;
+        const cy = (y + 0.5) * tileSize;
+        const half = tileSize * 2; // 4×4 tiles total
+
+        // Halo coloré
+        ctx.fillStyle = rgba(ownerColor, 0.18);
+        ctx.fillRect(cx - half, cy - half, half * 2, half * 2);
+        ctx.strokeStyle = rgba(ownerColor, 0.7);
+        ctx.lineWidth = 2 / scale;
+        ctx.setLineDash([4 / scale, 4 / scale]);
+        ctx.strokeRect(cx - half, cy - half, half * 2, half * 2);
+        ctx.setLineDash([]);
+
+        // Icône centrale
+        ctx.fillStyle = rgba(ownerColor, 0.95);
+        ctx.font = `${Math.min(tileSize * 3, Math.max(12 / scale, tileSize * 1.5))}px "Material Symbols Outlined"`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("temple_hindu", cx, cy);
       }
     }
 

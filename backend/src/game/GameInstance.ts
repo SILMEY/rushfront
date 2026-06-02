@@ -37,9 +37,15 @@ export class GameInstance {
   onResourceTick:      ((players: ResourcePatch[]) => void) | null = null;
   onPlayerEliminated:  ((playerId: string, changes: TileChange[]) => void) | null = null;
   onGameOver:          ((winner: RuntimePlayer | null) => void) | null = null;
-  onPlacingTimeout:    (() => void) | null = null; // fired when placing timer ends
+  onPlacingTimeout:    (() => void) | null = null;
 
-  placingEndsAt = 0; // unix ms countdown for start selection
+  placingEndsAt = 0;
+
+  // Wonder victory
+  private wonderTimer: NodeJS.Timeout | null = null;
+  private wonderTileIndex: number | null = null;
+  private wonderPlayerId: string | null = null;
+  wonderEndsAt: number | null = null; // unix ms, exposed for snapshot
 
   private timer: NodeJS.Timeout | null = null;
   private placingTimer: NodeJS.Timeout | null = null;
@@ -110,6 +116,8 @@ export class GameInstance {
     this.timer = null;
     if (this.placingTimer) clearTimeout(this.placingTimer);
     this.placingTimer = null;
+    if (this.wonderTimer) clearTimeout(this.wonderTimer);
+    this.wonderTimer = null;
   }
 
   private async handlePlacingTimeout() {
@@ -210,6 +218,8 @@ export class GameInstance {
       status: this.status,
       gameType: this.gameType,
       placingEndsAt: this.status === "PLACING" ? this.placingEndsAt : undefined,
+      wonderEndsAt: this.wonderEndsAt ?? undefined,
+      wonderPlayerId: this.wonderPlayerId ?? undefined,
       width: this.width,
       height: this.height,
       players: this.players,
@@ -280,7 +290,9 @@ export class GameInstance {
     if (block && block.expiresAt > Date.now() && block.casterPlayerId !== player.id)
       throw new Error("tile_blocked");
 
-    if ((this.tileTypes[index] as TileType) !== TileType.Plain) throw new Error("invalid_tile");
+    const tileType = this.tileTypes[index] as TileType;
+    const isWater = tileType === TileType.Water;
+    if (tileType !== TileType.Plain && !isWater) throw new Error("invalid_tile");
     if (this.tileOwners[index]) throw new Error("already_owned");
 
     const neighborOwned = orthogonalNeighbors(pos).some((n) => {
@@ -289,12 +301,20 @@ export class GameInstance {
     });
     if (!neighborOwned) throw new Error("not_adjacent");
 
+    if (isWater) {
+      const charges = (player as any).bridgeCharges ?? 0;
+      if (charges < 1) throw new Error("need_bridge_charge");
+      (player as any).bridgeCharges = charges - 1;
+    }
+
     // Claiming costs 1 villager (habitants colonisent les cases)
     if (player.resources.villagers < 1) throw new Error("not_enough_habitants");
     player.resources.villagers -= 1;
 
     this.tileOwners[index] = player.id;
-    return { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null };
+    const building = isWater ? BuildingType.Bridge : (this.tileBuildings[index] ?? null);
+    if (isWater) this.tileBuildings[index] = BuildingType.Bridge;
+    return { x: pos.x, y: pos.y, owner: player.id, building };
   }
 
   claimTiles(userId: string, positions: Vec2[]): TileChange[] {
@@ -337,15 +357,33 @@ export class GameInstance {
 
     // Perte proportionnelle : loss = round(soldats_défenseur / cases_défenseur)
     const defenderTiles = this.tileOwners.filter((o) => o === defender.id).length;
-    const loss = defenderTiles > 0 ? Math.round(defender.resources.soldiers / defenderTiles) : 0;
+    const baseLoss = defenderTiles > 0 ? Math.round(defender.resources.soldiers / defenderTiles) : 0;
 
-    if (loss > 0 && player.resources.soldiers < loss) throw new Error("not_enough_soldiers");
+    const atkTechs = new Set((player as any).techs as string[] | undefined);
+    const defTechs = new Set((defender as any).techs as string[] | undefined);
 
-    defender.resources.soldiers = Math.max(0, defender.resources.soldiers - loss);
-    player.resources.soldiers   = Math.max(0, player.resources.soldiers   - loss);
+    // epee_longue : attaquant perd moitié moins
+    const attackerLoss = atkTechs.has("epee_longue") ? Math.floor(baseLoss / 2) : baseLoss;
+    // cote_de_maille : défenseur perd moitié moins
+    const defenderLoss = defTechs.has("cote_de_maille") ? Math.floor(baseLoss / 2) : baseLoss;
+
+    if (attackerLoss > 0 && player.resources.soldiers < attackerLoss) throw new Error("not_enough_soldiers");
+
+    defender.resources.soldiers = Math.max(0, defender.resources.soldiers - defenderLoss);
+    player.resources.soldiers   = Math.max(0, player.resources.soldiers   - attackerLoss);
 
     // La case est toujours prise
     this.tileOwners[index] = player.id;
+
+    // Annuler la merveille si la case prise était la merveille du défenseur
+    if (this.wonderTileIndex === index && this.wonderPlayerId === defender.id) {
+      if (this.wonderTimer) clearTimeout(this.wonderTimer);
+      this.wonderTimer = null;
+      this.wonderTileIndex = null;
+      this.wonderPlayerId = null;
+      this.wonderEndsAt = null;
+    }
+
     this.checkEliminationOf(defender.id);
 
     return {
@@ -373,6 +411,12 @@ export class GameInstance {
     if (this.tileBuildings[tileIndex] != null) throw new Error("tile_has_building");
     if ((this.tileTypes[tileIndex] as TileType) === TileType.Water) throw new Error("invalid_tile");
 
+    // Wonder : un seul par joueur
+    if (intent.building === BuildingType.Wonder) {
+      const alreadyHasWonder = this.wonderPlayerId === player.id;
+      if (alreadyHasWonder) throw new Error("wonder_already_built");
+    }
+
     const cost = buildCost(intent.building);
     if (player.resources.wood < cost.wood || player.resources.stone < cost.stone)
       throw new Error("not_enough_resources");
@@ -389,6 +433,22 @@ export class GameInstance {
     player.resources.wood  -= cost.wood;
     player.resources.stone -= cost.stone;
     this.tileBuildings[tileIndex] = intent.building;
+
+    // Merveille : démarrer le timer de victoire (10 minutes)
+    if (intent.building === BuildingType.Wonder) {
+      const WONDER_MS = 10 * 60 * 1000;
+      this.wonderTileIndex = tileIndex;
+      this.wonderPlayerId  = player.id;
+      this.wonderEndsAt    = Date.now() + WONDER_MS;
+      this.wonderTimer = setTimeout(() => {
+        if (this.tileOwners[tileIndex] === player.id) {
+          this.stop();
+          void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
+          void prisma.user.update({ where: { id: player.userId }, data: { quickGameWins: { increment: 1 } } });
+          this.onGameOver?.(player);
+        }
+      }, WONDER_MS);
+    }
 
     return { x: intent.x, y: intent.y, owner: player.id, building: intent.building };
   }
@@ -410,15 +470,21 @@ export class GameInstance {
     }
     if (!hasUniversity) throw new Error("need_university");
 
-    const techs = new Set((player as any).techs as string[] | undefined);
-    if (techs.has(techId)) throw new Error("tech_already_bought");
-
     const def = TECHS.find((t) => t.id === techId)!;
+    const techs = new Set((player as any).techs as string[] | undefined);
+
+    // Non-stackable : un seul achat autorisé
+    if (!def.stackable && techs.has(techId)) throw new Error("tech_already_bought");
+
     if (player.resources.wood < def.cost.wood || player.resources.stone < def.cost.stone)
       throw new Error("not_enough_resources");
 
     player.resources.wood  -= def.cost.wood;
     player.resources.stone -= def.cost.stone;
+
+    if (def.stackable && techId === "pont") {
+      (player as any).bridgeCharges = ((player as any).bridgeCharges ?? 0) + 1;
+    }
     techs.add(techId);
     (player as any).techs = Array.from(techs);
   }

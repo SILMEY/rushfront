@@ -44,7 +44,12 @@ export function buildCost(building: BuildingType): { wood: number; stone: number
       return { wood: 20, stone: 10 };
     case BuildingType.University:
       return { wood: 20, stone: 20 };
+    case BuildingType.City:
+      return { wood: 40, stone: 80 };
+    case BuildingType.Wonder:
+      return { wood: 150, stone: 300 };
     case BuildingType.Base:
+    case BuildingType.Bridge:
       return { wood: 0, stone: 0 };
     default:
       return { wood: 9999, stone: 9999 };

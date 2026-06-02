@@ -129,20 +129,6 @@ watch(
 
         <TechPanel :state="game.state" />
 
-        <section class="mt-auto">
-          <div class="group relative aspect-video w-full overflow-hidden border-2 border-outline-variant bg-black shadow-2xl">
-            <img
-              class="h-full w-full object-cover opacity-40 sepia-[0.3] transition-transform duration-[2s] group-hover:scale-110"
-              :src="game.state?.gameType === 'quick' ? '/rf.png' : '/img2.png'"
-              alt="Tactical preview"
-            />
-            <div class="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-transparent"></div>
-            <div class="absolute bottom-3 left-3 flex items-center gap-2">
-              <span class="material-symbols-outlined animate-pulse text-[12px] text-primary" aria-hidden="true">explore</span>
-              <span class="carved-text text-[9px] font-bold uppercase tracking-widest text-on-surface/80">Reconnaissance</span>
-            </div>
-          </div>
-        </section>
       </div>
 
       <div class="border-t-2 border-outline-variant bg-black/40 p-6">

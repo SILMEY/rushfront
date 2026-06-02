@@ -66,13 +66,18 @@ async function buy(techId: string) {
             <div class="mt-1 text-xs text-slate-400">{{ t.description }}</div>
             <div class="mt-2 text-xs text-slate-400 font-mono">🪵 {{ t.cost.wood }} • 🪨 {{ t.cost.stone }}</div>
           </div>
-          <button
-            class="h-9 shrink-0 rounded-md bg-white/5 px-3 text-sm ring-1 ring-white/10 hover:bg-white/10 disabled:opacity-40"
-            :disabled="myTechs.has(t.id) || me.resources.wood < t.cost.wood || me.resources.stone < t.cost.stone"
-            @click="buy(t.id)"
-          >
-            {{ myTechs.has(t.id) ? "Acheté" : "Acheter" }}
-          </button>
+          <div class="flex flex-col items-end gap-1">
+            <span v-if="t.id === 'pont' && (me.bridgeCharges ?? 0) > 0" class="text-[10px] text-[#f2ca50]/70">
+              {{ me.bridgeCharges }} charge{{ (me.bridgeCharges ?? 0) > 1 ? 's' : '' }}
+            </span>
+            <button
+              class="h-9 shrink-0 rounded-md bg-white/5 px-3 text-sm ring-1 ring-white/10 hover:bg-white/10 disabled:opacity-40"
+              :disabled="(t.id !== 'pont' && myTechs.has(t.id)) || me.resources.wood < t.cost.wood || me.resources.stone < t.cost.stone"
+              @click="buy(t.id)"
+            >
+              {{ t.id !== 'pont' && myTechs.has(t.id) ? "Acheté" : "Acheter" }}
+            </button>
+          </div>
         </div>
       </div>
       <div v-if="techs.length === 0" class="text-xs text-slate-400">Chargement...</div>

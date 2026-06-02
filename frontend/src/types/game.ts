@@ -11,7 +11,10 @@ export enum BuildingType {
   Sawmill = 3,
   Mine = 4,
   Barracks = 5,
-  University = 6
+  University = 6,
+  City = 7,
+  Wonder = 8,
+  Bridge = 9
 }
 
 export type Vec2 = { x: number; y: number };
@@ -36,6 +39,7 @@ export type GamePlayerState = {
   techs?: string[];
   desiredSoldierPct?: number;
   eliminated?: boolean;
+  bridgeCharges?: number;
 };
 
 export type GameStateSnapshot = {
@@ -43,6 +47,8 @@ export type GameStateSnapshot = {
   status: "PLACING" | "ACTIVE" | "FINISHED";
   gameType?: "quick" | "custom";
   placingEndsAt?: number;
+  wonderEndsAt?: number;
+  wonderPlayerId?: string;
   width: number;
   height: number;
   players: GamePlayerState[];

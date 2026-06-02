@@ -43,6 +43,7 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       instance.onPlacingTimeout = () => {
         io.to(room).emit("game:state", instance.snapshot());
       };
+      // Wonder victory already fires through onGameOver
 
       socket.emit("game:state", instance.snapshot());
     } catch (e: any) {

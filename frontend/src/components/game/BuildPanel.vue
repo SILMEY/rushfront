@@ -21,7 +21,9 @@ const items: Array<{
   { type: BuildingType.Sawmill, label: "Scierie", icon: "forest", cost: "Coût: 5 bois", hint: "Adjacente à une forêt" },
   { type: BuildingType.Mine, label: "Mine", icon: "construction", cost: "Coût: 5 bois", hint: "Adjacente à une carrière" },
   { type: BuildingType.Barracks, label: "Caserne", icon: "shield", cost: "Coût: 20 bois + 10 pierre", hint: "Sur une case possédée" },
-  { type: BuildingType.University, label: "Université", icon: "history_edu", cost: "Coût: 20 bois + 20 pierre", hint: "Sur une case possédée" }
+  { type: BuildingType.University, label: "Université", icon: "history_edu", cost: "Coût: 20 bois + 20 pierre", hint: "Sur une case possédée" },
+  { type: BuildingType.City, label: "Cité", icon: "location_city", cost: "Coût: 40 bois + 80 pierre", hint: "+200 habitants max" },
+  { type: BuildingType.Wonder, label: "Merveille", icon: "temple_hindu", cost: "Coût: 150 bois + 300 pierre", hint: "Victoire si non prise en 10 min" }
 ];
 </script>
 
