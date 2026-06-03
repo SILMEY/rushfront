@@ -40,6 +40,8 @@ export type GamePlayerState = {
   desiredSoldierPct?: number;
   eliminated?: boolean;
   bridgeCharges?: number;
+  fishingBoats?: number;
+  maritimeCharges?: number;
 };
 
 export type GameStateSnapshot = {

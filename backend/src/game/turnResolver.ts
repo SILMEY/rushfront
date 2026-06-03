@@ -52,18 +52,21 @@ export function applyProduction(input: {
   for (const player of players) {
     const techs = new Set((player as any).techs as string[] | undefined);
 
-    // Count owned tiles
+    // Count owned tiles and cities
     let ownedTiles = 0;
+    let cityCount = 0;
     for (let i = 0; i < tileOwners.length; i++) {
-      if (tileOwners[i] === player.id) ownedTiles++;
+      if (tileOwners[i] !== player.id) continue;
+      ownedTiles++;
+      if (tileBuildings[i] === BuildingType.City) cityCount++;
     }
 
-    // Habitants: max = 5 par case, croissance de 0.1/case/s jusqu'au cap
-    const maxPop = ownedTiles * 5;
+    // Habitants: max = 5 par case + 500 par Cité
+    const maxPop = ownedTiles * 5 + cityCount * 500;
     const currentPop = player.resources.villagers + player.resources.soldiers;
 
     if (currentPop < maxPop) {
-      const ratePerTick = ownedTiles * 0.03;
+      const ratePerTick = Math.sqrt(ownedTiles) * 0.07;
       const accumulated = ((player as any).habitantFraction ?? 0) + ratePerTick;
       const floored = Math.floor(accumulated);
       const newHabitants = Math.min(floored, maxPop - currentPop);
@@ -111,6 +114,10 @@ export function applyProduction(input: {
     if (techs.has("eco_tools")) rawStone += mines;
     if (player.civilization === "iron_dwarves") rawStone *= 2;
     player.resources.stone += pGain(rawStone);
+
+    // Bateaux de pêche (passif bois par bateau)
+    const fishingBoats = (player as any).fishingBoats ?? 0;
+    if (fishingBoats > 0) player.resources.wood += pGain(fishingBoats * 3);
 
     // Empire d'Aurélien territorial bonus
     if (player.civilization === "aurelian_empire") {

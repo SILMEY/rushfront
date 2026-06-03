@@ -220,6 +220,42 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     }
   });
 
+  // ── Port : bateaux ───────────────────────────────────────────────────────
+
+  socket.on("game:buy_fishing_boat", (payload: { gameId: string }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = getInstance(gameManager, payload.gameId);
+      instance.buyFishingBoat(userId);
+      socket.emit("game:state", instance.snapshot());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  socket.on("game:buy_transport_boat", (payload: { gameId: string }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = getInstance(gameManager, payload.gameId);
+      instance.buyTransportBoat(userId);
+      socket.emit("game:state", instance.snapshot());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  socket.on("game:maritime_land", (payload: { gameId: string; x: number; y: number }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = getInstance(gameManager, payload.gameId);
+      instance.maritimeLand(userId, { x: payload.x, y: payload.y });
+      // Full state car les maritime charges changent (pas dans tile_update)
+      io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
   // ── Brouillage ───────────────────────────────────────────────────────────
 
   socket.on("game:brouillage", async (payload: { gameId: string; tiles: Array<{ x: number; y: number }> }) => {

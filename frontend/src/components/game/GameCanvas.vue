@@ -61,7 +61,7 @@ function draw() {
     hovered: hovered.value
   });
 
-  // Dessin du marqueur de cible d'expansion
+  // Marqueur de cible d'expansion (or)
   const target = game.expandTarget;
   if (target) {
     const wx = (target.x + 0.5) * tileSize;
@@ -73,13 +73,9 @@ function draw() {
     ctx.save();
     ctx.strokeStyle = `rgba(212,175,55,${0.9 * pulse})`;
     ctx.lineWidth = 2;
-
-    // Cercle
     ctx.beginPath();
     ctx.arc(sx, sy, r, 0, Math.PI * 2);
     ctx.stroke();
-
-    // Croix
     const arm = r * 0.55;
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
@@ -87,11 +83,43 @@ function draw() {
     ctx.moveTo(sx, sy - arm); ctx.lineTo(sx, sy + arm);
     ctx.stroke();
     ctx.restore();
-
-    // Continue d'animer tant qu'il y a une cible
     scheduleDraw();
   }
+
+  // Marqueur de cible d'attaque (rouge)
+  const atkTarget = game.attackTarget;
+  if (atkTarget) {
+    const wx = (atkTarget.x + 0.5) * tileSize;
+    const wy = (atkTarget.y + 0.5) * tileSize;
+    const { x: sx, y: sy } = worldToScreen(wx, wy);
+    const pulse = 0.6 + 0.4 * Math.abs(Math.sin(Date.now() / 180));
+    const r = tileSize * camera.zoom * 0.42 * pulse;
+
+    ctx.save();
+    ctx.strokeStyle = `rgba(239,68,68,${0.9 * pulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    // X au centre
+    const arm = r * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(sx - arm, sy - arm); ctx.lineTo(sx + arm, sy + arm);
+    ctx.moveTo(sx + arm, sy - arm); ctx.lineTo(sx - arm, sy + arm);
+    ctx.stroke();
+    ctx.restore();
+    scheduleDraw();
+  }
+
+  // Redraw continu tant que des warnings actifs existent (pulse)
+  if (game.attackWarnings.some(w => w.expiresAt > Date.now())) scheduleDraw();
 }
+
+// Redraw continu quand des warnings actifs existent (pulse)
+watch(
+  () => game.attackWarnings.length,
+  (n) => { if (n > 0) scheduleDraw(); }
+);
 
 watch(
   () => props.state,

@@ -30,7 +30,11 @@ export const useGameStore = defineStore("game", {
     optimisticClaims: {} as Record<string, true>,
     gameOver: null as GameOverEvent | null,
     expandTarget: null as Vec2 | null,
-    _expandIntervalId: null as number | null
+    _expandIntervalId: null as number | null,
+    maritimeLandingMode: false,
+    attackTarget: null as Vec2 | null,
+    _attackIntervalId: null as number | null,
+    attackWarnings: [] as Array<{ x: number; y: number; expiresAt: number }>
   }),
   getters: {
     mePlayer(state) {
@@ -54,8 +58,14 @@ export const useGameStore = defineStore("game", {
       // Lightweight tile patch — immediate result of claim/attack/build
       socket.on("game:tile_update", (event: TileUpdateEvent) => {
         if (!this.state) return;
+        const myId = this.mePlayer?.id;
+        const now = Date.now();
         for (const ch of event.changes) {
           const i = tileIndex(ch.x, ch.y, this.state.width);
+          // Avertissement radar : une de mes cases vient d'être capturée
+          if (myId && this.state.tiles.owners[i] === myId && ch.owner !== myId) {
+            this.attackWarnings.push({ x: ch.x, y: ch.y, expiresAt: now + 3000 });
+          }
           this.state.tiles.owners[i]    = ch.owner;
           this.state.tiles.buildings[i] = ch.building;
           delete this.optimisticClaims[`${ch.x},${ch.y}`];
@@ -64,6 +74,7 @@ export const useGameStore = defineStore("game", {
           const player = this.state.players.find((pl) => pl.id === p.id);
           if (player) player.resources = p.resources;
         }
+        this.attackWarnings = this.attackWarnings.filter(w => w.expiresAt > now);
       });
 
       // Resource-only patch — from the 1s production tick
@@ -182,10 +193,38 @@ export const useGameStore = defineStore("game", {
       this.hoveredTile = pos;
     },
 
+    async buyFishingBoat(gameId: string) {
+      const socket = await getSocket();
+      socket.emit("game:buy_fishing_boat", { gameId });
+    },
+
+    async buyTransportBoat(gameId: string) {
+      const socket = await getSocket();
+      socket.emit("game:buy_transport_boat", { gameId });
+    },
+
+    async maritimeLand(gameId: string, pos: Vec2) {
+      const socket = await getSocket();
+      socket.emit("game:maritime_land", { gameId, x: pos.x, y: pos.y });
+      this.maritimeLandingMode = false;
+    },
+
+    selectBuilding(building: BuildingType | null) {
+      this.selectedBuilding = building;
+      this.maritimeLandingMode = false;
+    },
+
+    toggleMaritimeLanding() {
+      this.maritimeLandingMode = !this.maritimeLandingMode;
+      if (this.maritimeLandingMode) this.selectedBuilding = null;
+    },
+
     async onTileClick(pos: Vec2) {
       if (!this.state) return;
       if (this.state.status === "PLACING") return this.chooseStart(this.state.gameId, pos);
       if (this.state.status !== "ACTIVE") return;
+
+      if (this.maritimeLandingMode) return this.maritimeLand(this.state.gameId, pos);
       if (this.selectedBuilding != null) return this.build(this.state.gameId, pos, this.selectedBuilding);
 
       const meId = this.mePlayer?.id;
@@ -217,6 +256,82 @@ export const useGameStore = defineStore("game", {
       if (this._expandIntervalId !== null) {
         window.clearInterval(this._expandIntervalId);
         this._expandIntervalId = null;
+      }
+    },
+
+    setAttackTarget(pos: Vec2) {
+      if (this.attackTarget?.x === pos.x && this.attackTarget?.y === pos.y) {
+        this.clearAttackTarget();
+        return;
+      }
+      this.attackTarget = pos;
+      if (this._attackIntervalId === null) {
+        this._attackIntervalId = window.setInterval(() => void this.autoAttack(), 800);
+      }
+      void this.autoAttack();
+    },
+
+    clearAttackTarget() {
+      this.attackTarget = null;
+      if (this._attackIntervalId !== null) {
+        window.clearInterval(this._attackIntervalId);
+        this._attackIntervalId = null;
+      }
+    },
+
+    autoAttack() {
+      const state = this.state;
+      const target = this.attackTarget;
+      if (!state || !target || state.status !== "ACTIVE") return;
+
+      const myId = this.mePlayer?.id;
+      const mySoldiers = this.mePlayer?.resources.soldiers ?? 0;
+      if (!myId || mySoldiers < 1) return;
+
+      // Cible déjà conquise ?
+      if (state.tiles.owners[target.y * state.width + target.x] === myId) {
+        this.clearAttackTarget();
+        return;
+      }
+
+      // Cases ennemies adjacentes à notre territoire
+      const frontier: Vec2[] = [];
+      for (let i = 0; i < state.tiles.owners.length; i++) {
+        const owner = state.tiles.owners[i];
+        if (!owner || owner === myId) continue;
+        if ((state.tiles.types[i] as TileType) !== TileType.Plain) continue;
+        const x = i % state.width;
+        const y = Math.floor(i / state.width);
+        const adjToMe = (
+          [{ x: x+1, y }, { x: x-1, y }, { x, y: y+1 }, { x, y: y-1 }] as Vec2[]
+        ).some(n => {
+          if (n.x < 0 || n.y < 0 || n.x >= state.width || n.y >= state.height) return false;
+          return state.tiles.owners[n.y * state.width + n.x] === myId;
+        });
+        if (adjToMe) frontier.push({ x, y });
+      }
+
+      if (frontier.length === 0) { this.clearAttackTarget(); return; }
+
+      frontier.sort((a, b) => {
+        const da = (a.x - target.x) ** 2 + (a.y - target.y) ** 2;
+        const db = (b.x - target.x) ** 2 + (b.y - target.y) ** 2;
+        return da - db;
+      });
+
+      void this.attackTile(state.gameId, frontier[0]!);
+    },
+
+    onTileDblClick(pos: Vec2) {
+      if (!this.state || this.state.status !== "ACTIVE") return;
+      const meId = this.mePlayer?.id;
+      if (!meId) return;
+      const i = tileIndex(pos.x, pos.y, this.state.width);
+      const owner = this.state.tiles.owners[i];
+      if (owner && owner !== meId) {
+        this.setAttackTarget(pos);
+      } else {
+        this.setExpandTarget(pos);
       }
     },
 

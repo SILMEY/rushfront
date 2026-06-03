@@ -10,6 +10,7 @@ import TopResourceBar from "../components/game/TopResourceBar.vue";
 import TechPanel from "../components/game/TechPanel.vue";
 import CompositionPanel from "../components/game/CompositionPanel.vue";
 import GameLeftPanel from "../components/game/GameLeftPanel.vue";
+import PortPanel from "../components/game/PortPanel.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route  = useRoute();
@@ -104,7 +105,7 @@ watch(
       <!-- Grid Area -->
       <div class="relative flex-1 overflow-auto bg-stone-950 p-4">
         <div class="min-h-full min-w-max border-4 border-outline-variant bg-stone-900/40 shadow-2xl">
-          <GameCanvas class="h-[calc(100vh-170px)] min-h-[720px] w-full" :state="game.state" @tile-click="game.onTileClick" @tile-dblclick="game.setExpandTarget" />
+          <GameCanvas class="h-[calc(100vh-170px)] min-h-[720px] w-full" :state="game.state" @tile-click="game.onTileClick" @tile-dblclick="game.onTileDblClick" />
         </div>
       </div>
     </main>
@@ -112,11 +113,13 @@ watch(
     <!-- RIGHT PANEL -->
     <aside class="stone-texture fixed right-0 top-16 z-40 flex h-[calc(100vh-64px)] w-80 flex-col border-l-4 border-outline-variant">
       <div class="border-b-2 border-outline-variant bg-black/20 p-6">
-        <div class="mb-2 flex items-center justify-between">
-          <h2 class="font-headline text-2xl font-bold uppercase text-primary carved-text">Poste de Contrôle</h2>
-          <span class="material-symbols-outlined text-primary" aria-hidden="true">radar</span>
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-headline text-lg font-bold uppercase text-primary carved-text leading-tight">Poste de Contrôle</h2>
+            <p class="text-[9px] font-bold uppercase tracking-widest text-on-surface/40 italic mt-0.5">Imperial Management Console</p>
+          </div>
+          <span class="material-symbols-outlined text-primary/70" aria-hidden="true">radar</span>
         </div>
-        <p class="text-[10px] font-bold uppercase tracking-widest text-on-surface/50 italic">Imperial Management Console</p>
       </div>
 
       <div class="flex-1 space-y-6 overflow-y-auto bg-black/10 p-6">
@@ -126,8 +129,10 @@ watch(
           <h3 class="font-label-sm text-primary mb-4 flex items-center gap-2 carved-text">
             <span class="w-2 h-2 bg-primary rotate-45"></span> CONSTRUCTION
           </h3>
-          <BuildPanel :state="game.state" :selected="game.selectedBuilding" @select="game.selectedBuilding = $event" />
+          <BuildPanel :state="game.state" :selected="game.selectedBuilding" @select="game.selectBuilding($event)" />
         </section>
+
+        <PortPanel :state="game.state" />
 
         <TechPanel :state="game.state" />
 

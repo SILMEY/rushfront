@@ -59,8 +59,17 @@ function fmt(s: number) {
 <template>
   <aside class="stone-texture fixed left-0 top-16 z-40 flex h-[calc(100vh-64px)] w-72 flex-col border-r-4 border-outline-variant">
 
+    <!-- En-tête "Informations" -->
+    <div class="border-b-2 border-outline-variant bg-black/20 px-5 py-4 flex items-center justify-between shrink-0">
+      <div>
+        <h2 class="text-lg font-bold uppercase text-[#d4af37] leading-tight carved-text">Informations</h2>
+        <p class="text-[9px] font-bold uppercase tracking-widest text-white/30 italic mt-0.5">Battle Intelligence Report</p>
+      </div>
+      <span class="material-symbols-outlined text-[#d4af37]/60" aria-hidden="true">leaderboard</span>
+    </div>
+
     <!-- Merveilles actives (une par joueur) -->
-    <div v-if="activeWonders.length" class="border-b-2 border-outline-variant">
+    <div v-if="activeWonders.length" class="border-b-2 border-outline-variant shrink-0">
       <div
         v-for="w in activeWonders"
         :key="w.player.id"
@@ -78,31 +87,34 @@ function fmt(s: number) {
     </div>
 
     <!-- Classement -->
-    <div class="border-b-2 border-outline-variant">
-      <div class="px-4 py-2">
-        <span class="text-[10px] font-bold uppercase tracking-widest text-primary/70">Classement</span>
-      </div>
-      <div class="px-3 pb-3 space-y-1">
+    <div class="border-b-2 border-outline-variant px-5 pt-4 pb-3 shrink-0">
+      <h3 class="section-title">
+        <span class="diamond"></span> Classement
+      </h3>
+      <div class="space-y-1">
         <div
           v-for="(p, i) in rankedPlayers"
           :key="p.id"
           class="flex items-center gap-2 rounded px-2 py-1"
           :class="p.id === me?.id ? 'bg-white/5' : ''"
         >
-          <span class="text-[10px] text-white/30 w-4 shrink-0">{{ i + 1 }}</span>
+          <span class="text-[10px] text-white/25 w-4 shrink-0 font-mono">{{ i + 1 }}</span>
           <div class="h-2.5 w-2.5 shrink-0 rounded-full border border-black/30" :style="{ backgroundColor: p.color }"></div>
           <span
             class="flex-1 truncate text-[11px] font-bold"
             :class="p.eliminated ? 'line-through opacity-30' : ''"
             :style="{ color: p.color }"
           >{{ p.name }}</span>
-          <span class="text-[10px] text-white/40 shrink-0">{{ tileCounts.get(p.id) ?? 0 }} cases</span>
+          <span class="text-[10px] text-white/30 shrink-0">{{ tileCounts.get(p.id) ?? 0 }}</span>
         </div>
       </div>
     </div>
 
     <!-- Chat -->
-    <div class="flex-1 min-h-0">
+    <div class="flex-1 min-h-0 flex flex-col">
+      <div class="px-5 pt-4 pb-2 shrink-0">
+        <h3 class="section-title"><span class="diamond"></span> Chat</h3>
+      </div>
       <ChatPanel
         v-if="state && me"
         :game-id="state.gameId"
@@ -122,8 +134,33 @@ function fmt(s: number) {
   box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.4);
 }
 .border-outline-variant { border-color: #4d4635; }
-.text-primary { color: #d4af37; }
-.bg-primary { background-color: #d4af37; }
+
+.carved-text {
+  text-shadow: -1px -1px 1px rgba(0, 0, 0, 0.8), 1px 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.section-title {
+  font-family: "Literata", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #d4af37;
+  text-shadow: -1px -1px 1px rgba(0,0,0,.8), 1px 1px 1px rgba(255,255,255,.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.diamond {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background-color: #d4af37;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
 .wonder-banner {
   background: linear-gradient(90deg, rgba(232,121,249,0.08) 0%, transparent 100%);
   animation: pulse-wonder 2s ease-in-out infinite alternate;

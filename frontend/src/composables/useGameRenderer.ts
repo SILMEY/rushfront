@@ -247,6 +247,20 @@ export function useGameRenderer() {
       ctx.stroke();
     }
 
+    // Avertissement radar : cases capturées par l'ennemi (overlay clignotant rouge)
+    for (const w of game.attackWarnings) {
+      if (w.expiresAt <= now) continue;
+      if (w.x < x0 || w.x > x1 || w.y < y0 || w.y > y1) continue;
+      const pulse = 0.35 + 0.65 * Math.abs(Math.sin(now / 160));
+      const sx = w.x * tileSize;
+      const sy = w.y * tileSize;
+      ctx.fillStyle = rgba("#ef4444", 0.30 * pulse);
+      ctx.fillRect(sx, sy, tileSize, tileSize);
+      ctx.strokeStyle = rgba("#ef4444", pulse);
+      ctx.lineWidth = 3 / scale;
+      ctx.strokeRect(sx + 1.5 / scale, sy + 1.5 / scale, tileSize - 3 / scale, tileSize - 3 / scale);
+    }
+
     if (params.hovered) {
       const sx = params.hovered.x * tileSize;
       const sy = params.hovered.y * tileSize;

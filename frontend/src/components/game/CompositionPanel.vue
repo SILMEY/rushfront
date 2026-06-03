@@ -49,54 +49,79 @@ function scheduleCommit() {
 </script>
 
 <template>
-  <section v-if="state && me" class="mt-6">
-    <h3 class="font-label-sm text-primary mb-4 flex items-center gap-2 carved-text">
-      <span class="w-2 h-2 bg-primary rotate-45"></span> RÉPARTITION
-    </h3>
-    <div class="bg-black/30 p-4 border-l-4 border-outline shadow-inner">
-      <div v-if="!hasBarracks" class="text-[10px] italic text-on-surface/40 text-center py-1">
-        Construisez une caserne pour former des militaires
-      </div>
-      <template v-else>
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-xs font-bold text-on-surface uppercase tracking-tight">Villageois / Militaires</span>
-          <span class="text-[10px] text-on-surface/50 italic">{{ 100 - compositionPct }}% / {{ compositionPct }}%</span>
-        </div>
-        <input
-          v-model.number="compositionPct"
-          type="range"
-          min="0"
-          max="100"
-          step="1"
-          class="w-full accent-[#f2ca50]"
-          @input="scheduleCommit()"
-          @change="commit()"
-        />
-        <div class="mt-2 text-[10px] uppercase tracking-[0.2em] text-on-surface/50">
-          Total: {{ me.resources.villagers + me.resources.soldiers }}
-        </div>
-      </template>
+  <section v-if="state && me" class="mb-5">
+    <h3 class="section-title"><span class="diamond"></span> Répartition</h3>
+
+    <div v-if="!hasBarracks" class="text-[10px] italic text-white/25 text-center py-2">
+      Construisez une caserne pour former des militaires.
     </div>
+
+    <template v-else>
+      <!-- Compteurs -->
+      <div class="flex justify-between items-end mb-2.5">
+        <div>
+          <div class="text-[9px] uppercase tracking-widest text-[#a8c090]/60 mb-0.5">Villageois</div>
+          <div class="text-[15px] font-bold text-[#a8c090] leading-none">{{ me.resources.villagers }}</div>
+        </div>
+        <div class="text-center">
+          <div class="text-[9px] text-white/25 mb-0.5">total</div>
+          <div class="text-[12px] font-bold text-white/40 leading-none">{{ me.resources.villagers + me.resources.soldiers }}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-[9px] uppercase tracking-widest text-[#ef4444]/60 mb-0.5">Militaires</div>
+          <div class="text-[15px] font-bold text-[#ef4444]/80 leading-none">{{ me.resources.soldiers }}</div>
+        </div>
+      </div>
+
+      <!-- Barre de répartition -->
+      <div class="h-1.5 rounded-full overflow-hidden flex mb-2.5 bg-white/5">
+        <div
+          class="bg-[#4ade80]/50 transition-all duration-300"
+          :style="{ width: (100 - compositionPct) + '%' }"
+        ></div>
+        <div class="bg-[#ef4444]/50 transition-all duration-300 flex-1"></div>
+      </div>
+
+      <!-- Slider -->
+      <input
+        v-model.number="compositionPct"
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        class="w-full accent-[#f2ca50]"
+        @input="scheduleCommit()"
+        @change="commit()"
+      />
+      <div class="flex justify-between text-[9px] text-white/20 mt-0.5">
+        <span>100% civ.</span>
+        <span class="text-white/30 font-bold">{{ 100 - compositionPct }}% / {{ compositionPct }}%</span>
+        <span>100% mil.</span>
+      </div>
+    </template>
   </section>
 </template>
 
 <style scoped>
-.font-label-sm {
+.section-title {
   font-family: "Literata", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-}
-.carved-text {
-  text-shadow: -1px -1px 1px rgba(0, 0, 0, 0.8), 1px 1px 1px rgba(255, 255, 255, 0.1);
-}
-.text-primary {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: #d4af37;
+  text-shadow: -1px -1px 1px rgba(0,0,0,.8), 1px 1px 1px rgba(255,255,255,.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
 }
-.bg-primary {
+.diamond {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
   background-color: #d4af37;
-}
-.border-outline {
-  border-color: #99907c;
-}
-.text-on-surface {
-  color: #e5e2e0;
+  transform: rotate(45deg);
+  flex-shrink: 0;
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import type { GameStateSnapshot } from "../../types/game";
 import { BuildingType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
@@ -25,15 +25,17 @@ type BuildItem = {
 };
 
 const items: BuildItem[] = [
-  { type: null,                    label: "Territoire",   icon: "flag",          wood: 0,   stone: 0,  villagers: 1,  hint: "Revendiquer une case neutre adjacente" },
-  { type: BuildingType.FishingHut, label: "Cabane pêche", icon: "sailing",       wood: 5,   stone: 0,  villagers: 0,  hint: "Doit être adjacente à une case d'eau" },
-  { type: BuildingType.Sawmill,    label: "Scierie",      icon: "forest",        wood: 5,   stone: 0,  villagers: 0,  hint: "Doit être adjacente à une forêt" },
-  { type: BuildingType.Mine,       label: "Mine",         icon: "construction",  wood: 10,  stone: 0,  villagers: 0,  hint: "Doit être adjacente à une carrière" },
-  { type: BuildingType.Barracks,   label: "Caserne",      icon: "shield",        wood: 20,  stone: 10, villagers: 0,  hint: "Débloque les militaires et les attaques" },
-  { type: BuildingType.University, label: "Université",   icon: "history_edu",   wood: 20,  stone: 20, villagers: 0,  hint: "Débloque les recherches technologiques" },
-  { type: BuildingType.City,       label: "Cité",         icon: "location_city", wood: 40,  stone: 80, villagers: 0,  hint: "+200 habitants maximum" },
-  { type: BuildingType.Wonder,     label: "Merveille",    icon: "temple_hindu",  wood: 150, stone: 300,villagers: 0,  hint: "Victoire si non prise en 10 minutes" },
+  { type: null,                    label: "Territoire",   icon: "flag",          wood: 0,   stone: 0,   villagers: 1, hint: "Revendiquer une case neutre adjacente" },
+  { type: BuildingType.FishingHut, label: "Port",         icon: "sailing",       wood: 10,  stone: 10,  villagers: 0, hint: "Adjacent à l'eau. Construit bateaux de pêche et de transport maritime." },
+  { type: BuildingType.Sawmill,    label: "Scierie",      icon: "forest",        wood: 5,   stone: 0,   villagers: 0, hint: "Doit être adjacente à une forêt" },
+  { type: BuildingType.Mine,       label: "Mine",         icon: "construction",  wood: 10,  stone: 0,   villagers: 0, hint: "Doit être adjacente à une carrière" },
+  { type: BuildingType.Barracks,   label: "Caserne",      icon: "shield",        wood: 20,  stone: 10,  villagers: 0, hint: "Débloque les militaires et les attaques" },
+  { type: BuildingType.University, label: "Université",   icon: "history_edu",   wood: 20,  stone: 20,  villagers: 0, hint: "Débloque les recherches technologiques" },
+  { type: BuildingType.City,       label: "Cité",         icon: "location_city", wood: 40,  stone: 80,  villagers: 0, hint: "+500 habitants maximum" },
+  { type: BuildingType.Wonder,     label: "Merveille",    icon: "temple_hindu",  wood: 150, stone: 300, villagers: 0, hint: "Victoire si non prise en 10 minutes" },
 ];
+
+const hoveredItem = ref<BuildItem | null>(null);
 
 function canAfford(b: BuildItem): boolean {
   const player = me.value;
@@ -56,9 +58,7 @@ function costLabel(b: BuildItem): string {
     <div
       v-for="b in items"
       :key="b.type ?? 'claim'"
-      class="group relative"
     >
-      <!-- Bouton icône compact -->
       <button
         class="w-full aspect-square rf-parchment flex flex-col items-center justify-center rounded border transition-all"
         :class="[
@@ -71,26 +71,24 @@ function costLabel(b: BuildItem): string {
         ]"
         :disabled="!canAfford(b)"
         type="button"
+        @mouseenter="hoveredItem = b"
+        @mouseleave="hoveredItem = null"
         @click="canAfford(b) && emit('select', b.type)"
       >
         <span class="material-symbols-outlined rf-parchment-icon text-xl" aria-hidden="true">{{ b.icon }}</span>
         <span class="rf-parchment-title text-center text-[8px] font-bold uppercase leading-tight mt-0.5 px-0.5">{{ b.label }}</span>
       </button>
-
-      <!-- Tooltip au hover (à gauche du panneau) -->
-      <div
-        class="pointer-events-none absolute right-full top-0 z-50 mr-2 hidden w-48 group-hover:block"
-      >
-        <div class="rounded border border-[#8b7e66]/60 bg-[#1c1a14] shadow-xl px-3 py-2.5">
-          <div class="rf-parchment-title text-[11px] font-bold uppercase text-[#f2ca50] mb-1">{{ b.label }}</div>
-          <div class="text-[10px] text-white/60 italic mb-2 leading-snug">{{ b.hint }}</div>
-          <div class="text-[10px] font-bold" :class="canAfford(b) ? 'text-[#a8c090]' : 'text-red-400/80'">
-            {{ costLabel(b) }}
-          </div>
-          <div v-if="!canAfford(b)" class="text-[9px] text-red-400/60 mt-0.5">Ressources insuffisantes</div>
-        </div>
-      </div>
     </div>
+  </div>
+
+  <!-- Info card sous la grille (évite le clipping overflow) -->
+  <div v-if="hoveredItem" class="mt-2 rounded border border-[#8b7e66]/60 bg-[#1c1a14] px-3 py-2.5">
+    <div class="rf-parchment-title text-[11px] font-bold uppercase text-[#f2ca50] mb-1">{{ hoveredItem.label }}</div>
+    <div class="text-[10px] text-white/60 italic mb-2 leading-snug">{{ hoveredItem.hint }}</div>
+    <div class="text-[10px] font-bold" :class="canAfford(hoveredItem) ? 'text-[#a8c090]' : 'text-red-400/80'">
+      {{ costLabel(hoveredItem) }}
+    </div>
+    <div v-if="!canAfford(hoveredItem)" class="text-[9px] text-red-400/60 mt-0.5">Ressources insuffisantes</div>
   </div>
 </template>
 

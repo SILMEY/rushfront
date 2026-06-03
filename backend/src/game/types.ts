@@ -58,6 +58,9 @@ export type GamePlayerState = {
   techs?: string[];
   desiredSoldierPct?: number; // 0..100
   eliminated?: boolean;
+  bridgeCharges?: number;
+  fishingBoats?: number;
+  maritimeCharges?: number;
 };
 
 export type BuildIntent = {

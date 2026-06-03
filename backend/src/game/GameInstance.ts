@@ -485,6 +485,65 @@ export class GameInstance {
     (player as any).techs = Array.from(techs);
   }
 
+  // ── Port : bateaux ────────────────────────────────────────────────────────
+
+  private hasPort(playerId: string): boolean {
+    return this.tileBuildings.some((b, i) =>
+      this.tileOwners[i] === playerId && b === BuildingType.FishingHut
+    );
+  }
+
+  buyFishingBoat(userId: string) {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    if (!this.hasPort(player.id)) throw new Error("need_port");
+    if (player.resources.villagers < 1) throw new Error("not_enough_habitants");
+    player.resources.villagers -= 1;
+    player.fishingBoats = (player.fishingBoats ?? 0) + 1;
+  }
+
+  buyTransportBoat(userId: string) {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    if (!this.hasPort(player.id)) throw new Error("need_port");
+    if (player.resources.villagers < 10) throw new Error("not_enough_habitants");
+    player.resources.villagers -= 10;
+    player.maritimeCharges = (player.maritimeCharges ?? 0) + 1;
+  }
+
+  // Débarquement maritime : réclame une case de plaine adjacente à l'eau (hors adjacence territoire)
+  maritimeLand(userId: string, pos: Vec2): TileChange {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    if (!inBounds(pos, this.width, this.height)) throw new Error("out_of_bounds");
+
+    const charges = player.maritimeCharges ?? 0;
+    if (charges < 1) throw new Error("need_maritime_charge");
+
+    const index = idx(pos, this.width);
+    const block = this.brouillageTiles.get(index);
+    if (block && block.expiresAt > Date.now() && block.casterPlayerId !== player.id)
+      throw new Error("tile_blocked");
+
+    if ((this.tileTypes[index] as TileType) !== TileType.Plain) throw new Error("invalid_tile");
+    if (this.tileOwners[index]) throw new Error("already_owned");
+
+    const adjToWater = orthogonalNeighbors(pos).some(n => {
+      if (!inBounds(n, this.width, this.height)) return false;
+      return (this.tileTypes[idx(n, this.width)] as TileType) === TileType.Water;
+    });
+    if (!adjToWater) throw new Error("needs_adjacent_water");
+
+    if (player.resources.villagers < 1) throw new Error("not_enough_habitants");
+    player.resources.villagers -= 1;
+    player.maritimeCharges = charges - 1;
+    this.tileOwners[index] = player.id;
+    return { x: pos.x, y: pos.y, owner: player.id, building: null };
+  }
+
   // ── Brouillage ────────────────────────────────────────────────────────────
 
   setBrouillage(userId: string, tiles: Vec2[]) {
