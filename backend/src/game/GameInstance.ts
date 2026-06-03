@@ -41,11 +41,9 @@ export class GameInstance {
 
   placingEndsAt = 0;
 
-  // Wonder victory
-  private wonderTimer: NodeJS.Timeout | null = null;
-  private wonderTileIndex: number | null = null;
-  private wonderPlayerId: string | null = null;
-  wonderEndsAt: number | null = null; // unix ms, exposed for snapshot
+  // Wonder victory — plusieurs merveilles possibles simultanément
+  private wonderTimers = new Map<string, NodeJS.Timeout>(); // playerId → timer
+  wonders: Array<{ playerId: string; tileIndex: number; endsAt: number }> = [];
 
   private timer: NodeJS.Timeout | null = null;
   private placingTimer: NodeJS.Timeout | null = null;
@@ -116,8 +114,9 @@ export class GameInstance {
     this.timer = null;
     if (this.placingTimer) clearTimeout(this.placingTimer);
     this.placingTimer = null;
-    if (this.wonderTimer) clearTimeout(this.wonderTimer);
-    this.wonderTimer = null;
+    for (const t of this.wonderTimers.values()) clearTimeout(t);
+    this.wonderTimers.clear();
+    this.wonders = [];
   }
 
   private async handlePlacingTimeout() {
@@ -218,8 +217,7 @@ export class GameInstance {
       status: this.status,
       gameType: this.gameType,
       placingEndsAt: this.status === "PLACING" ? this.placingEndsAt : undefined,
-      wonderEndsAt: this.wonderEndsAt ?? undefined,
-      wonderPlayerId: this.wonderPlayerId ?? undefined,
+      wonders: this.wonders.map(w => ({ playerId: w.playerId, endsAt: w.endsAt })),
       width: this.width,
       height: this.height,
       players: this.players,
@@ -375,13 +373,12 @@ export class GameInstance {
     // La case est toujours prise
     this.tileOwners[index] = player.id;
 
-    // Annuler la merveille si la case prise était la merveille du défenseur
-    if (this.wonderTileIndex === index && this.wonderPlayerId === defender.id) {
-      if (this.wonderTimer) clearTimeout(this.wonderTimer);
-      this.wonderTimer = null;
-      this.wonderTileIndex = null;
-      this.wonderPlayerId = null;
-      this.wonderEndsAt = null;
+    // Annuler la merveille si sa case est capturée
+    const wi = this.wonders.findIndex(w => w.tileIndex === index && w.playerId === defender.id);
+    if (wi !== -1) {
+      const t = this.wonderTimers.get(defender.id);
+      if (t) { clearTimeout(t); this.wonderTimers.delete(defender.id); }
+      this.wonders.splice(wi, 1);
     }
 
     this.checkEliminationOf(defender.id);
@@ -413,8 +410,7 @@ export class GameInstance {
 
     // Wonder : un seul par joueur
     if (intent.building === BuildingType.Wonder) {
-      const alreadyHasWonder = this.wonderPlayerId === player.id;
-      if (alreadyHasWonder) throw new Error("wonder_already_built");
+      if (this.wonders.some(w => w.playerId === player.id)) throw new Error("wonder_already_built");
     }
 
     const cost = buildCost(intent.building);
@@ -437,10 +433,9 @@ export class GameInstance {
     // Merveille : démarrer le timer de victoire (10 minutes)
     if (intent.building === BuildingType.Wonder) {
       const WONDER_MS = 10 * 60 * 1000;
-      this.wonderTileIndex = tileIndex;
-      this.wonderPlayerId  = player.id;
-      this.wonderEndsAt    = Date.now() + WONDER_MS;
-      this.wonderTimer = setTimeout(() => {
+      const endsAt = Date.now() + WONDER_MS;
+      this.wonders.push({ playerId: player.id, tileIndex, endsAt });
+      const timer = setTimeout(() => {
         if (this.tileOwners[tileIndex] === player.id) {
           this.stop();
           void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
@@ -448,6 +443,7 @@ export class GameInstance {
           this.onGameOver?.(player);
         }
       }, WONDER_MS);
+      this.wonderTimers.set(player.id, timer);
     }
 
     return { x: intent.x, y: intent.y, owner: player.id, building: intent.building };

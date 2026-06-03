@@ -38,14 +38,17 @@ let interval: number | null = null;
 onMounted(() => { interval = window.setInterval(() => { nowMs.value = Date.now(); }, 500); });
 onUnmounted(() => { if (interval !== null) window.clearInterval(interval); });
 
-const wonderPlayer = computed(() =>
-  props.state?.players.find((p) => p.id === props.state?.wonderPlayerId) ?? null
-);
+type ActiveWonder = { player: typeof rankedPlayers.value[0]; secondsLeft: number };
 
-const wonderSecondsLeft = computed(() => {
+const activeWonders = computed((): ActiveWonder[] => {
   const s = props.state;
-  if (!s || !s.wonderEndsAt) return null;
-  return Math.max(0, Math.ceil((s.wonderEndsAt - nowMs.value) / 1000));
+  if (!s || !s.wonders?.length) return [];
+  return s.wonders
+    .map(w => ({
+      player: s.players.find(p => p.id === w.playerId)!,
+      secondsLeft: Math.max(0, Math.ceil((w.endsAt - nowMs.value) / 1000))
+    }))
+    .filter(w => w.player);
 });
 
 function fmt(s: number) {
@@ -56,17 +59,20 @@ function fmt(s: number) {
 <template>
   <aside class="stone-texture fixed left-0 top-16 z-40 flex h-[calc(100vh-64px)] w-72 flex-col border-r-4 border-outline-variant">
 
-    <!-- Merveille (si active) -->
-    <div
-      v-if="wonderPlayer && wonderSecondsLeft !== null"
-      class="border-b-2 border-outline-variant px-4 py-3 flex items-center gap-3 wonder-banner"
-    >
-      <div class="h-3 w-3 shrink-0 rounded-full border border-black/30" :style="{ backgroundColor: wonderPlayer.color }"></div>
-      <span class="material-symbols-outlined text-[16px] shrink-0" style="font-variation-settings:'FILL' 1">temple_hindu</span>
-      <div class="min-w-0 flex-1">
-        <div class="text-[9px] font-bold uppercase tracking-widest text-white/50">Merveille en cours</div>
-        <div class="text-[11px] font-bold truncate" :style="{ color: wonderPlayer.color }">
-          {{ wonderPlayer.name }} — {{ fmt(wonderSecondsLeft) }}
+    <!-- Merveilles actives (une par joueur) -->
+    <div v-if="activeWonders.length" class="border-b-2 border-outline-variant">
+      <div
+        v-for="w in activeWonders"
+        :key="w.player.id"
+        class="px-4 py-2.5 flex items-center gap-3 wonder-banner border-b border-white/5 last:border-b-0"
+      >
+        <div class="h-3 w-3 shrink-0 rounded-full border border-black/30" :style="{ backgroundColor: w.player.color }"></div>
+        <span class="material-symbols-outlined text-[15px] shrink-0" style="font-variation-settings:'FILL' 1">temple_hindu</span>
+        <div class="min-w-0 flex-1">
+          <div class="text-[9px] font-bold uppercase tracking-widest text-white/40">Merveille</div>
+          <div class="text-[11px] font-bold truncate" :style="{ color: w.player.color }">
+            {{ w.player.name }} — {{ fmt(w.secondsLeft) }}
+          </div>
         </div>
       </div>
     </div>

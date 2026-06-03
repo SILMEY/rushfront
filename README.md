@@ -1,4 +1,4 @@
-# Rushfront (v1)
+# Frontrush (v1)
 
 Monorepo `backend` (Node.js + Fastify + Socket.IO + Prisma/Postgres) et `frontend` (Vue 3 + Vite + Tailwind + Pinia + Router + Canvas).
 

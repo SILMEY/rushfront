@@ -47,8 +47,7 @@ export type GameStateSnapshot = {
   status: "PLACING" | "ACTIVE" | "FINISHED";
   gameType?: "quick" | "custom";
   placingEndsAt?: number;
-  wonderEndsAt?: number;
-  wonderPlayerId?: string;
+  wonders?: Array<{ playerId: string; endsAt: number }>;
   width: number;
   height: number;
   players: GamePlayerState[];

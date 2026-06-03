@@ -16,7 +16,7 @@ function send() {
   const body = encodeURIComponent(
     `Nom : ${name.value}\nEmail : ${email.value}\n\n${message.value}`
   );
-  const mailto = `mailto:support@rushfront.app?subject=${encodeURIComponent("[Support] " + subject.value)}&body=${body}`;
+  const mailto = `mailto:support@frontrush.app?subject=${encodeURIComponent("[Support] " + subject.value)}&body=${body}`;
   window.location.href = mailto;
   sent.value = true;
 }
@@ -26,7 +26,7 @@ function send() {
   <div class="mx-auto max-w-2xl px-6 py-12">
 
     <div class="mb-10 text-center">
-      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-primary/70">Rushfront Empire</div>
+      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-primary/70">Frontrush Empire</div>
       <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-[0.12em] text-primary">Support</h1>
       <p class="mt-3 text-sm italic text-secondary/50">Une question ? Un problème ? Écris-nous.</p>
     </div>

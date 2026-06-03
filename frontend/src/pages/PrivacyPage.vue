@@ -6,7 +6,7 @@ import AppFooter from "../components/AppFooter.vue";
   <div class="mx-auto max-w-3xl px-6 py-12">
 
     <div class="mb-10">
-      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-primary/70">Rushfront Empire</div>
+      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-primary/70">Frontrush Empire</div>
       <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-[0.12em] text-primary">Confidentialité</h1>
       <p class="mt-3 text-sm text-secondary/50">Dernière mise à jour : juin 2026</p>
     </div>

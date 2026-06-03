@@ -6,7 +6,7 @@ const router = useRouter();
 <template>
   <footer class="rf-footer px-container-margin py-20">
     <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-12 md:flex-row">
-      <div class="font-headline text-3xl font-bold tracking-[0.4em] text-primary">RUSHFRONT</div>
+      <div class="font-headline text-3xl font-bold tracking-[0.4em] text-primary">FRONTRUSH</div>
       <div class="flex gap-12">
         <button
           class="font-headline text-sm uppercase tracking-widest text-secondary/60 transition-colors hover:text-primary"
@@ -17,7 +17,7 @@ const router = useRouter();
           @click="router.push('/support')"
         >Support</button>
       </div>
-      <div class="font-headline text-[10px] uppercase tracking-[0.3em] text-secondary/40">© 2026 RUSHFRONT EMPIRE.</div>
+      <div class="font-headline text-[10px] uppercase tracking-[0.3em] text-secondary/40">© 2026 FRONTRUSH EMPIRE.</div>
     </div>
   </footer>
 </template>
