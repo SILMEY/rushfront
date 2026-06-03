@@ -81,13 +81,14 @@ const cityCount = computed(() => {
   return n;
 });
 
-const maxHabitants = computed(() => ownedTiles.value * 5 + cityCount.value * 200);
+// Doit correspondre exactement à turnResolver.ts
+const maxHabitants = computed(() => ownedTiles.value * 5 + cityCount.value * 500);
 
 const habitantGrowthRate = computed(() => {
-  const player = me.value;
-  if (!player) return 0;
+  if (!me.value) return 0;
   if (habitants.value >= maxHabitants.value) return 0;
-  return ownedTiles.value * 0.1;
+  // Backend : Math.sqrt(ownedTiles) * 0.07 par tick (1 tick/s)
+  return Math.sqrt(ownedTiles.value) * 0.07;
 });
 
 const production = computed(() => {
@@ -95,17 +96,49 @@ const production = computed(() => {
   const player = me.value;
   if (!state || !player) return { wood: 0, stone: 0 };
 
-  let wood = Math.floor(player.resources.villagers / 12);
+  const techs = new Set(player.techs ?? []);
+  const civ = (player as any).civilization as string | undefined;
+  const fishingBoats: number = (player as any).fishingBoats ?? 0;
+
+  // Passif villageois (identique backend)
+  let wood  = Math.floor(player.resources.villagers / 12);
   let stone = Math.floor(player.resources.villagers / 24);
+
+  let sawmillCount = 0;
+  let mineCount = 0;
 
   for (let i = 0; i < state.tiles.buildings.length; i++) {
     if (state.tiles.owners[i] !== player.id) continue;
     const b = state.tiles.buildings[i] as BuildingType | null;
-    if (b !== BuildingType.Sawmill && b !== BuildingType.Mine) continue;
-    const pos = { x: i % state.width, y: Math.floor(i / state.width) };
-    if (b === BuildingType.Sawmill) wood += Math.min(3, adjacentCountOfType(state, pos, TileType.Forest));
-    if (b === BuildingType.Mine) stone += Math.min(3, adjacentCountOfType(state, pos, TileType.Quarry));
+    if (b === BuildingType.Sawmill) {
+      sawmillCount++;
+      const pos = { x: i % state.width, y: Math.floor(i / state.width) };
+      // Backend : Math.min(15, adjacentForests * 5)
+      wood += Math.min(15, adjacentCountOfType(state, pos, TileType.Forest) * 5);
+    }
+    if (b === BuildingType.Mine) {
+      mineCount++;
+      const pos = { x: i % state.width, y: Math.floor(i / state.width) };
+      stone += Math.min(15, adjacentCountOfType(state, pos, TileType.Quarry) * 5);
+    }
   }
+
+  // Bonus eco_tools (backend : +sawmills*5 / +mines*5)
+  if (techs.has("eco_tools")) { wood += sawmillCount * 5; stone += mineCount * 5; }
+
+  // Bonus civilisations
+  if (civ === "sylvan_elves") wood *= 2;
+  if (civ === "iron_dwarves") stone *= 2;
+
+  // Bonus empire d'Aurélien
+  if (civ === "aurelian_empire") {
+    const bonus = Math.floor(ownedTiles.value / 10);
+    wood  += bonus;
+    stone += bonus;
+  }
+
+  // Bateaux de pêche
+  wood += fishingBoats * 3;
 
   return { wood, stone };
 });
@@ -124,12 +157,18 @@ const placingSecondsLeft = computed(() => {
   return Math.max(0, Math.ceil((s.placingEndsAt - nowMs.value) / 1000));
 });
 
-// PROD_SCALE = 0.01 (100ms turns, 1 tick/s) — expected gain per second
+// PROD_SCALE = 0.01 — gain moyen par seconde = raw * 0.01
 const PROD_SCALE = 0.01;
 function rate(raw: number): string {
   const v = raw * PROD_SCALE;
   if (v <= 0) return "";
-  if (v < 0.1) return `(+${v.toFixed(2)}/s)`;
+  // Affiche 2 décimales sous 1/s, 1 décimale au-dessus
+  if (v < 1) return `(+${v.toFixed(2)}/s)`;
+  return `(+${v.toFixed(1)}/s)`;
+}
+function rateHab(v: number): string {
+  if (v <= 0) return "";
+  if (v < 1) return `(+${v.toFixed(2)}/s)`;
   return `(+${v.toFixed(1)}/s)`;
 }
 </script>
@@ -164,7 +203,7 @@ function rate(raw: number): string {
       <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">groups</span>
       <span class="font-label-sm italic font-bold text-primary-fixed">
         HABITANTS: {{ habitants }}/{{ maxHabitants }}
-        <span v-if="habitantGrowthRate > 0" class="opacity-60">(+{{ habitantGrowthRate.toFixed(1) }}/s)</span>
+        <span v-if="habitantGrowthRate > 0" class="opacity-60">{{ rateHab(habitantGrowthRate) }}</span>
       </span>
     </div>
 

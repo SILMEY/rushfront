@@ -4,6 +4,7 @@ import cors from "@fastify/cors";
 import { prismaPlugin } from "./prisma/plugin.js";
 import { jwtPlugin } from "./auth/jwt.js";
 import { authRoutes } from "./auth/routes.js";
+import { supportRoute } from "./support.js";
 
 export function buildApp() {
   // Railway/Reverse proxies: trust X-Forwarded-* so cookies + redirects are correct.
@@ -28,6 +29,7 @@ export function buildApp() {
   app.register(prismaPlugin);
   app.register(jwtPlugin);
   app.register(authRoutes);
+  app.register(supportRoute);
 
   app.get("/healthz", async () => ({ ok: true }));
 

@@ -182,17 +182,14 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       if (typeof payload.soldierPct === "number" && Number.isFinite(payload.soldierPct)) {
         const pct = Math.max(0, Math.min(100, Math.round(payload.soldierPct)));
         (player as any).desiredSoldierPct = pct;
-        const soldiers = Math.max(0, Math.min(total, Math.round((pct / 100) * total)));
-        player.resources.soldiers = soldiers;
-        player.resources.villagers = total - soldiers;
       } else {
         const soldiers = Math.max(0, Math.min(total, Math.floor(payload.soldiers ?? 0)));
-        player.resources.soldiers = soldiers;
-        player.resources.villagers = total - soldiers;
         (player as any).desiredSoldierPct = total > 0 ? Math.round((soldiers / total) * 100) : 0;
       }
-      // Only the requesting player needs to see their updated resources
-      socket.emit("game:resources_update", { players: [{ id: player.id, resources: player.resources }] });
+      // Réinitialise la courbe d'accélération à chaque changement de cible
+      (player as any).conversionIndex  = 0;
+      (player as any).conversionCredit = 0;
+      // Pas de changement immédiat — la conversion est progressive via applyProduction
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }

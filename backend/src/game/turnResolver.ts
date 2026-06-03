@@ -115,6 +115,51 @@ export function applyProduction(input: {
     if (player.civilization === "iron_dwarves") rawStone *= 2;
     player.resources.stone += pGain(rawStone);
 
+    // Conversion graduelle villageois ↔ soldats vers desiredSoldierPct
+    // Courbe : 1er instantané, puis 2s/unité en accélérant jusqu'à 5/s
+    {
+      const desiredPct = (() => {
+        const v = (player as any).desiredSoldierPct;
+        return typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
+      })();
+      const totalPop = player.resources.villagers + player.resources.soldiers;
+      const targetSol = Math.max(0, Math.min(totalPop, Math.round((desiredPct / 100) * totalPop)));
+      const delta = targetSol - player.resources.soldiers;
+
+      if (delta !== 0) {
+        const convIdx: number = (player as any).conversionIndex ?? 0;
+        let toConvert: number;
+
+        if (convIdx === 0) {
+          toConvert = 1;
+          (player as any).conversionIndex  = 1;
+          (player as any).conversionCredit = 0;
+        } else {
+          // rate démarre à 0.5/s (2s/unité) et monte de 0.1/s par unité convertie, cap 5/s
+          const rate = Math.min(5, 0.5 + (convIdx - 1) * 0.1);
+          const credit = ((player as any).conversionCredit ?? 0) + rate;
+          toConvert = Math.floor(credit);
+          (player as any).conversionCredit = credit - toConvert;
+          if (toConvert > 0) (player as any).conversionIndex = convIdx + toConvert;
+        }
+
+        toConvert = Math.min(toConvert, Math.abs(delta));
+
+        if (delta > 0 && toConvert > 0) {
+          const c = Math.min(toConvert, player.resources.villagers);
+          player.resources.soldiers  += c;
+          player.resources.villagers -= c;
+        } else if (delta < 0 && toConvert > 0) {
+          const c = Math.min(toConvert, player.resources.soldiers);
+          player.resources.villagers += c;
+          player.resources.soldiers  -= c;
+        }
+      } else {
+        (player as any).conversionIndex  = 0;
+        (player as any).conversionCredit = 0;
+      }
+    }
+
     // Bateaux de pêche (passif bois par bateau)
     const fishingBoats = (player as any).fishingBoats ?? 0;
     if (fishingBoats > 0) player.resources.wood += pGain(fishingBoats * 3);

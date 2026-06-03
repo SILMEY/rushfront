@@ -34,10 +34,6 @@ const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).jo
     </div>
 
     <div class="flex items-center gap-4">
-      <button class="text-[#d4c59f] transition-all hover:text-[#d4af37] active:scale-95" title="Défense">
-        <span class="material-symbols-outlined" aria-hidden="true">shield</span>
-      </button>
-
       <button
         class="text-[#d4c59f] transition-all hover:text-[#d4af37] active:scale-95"
         title="Profil"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useAuthStore } from "../stores/authStore";
+import { apiFetch } from "../api/http";
 import AppFooter from "../components/AppFooter.vue";
 
 const auth = useAuthStore();
@@ -10,15 +11,31 @@ const email   = ref(auth.user?.email ?? "");
 const subject = ref("");
 const message = ref("");
 const sent    = ref(false);
+const sending = ref(false);
+const error   = ref("");
 
-function send() {
+async function send() {
   if (!subject.value.trim() || !message.value.trim() || !email.value.trim()) return;
-  const body = encodeURIComponent(
-    `Nom : ${name.value}\nEmail : ${email.value}\n\n${message.value}`
-  );
-  const mailto = `mailto:support@frontrush.app?subject=${encodeURIComponent("[Support] " + subject.value)}&body=${body}`;
-  window.location.href = mailto;
-  sent.value = true;
+  sending.value = true;
+  error.value = "";
+  try {
+    await apiFetch("/api/support", {
+      method: "POST",
+      body: JSON.stringify({
+        name:    name.value.trim(),
+        email:   email.value.trim(),
+        subject: subject.value.trim(),
+        message: message.value.trim()
+      })
+    });
+    sent.value = true;
+  } catch (e: any) {
+    error.value = e?.message === "too_many_requests"
+      ? "Trop de messages envoyés. Réessaie dans une heure."
+      : "Une erreur est survenue. Réessaie plus tard.";
+  } finally {
+    sending.value = false;
+  }
 }
 </script>
 
@@ -36,7 +53,7 @@ function send() {
       <div v-if="sent" class="flex flex-col items-center gap-4 py-10 text-center">
         <span class="material-symbols-outlined text-5xl text-primary" style="font-variation-settings:'FILL' 1">check_circle</span>
         <p class="font-headline text-xl font-bold text-primary">Message envoyé !</p>
-        <p class="text-sm italic text-secondary/60">Ton client mail s'est ouvert avec le message pré-rempli. Envoie-le pour finaliser ta demande.</p>
+        <p class="text-sm italic text-secondary/60">Ton message a bien été transmis à notre équipe. On te répondra sur <strong>{{ email }}</strong>.</p>
         <button class="mt-4 font-headline text-sm uppercase tracking-widest text-secondary/50 transition hover:text-primary" @click="sent = false">
           Envoyer un autre message
         </button>
@@ -86,13 +103,16 @@ function send() {
           />
         </div>
 
+        <p v-if="error" class="text-center text-sm text-red-400">{{ error }}</p>
+
         <button
           type="submit"
-          class="w-full rounded-lg border border-amber-400/40 bg-amber-500/20 py-3 text-sm font-bold uppercase tracking-widest text-amber-300 transition hover:bg-amber-500/30"
+          :disabled="sending"
+          class="w-full rounded-lg border border-amber-400/40 bg-amber-500/20 py-3 text-sm font-bold uppercase tracking-widest text-amber-300 transition hover:bg-amber-500/30 disabled:opacity-50"
         >
           <span class="flex items-center justify-center gap-2">
-            <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1">send</span>
-            Envoyer
+            <span class="material-symbols-outlined text-base" style="font-variation-settings:'FILL' 1">{{ sending ? 'hourglass_empty' : 'send' }}</span>
+            {{ sending ? 'Envoi en cours…' : 'Envoyer' }}
           </span>
         </button>
 

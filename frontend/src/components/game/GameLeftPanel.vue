@@ -15,21 +15,15 @@ const myColor = computed(() => me.value?.color ?? "#ffffff");
 
 // ── Classement ────────────────────────────────────────────────────────────────
 
-const tileCounts = computed(() => {
-  const state = props.state;
-  if (!state) return new Map<string, number>();
-  const counts = new Map<string, number>();
-  for (const owner of state.tiles.owners) {
-    if (owner) counts.set(owner, (counts.get(owner) ?? 0) + 1);
-  }
-  return counts;
-});
-
 const rankedPlayers = computed(() => {
   const state = props.state;
   if (!state) return [];
   return [...state.players]
-    .sort((a, b) => (tileCounts.value.get(b.id) ?? 0) - (tileCounts.value.get(a.id) ?? 0));
+    .sort((a, b) => {
+      const pa = a.resources.villagers + a.resources.soldiers;
+      const pb = b.resources.villagers + b.resources.soldiers;
+      return pb - pa;
+    });
 });
 
 // ── Merveille ─────────────────────────────────────────────────────────────────
@@ -104,7 +98,11 @@ function fmt(s: number) {
             :class="p.eliminated ? 'line-through opacity-30' : ''"
             :style="{ color: p.color }"
           >{{ p.name }}</span>
-          <span class="text-[10px] text-white/30 shrink-0">{{ tileCounts.get(p.id) ?? 0 }}</span>
+          <span class="text-[10px] text-white/35 shrink-0 font-mono">
+            <span class="text-[#a8c090]/80">{{ p.resources.villagers }}</span>
+            <span class="text-white/20 mx-0.5">/</span>
+            <span class="text-[#ef4444]/70">{{ p.resources.soldiers }}</span>
+          </span>
         </div>
       </div>
     </div>

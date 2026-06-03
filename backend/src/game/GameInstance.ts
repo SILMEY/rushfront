@@ -351,30 +351,39 @@ export class GameInstance {
     });
     if (!neighborOwned) throw new Error("not_adjacent");
 
-    // Caserne obligatoire pour attaquer
+    // Caserne obligatoire + au moins 1 soldat
     const hasBarracks = this.tileBuildings.some((b, i) =>
       this.tileOwners[i] === player.id && b === BuildingType.Barracks
     );
     if (!hasBarracks) throw new Error("need_barracks");
+    if (player.resources.soldiers < 1) throw new Error("not_enough_soldiers");
 
     const defender = this.players.find((p) => p.id === owner)!;
 
-    // Perte proportionnelle : loss = round(soldats_défenseur / cases_défenseur)
-    const defenderTiles = this.tileOwners.filter((o) => o === defender.id).length;
-    const baseLoss = defenderTiles > 0 ? Math.round(defender.resources.soldiers / defenderTiles) : 0;
+    const atkTechs = new Set(player.techs ?? []);
+    const defTechs = new Set(defender.techs ?? []);
 
-    const atkTechs = new Set((player as any).techs as string[] | undefined);
-    const defTechs = new Set((defender as any).techs as string[] | undefined);
+    // ── Pertes défenseur : ⌈(pop_totale / cases)⌉, réparti soldats + villageois ──
+    const defTiles = this.tileOwners.filter(o => o === defender.id).length;
+    const defTotalPop = defender.resources.soldiers + defender.resources.villagers;
+    const defRawLoss = defTiles > 0 ? Math.ceil(defTotalPop / defTiles) : 0;
+    const defTotalLoss = defTechs.has("cote_de_maille") ? Math.max(1, Math.floor(defRawLoss / 2)) : defRawLoss;
 
-    // epee_longue : attaquant perd moitié moins
-    const attackerLoss = atkTechs.has("epee_longue") ? Math.floor(baseLoss / 2) : baseLoss;
-    // cote_de_maille : défenseur perd moitié moins
-    const defenderLoss = defTechs.has("cote_de_maille") ? Math.floor(baseLoss / 2) : baseLoss;
+    // Split proportionnel soldats / villageois
+    const defSoldierLoss = defTotalPop > 0
+      ? Math.round(defTotalLoss * defender.resources.soldiers / defTotalPop)
+      : 0;
+    const defVillagerLoss = defTotalLoss - defSoldierLoss;
 
-    if (attackerLoss > 0 && player.resources.soldiers < attackerLoss) throw new Error("not_enough_soldiers");
+    // ── Pertes attaquant : même total que le défenseur, soldats uniquement ──
+    const atkRawLoss = defTotalLoss;
+    const atkSoldierLoss = atkTechs.has("epee_longue") ? Math.max(1, Math.floor(atkRawLoss / 2)) : atkRawLoss;
 
-    defender.resources.soldiers = Math.max(0, defender.resources.soldiers - defenderLoss);
-    player.resources.soldiers   = Math.max(0, player.resources.soldiers   - attackerLoss);
+    if (player.resources.soldiers < atkSoldierLoss) throw new Error("not_enough_soldiers");
+
+    defender.resources.soldiers  = Math.max(0, defender.resources.soldiers  - defSoldierLoss);
+    defender.resources.villagers = Math.max(0, defender.resources.villagers - defVillagerLoss);
+    player.resources.soldiers    = Math.max(0, player.resources.soldiers    - atkSoldierLoss);
 
     // La case est toujours prise
     this.tileOwners[index] = player.id;

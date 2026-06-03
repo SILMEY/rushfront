@@ -35,6 +35,17 @@ watch(
   { immediate: true }
 );
 
+// Proportion réelle actuelle (pour la barre)
+const actualSoldierPct = computed(() => {
+  const total = (me.value?.resources.villagers ?? 0) + (me.value?.resources.soldiers ?? 0);
+  if (!total) return 0;
+  return Math.round((me.value!.resources.soldiers / total) * 100);
+});
+
+const isConverting = computed(() =>
+  Math.abs(actualSoldierPct.value - compositionPct.value) > 1
+);
+
 let timer: number | null = null;
 function commit() {
   if (!props.state) return;
@@ -74,16 +85,23 @@ function scheduleCommit() {
         </div>
       </div>
 
-      <!-- Barre de répartition -->
-      <div class="h-1.5 rounded-full overflow-hidden flex mb-2.5 bg-white/5">
+      <!-- Barre de répartition (proportion RÉELLE) -->
+      <div class="h-1.5 rounded-full overflow-hidden flex mb-1 bg-white/5">
         <div
-          class="bg-[#4ade80]/50 transition-all duration-300"
-          :style="{ width: (100 - compositionPct) + '%' }"
+          class="bg-[#4ade80]/50 transition-all duration-700"
+          :style="{ width: (100 - actualSoldierPct) + '%' }"
         ></div>
-        <div class="bg-[#ef4444]/50 transition-all duration-300 flex-1"></div>
+        <div class="bg-[#ef4444]/50 transition-all duration-700 flex-1"></div>
       </div>
 
-      <!-- Slider -->
+      <!-- Indicateur conversion en cours -->
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-[9px] text-white/20">{{ 100 - actualSoldierPct }}% civ. → cible {{ 100 - compositionPct }}%</span>
+        <span v-if="isConverting" class="text-[9px] text-[#f2ca50]/50 italic animate-pulse">formation…</span>
+        <span class="text-[9px] text-white/20">{{ actualSoldierPct }}% mil. → cible {{ compositionPct }}%</span>
+      </div>
+
+      <!-- Slider (contrôle la CIBLE) -->
       <input
         v-model.number="compositionPct"
         type="range"
@@ -94,11 +112,6 @@ function scheduleCommit() {
         @input="scheduleCommit()"
         @change="commit()"
       />
-      <div class="flex justify-between text-[9px] text-white/20 mt-0.5">
-        <span>100% civ.</span>
-        <span class="text-white/30 font-bold">{{ 100 - compositionPct }}% / {{ compositionPct }}%</span>
-        <span>100% mil.</span>
-      </div>
     </template>
   </section>
 </template>
