@@ -11,6 +11,7 @@ import TechPanel from "../components/game/TechPanel.vue";
 import CompositionPanel from "../components/game/CompositionPanel.vue";
 import GameLeftPanel from "../components/game/GameLeftPanel.vue";
 import PortPanel from "../components/game/PortPanel.vue";
+import SectionTitle from "../components/game/SectionTitle.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route  = useRoute();
@@ -122,18 +123,23 @@ watch(
         </div>
       </div>
 
-      <div class="flex-1 space-y-6 overflow-y-auto bg-black/10 p-6">
-        <section>
+      <div class="flex-1 overflow-y-auto bg-black/10">
+
+        <!-- Répartition -->
+        <div class="px-6 py-5 border-b-2 border-outline-variant">
           <CompositionPanel :state="game.state" />
+        </div>
 
-          <h3 class="font-label-sm text-primary mb-4 flex items-center gap-2 carved-text">
-            <span class="w-2 h-2 bg-primary rotate-45"></span> CONSTRUCTION
-          </h3>
+        <!-- Construction -->
+        <div class="px-6 py-5 border-b-2 border-outline-variant">
+          <SectionTitle>Construction</SectionTitle>
           <BuildPanel :state="game.state" :selected="game.selectedBuilding" @select="game.selectBuilding($event)" />
-        </section>
+        </div>
 
+        <!-- Port (conditionnel) -->
         <PortPanel :state="game.state" />
 
+        <!-- Technologies -->
         <TechPanel :state="game.state" />
 
       </div>
@@ -190,6 +196,28 @@ watch(
   letter-spacing: 0.1em;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.section-title {
+  font-family: "Literata", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #d4af37;
+  text-shadow: -1px -1px 1px rgba(0,0,0,.8), 1px 1px 1px rgba(255,255,255,.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.diamond {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background-color: #d4af37;
+  transform: rotate(45deg);
+  flex-shrink: 0;
 }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.4s; }

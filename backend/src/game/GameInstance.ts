@@ -259,7 +259,7 @@ export class GameInstance {
     player.basePosition = pos;
     (player as any).techs = [];
     (player as any).desiredSoldierPct = 0;
-    player.resources = { villagers: 5, soldiers: 0, wood: 5, stone: 0 };
+    player.resources = { villagers: 5, soldiers: 0, wood: 25, stone: 5 };
     this.tileOwners[index] = player.id;
     this.tileBuildings[index] = BuildingType.Base;
 
@@ -350,6 +350,12 @@ export class GameInstance {
       return this.tileOwners[idx(n, this.width)] === player.id;
     });
     if (!neighborOwned) throw new Error("not_adjacent");
+
+    // Caserne obligatoire pour attaquer
+    const hasBarracks = this.tileBuildings.some((b, i) =>
+      this.tileOwners[i] === player.id && b === BuildingType.Barracks
+    );
+    if (!hasBarracks) throw new Error("need_barracks");
 
     const defender = this.players.find((p) => p.id === owner)!;
 

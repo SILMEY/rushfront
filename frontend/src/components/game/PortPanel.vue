@@ -4,6 +4,7 @@ import type { GameStateSnapshot } from "../../types/game";
 import { BuildingType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
 import { useGameStore } from "../../stores/gameStore";
+import SectionTitle from "./SectionTitle.vue";
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
 const auth  = useAuthStore();
@@ -27,11 +28,8 @@ function buyTransportBoat() { if (props.state) game.buyTransportBoat(props.state
 </script>
 
 <template>
-  <section v-if="hasPort" class="border-t border-[#4d4635] pt-4">
-    <h3 class="text-[12px] font-bold uppercase tracking-[0.1em] text-[#d4af37] mb-3 flex items-center gap-2"
-        style="font-family:'Literata',ui-serif,Georgia,serif;text-shadow:-1px -1px 1px rgba(0,0,0,.8),1px 1px 1px rgba(255,255,255,.1)">
-      <span class="w-2 h-2 bg-[#d4af37] rotate-45 inline-block"></span> PORT
-    </h3>
+  <section v-if="hasPort" class="px-6 py-5 border-b-2 border-[#4d4635]">
+    <SectionTitle>Port</SectionTitle>
 
     <div class="space-y-1.5 text-[11px] mb-3">
       <div class="flex items-center justify-between text-white/50">

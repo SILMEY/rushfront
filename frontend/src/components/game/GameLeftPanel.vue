@@ -4,6 +4,7 @@ import type { GameStateSnapshot } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
 import { tileIndex } from "../../utils/tileUtils";
 import ChatPanel from "./ChatPanel.vue";
+import SectionTitle from "./SectionTitle.vue";
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
 const auth = useAuthStore();
@@ -88,9 +89,7 @@ function fmt(s: number) {
 
     <!-- Classement -->
     <div class="border-b-2 border-outline-variant px-5 pt-4 pb-3 shrink-0">
-      <h3 class="section-title">
-        <span class="diamond"></span> Classement
-      </h3>
+      <SectionTitle>Classement</SectionTitle>
       <div class="space-y-1">
         <div
           v-for="(p, i) in rankedPlayers"
@@ -113,7 +112,7 @@ function fmt(s: number) {
     <!-- Chat -->
     <div class="flex-1 min-h-0 flex flex-col">
       <div class="px-5 pt-4 pb-2 shrink-0">
-        <h3 class="section-title"><span class="diamond"></span> Chat</h3>
+        <SectionTitle>Chat</SectionTitle>
       </div>
       <ChatPanel
         v-if="state && me"

@@ -97,9 +97,9 @@ export function applyProduction(input: {
       if (tileOwners[i] !== player.id || tileBuildings[i] !== BuildingType.Sawmill) continue;
       sawmills++;
       const { x, y } = tilePos(i, width);
-      rawWood += Math.min(3, adjacentForestCount(tileTypes, x, y, width, height));
+      rawWood += Math.min(15, adjacentForestCount(tileTypes, x, y, width, height) * 5);
     }
-    if (techs.has("eco_tools")) rawWood += sawmills;
+    if (techs.has("eco_tools")) rawWood += sawmills * 5;
     if (player.civilization === "sylvan_elves") rawWood *= 2;
     player.resources.wood += pGain(rawWood);
 
@@ -109,9 +109,9 @@ export function applyProduction(input: {
       if (tileOwners[i] !== player.id || tileBuildings[i] !== BuildingType.Mine) continue;
       mines++;
       const { x, y } = tilePos(i, width);
-      rawStone += Math.min(3, adjacentQuarryCount(tileTypes, x, y, width, height));
+      rawStone += Math.min(15, adjacentQuarryCount(tileTypes, x, y, width, height) * 5);
     }
-    if (techs.has("eco_tools")) rawStone += mines;
+    if (techs.has("eco_tools")) rawStone += mines * 5;
     if (player.civilization === "iron_dwarves") rawStone *= 2;
     player.resources.stone += pGain(rawStone);
 

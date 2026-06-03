@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import type { GameStateSnapshot } from "../../types/game";
 import { BuildingType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
+import SectionTitle from "./SectionTitle.vue";
 
 const props = defineProps<{
   state: GameStateSnapshot | null;
@@ -36,6 +37,16 @@ const items: BuildItem[] = [
 ];
 
 const hoveredItem = ref<BuildItem | null>(null);
+const tooltipStyle = ref<{ top: string; right: string } | null>(null);
+
+function onMouseEnter(e: MouseEvent, b: BuildItem) {
+  hoveredItem.value = b;
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  tooltipStyle.value = {
+    top: `${rect.top}px`,
+    right: `${window.innerWidth - rect.left + 10}px`
+  };
+}
 
 function canAfford(b: BuildItem): boolean {
   const player = me.value;
@@ -71,8 +82,8 @@ function costLabel(b: BuildItem): string {
         ]"
         :disabled="!canAfford(b)"
         type="button"
-        @mouseenter="hoveredItem = b"
-        @mouseleave="hoveredItem = null"
+        @mouseenter="onMouseEnter($event, b)"
+        @mouseleave="hoveredItem = null; tooltipStyle = null"
         @click="canAfford(b) && emit('select', b.type)"
       >
         <span class="material-symbols-outlined rf-parchment-icon text-xl" aria-hidden="true">{{ b.icon }}</span>
@@ -81,15 +92,23 @@ function costLabel(b: BuildItem): string {
     </div>
   </div>
 
-  <!-- Info card sous la grille (évite le clipping overflow) -->
-  <div v-if="hoveredItem" class="mt-2 rounded border border-[#8b7e66]/60 bg-[#1c1a14] px-3 py-2.5">
-    <div class="rf-parchment-title text-[11px] font-bold uppercase text-[#f2ca50] mb-1">{{ hoveredItem.label }}</div>
-    <div class="text-[10px] text-white/60 italic mb-2 leading-snug">{{ hoveredItem.hint }}</div>
-    <div class="text-[10px] font-bold" :class="canAfford(hoveredItem) ? 'text-[#a8c090]' : 'text-red-400/80'">
-      {{ costLabel(hoveredItem) }}
+  <!-- Tooltip en overlay (Teleport body pour éviter tout clipping) -->
+  <Teleport to="body">
+    <div
+      v-if="hoveredItem && tooltipStyle"
+      class="fixed z-[500] pointer-events-none w-52"
+      :style="tooltipStyle"
+    >
+      <div class="rounded border border-[#8b7e66]/70 bg-[#1a1812] shadow-2xl px-3 py-2.5">
+        <div class="rf-parchment-title text-[11px] font-bold uppercase text-[#f2ca50] mb-1">{{ hoveredItem.label }}</div>
+        <div class="text-[10px] text-white/55 italic mb-2 leading-snug">{{ hoveredItem.hint }}</div>
+        <div class="text-[10px] font-bold" :class="canAfford(hoveredItem) ? 'text-[#a8c090]' : 'text-red-400/80'">
+          {{ costLabel(hoveredItem) }}
+        </div>
+        <div v-if="!canAfford(hoveredItem)" class="text-[9px] text-red-400/60 mt-0.5">Ressources insuffisantes</div>
+      </div>
     </div>
-    <div v-if="!canAfford(hoveredItem)" class="text-[9px] text-red-400/60 mt-0.5">Ressources insuffisantes</div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>

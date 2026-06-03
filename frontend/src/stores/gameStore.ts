@@ -232,6 +232,10 @@ export const useGameStore = defineStore("game", {
         const i = tileIndex(pos.x, pos.y, this.state.width);
         const owner = this.state.tiles.owners[i];
         if (owner && owner !== meId) {
+          const hasBarracks = this.state.tiles.buildings.some(
+            (b, j) => this.state!.tiles.owners[j] === meId && b === BuildingType.Barracks
+          );
+          if (!hasBarracks) return;
           return this.attackTile(this.state.gameId, pos);
         }
       }
@@ -319,7 +323,17 @@ export const useGameStore = defineStore("game", {
         return da - db;
       });
 
-      void this.attackTile(state.gameId, frontier[0]!);
+      // Attaquer en bloc : toutes les tuiles dans un rayon de 6 cases autour de la plus proche
+      const closest = frontier[0]!;
+      const closestDist = Math.sqrt((closest.x - target.x) ** 2 + (closest.y - target.y) ** 2);
+      const bandMax = (closestDist + 6) ** 2;
+      const band = frontier.filter(t => (t.x - target.x) ** 2 + (t.y - target.y) ** 2 <= bandMax);
+      band.sort(() => Math.random() - 0.5);
+      // Limiter par soldats disponibles (prudent)
+      const attackCount = Math.min(3, band.length, Math.max(1, Math.floor(mySoldiers / 10)));
+      for (const pos of band.slice(0, attackCount)) {
+        void this.attackTile(state.gameId, pos);
+      }
     },
 
     onTileDblClick(pos: Vec2) {
@@ -372,15 +386,21 @@ export const useGameStore = defineStore("game", {
 
       if (frontier.length === 0) { this.clearExpandTarget(); return; }
 
-      // Trier par distance à la cible (les plus proches d'abord)
       frontier.sort((a, b) => {
         const da = (a.x - target.x) ** 2 + (a.y - target.y) ** 2;
         const db = (b.x - target.x) ** 2 + (b.y - target.y) ** 2;
         return da - db;
       });
 
-      // Réclamer jusqu'à 5 cases par tick (limité par les villageois dispo)
-      const batch = frontier.slice(0, Math.min(5, myVillagers));
+      // Prendre toutes les tuiles dans un rayon de 8 cases autour de la plus proche
+      // → forme un bloc large plutôt qu'une ligne droite
+      const closest = frontier[0]!;
+      const closestDist = Math.sqrt((closest.x - target.x) ** 2 + (closest.y - target.y) ** 2);
+      const bandMax = (closestDist + 8) ** 2;
+      const band = frontier.filter(t => (t.x - target.x) ** 2 + (t.y - target.y) ** 2 <= bandMax);
+      // Mélanger pour éviter de toujours prendre le même côté
+      band.sort(() => Math.random() - 0.5);
+      const batch = band.slice(0, Math.min(5, myVillagers));
       void this.claimTiles(state.gameId, batch);
     }
   }

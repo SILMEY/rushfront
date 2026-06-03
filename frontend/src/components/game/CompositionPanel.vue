@@ -4,6 +4,7 @@ import type { GameStateSnapshot } from "../../types/game";
 import { BuildingType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
 import { useGameStore } from "../../stores/gameStore";
+import SectionTitle from "./SectionTitle.vue";
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
 const auth = useAuthStore();
@@ -50,7 +51,7 @@ function scheduleCommit() {
 
 <template>
   <section v-if="state && me" class="mb-5">
-    <h3 class="section-title"><span class="diamond"></span> Répartition</h3>
+    <SectionTitle>Répartition</SectionTitle>
 
     <div v-if="!hasBarracks" class="text-[10px] italic text-white/25 text-center py-2">
       Construisez une caserne pour former des militaires.
