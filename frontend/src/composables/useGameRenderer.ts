@@ -113,43 +113,38 @@ export function useGameRenderer() {
           }
         }
 
-        // Buildings: bâtiments importants toujours visibles, mineurs seulement si assez zoomé
-        if (building != null) {
-          const important = building === BuildingType.Base
-            || building === BuildingType.Barracks
-            || building === BuildingType.University;
+        // Buildings — toujours visibles, fond sombre pour contraste garanti
+        if (building != null && building !== BuildingType.Wonder) {
+          // Base plus grande que les autres bâtiments
+          const isBase  = building === BuildingType.Base;
+          const iconPx  = Math.max(isBase ? 9 / scale : 7 / scale, tileSize * (isBase ? 0.62 : 0.50));
+          const bgPx    = iconPx * 1.25;
+          const cx2     = sx + tileSize / 2;
+          const cy2     = sy + tileSize / 2;
 
-          if (important || tsScreen >= 28) {
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
+          // Fond sombre arrondi pour contraste
+          ctx.fillStyle = "rgba(0,0,0,0.60)";
+          ctx.fillRect(cx2 - bgPx / 2, cy2 - bgPx / 2, bgPx, bgPx);
 
-            if (building === BuildingType.Base) {
-              ctx.fillStyle = ownerColor ? rgba(ownerColor, 0.95) : rgba("#f2ca50", 0.9);
-              // Taille minimum 10px écran pour rester lisible même très dézoomé
-              ctx.font = `${Math.min(tileSize, Math.max(10 / scale, tileSize * 0.6))}px "Material Symbols Outlined"`;
-              ctx.fillText("castle", sx + tileSize / 2, sy + tileSize / 2);
-            } else if (building === BuildingType.Barracks || building === BuildingType.University || building === BuildingType.City) {
-              ctx.fillStyle = building === BuildingType.City ? rgba("#60a5fa", 0.95) : rgba("#f2ca50", 0.95);
-              ctx.font = `${Math.min(tileSize, Math.max(10 / scale, tileSize * 0.55))}px "Material Symbols Outlined"`;
-              const icon = building === BuildingType.Barracks ? "shield" : building === BuildingType.University ? "history_edu" : "location_city";
-              ctx.fillText(icon, sx + tileSize / 2, sy + tileSize / 2);
-            } else if (building === BuildingType.Bridge) {
-              ctx.fillStyle = rgba("#d97706", 0.9);
-              ctx.font = `${Math.min(tileSize, Math.max(10 / scale, tileSize * 0.5))}px "Material Symbols Outlined"`;
-              ctx.fillText("water", sx + tileSize / 2, sy + tileSize / 2);
-            } else if (building === BuildingType.Wonder) {
-              // Dessiné dans le second pass (overlay 4×4)
-            } else {
-              // Bâtiments mineurs : seulement si tsScreen >= 28
-              const icon =
-                building === BuildingType.FishingHut ? "sailing"
-                : building === BuildingType.Sawmill   ? "forest"
-                :                                       "construction";
-              ctx.fillStyle = rgba("#f2ca50", 0.75);
-              ctx.font = `${Math.max(16 / scale, tileSize * 0.55)}px "Material Symbols Outlined"`;
-              ctx.fillText(icon, sx + tileSize / 2, sy + tileSize / 2);
-            }
+          // Icône colorée selon le type de bâtiment
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.font = `${iconPx}px "Material Symbols Outlined"`;
+
+          let icon = "help";
+          let color = "rgba(255,255,255,0.95)";
+          switch (building) {
+            case BuildingType.Base:       icon = "location_city"; color = "rgba(255,255,255,0.98)"; break;
+            case BuildingType.Barracks:   icon = "shield";        color = "rgba(255,180,180,0.95)"; break;
+            case BuildingType.University: icon = "history_edu";   color = "rgba(180,210,255,0.95)"; break;
+            case BuildingType.City:       icon = "account_balance"; color = "rgba(140,200,255,0.95)"; break;
+            case BuildingType.Sawmill:    icon = "forest";        color = "rgba(160,240,160,0.95)"; break;
+            case BuildingType.Mine:       icon = "construction";  color = "rgba(255,215,140,0.95)"; break;
+            case BuildingType.FishingHut: icon = "sailing";       color = "rgba(140,215,255,0.95)"; break;
+            case BuildingType.Bridge:     icon = "water";         color = "rgba(251,191,36,0.95)";  break;
           }
+          ctx.fillStyle = color;
+          ctx.fillText(icon, cx2, cy2);
         }
       }
     }
