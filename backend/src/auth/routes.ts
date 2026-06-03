@@ -71,7 +71,7 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     const jwt = await reply.jwtSign({ userId: user.id });
-    const webOrigin = process.env.WEB_ORIGIN!;
+    const webOrigin = process.env.WEB_ORIGIN!.replace(/\/$/, "");
     const cookieOpts = cookieOptionsForRequest({
       webOrigin,
       reqHost: req.hostname,
@@ -81,7 +81,7 @@ export async function authRoutes(app: FastifyInstance) {
     // Fallback for cross-site deployments (Railway front/back on different hosts):
     // browsers may block third-party cookies, so we also pass a token via the redirect URL.
     const redirectUrl =
-      cookieOpts.sameSite === "none" ? `${webOrigin}/?tr_token=${encodeURIComponent(jwt)}` : webOrigin;
+      cookieOpts.sameSite === "none" ? `${webOrigin}/?tr_token=${encodeURIComponent(jwt)}` : `${webOrigin}/`;
 
     reply.setCookie("tr_session", jwt, cookieOpts).redirect(redirectUrl);
   });
@@ -116,7 +116,7 @@ export async function authRoutes(app: FastifyInstance) {
     const user = await upsertUserFromDiscord(profile);
 
     const jwt = await reply.jwtSign({ userId: user.id });
-    const webOrigin = process.env.WEB_ORIGIN!;
+    const webOrigin = process.env.WEB_ORIGIN!.replace(/\/$/, "");
     const cookieOpts = cookieOptionsForRequest({
       webOrigin,
       reqHost: req.hostname,
@@ -126,7 +126,7 @@ export async function authRoutes(app: FastifyInstance) {
     const redirectUrl =
       cookieOpts.sameSite === "none"
         ? `${webOrigin}/?tr_token=${encodeURIComponent(jwt)}`
-        : webOrigin;
+        : `${webOrigin}/`;
 
     reply.setCookie("tr_session", jwt, cookieOpts).redirect(redirectUrl);
   });

@@ -39,7 +39,7 @@ export function buildCost(building: BuildingType): { wood: number; stone: number
     case BuildingType.Sawmill:
       return { wood: 5, stone: 0 };
     case BuildingType.Mine:
-      return { wood: 5, stone: 0 };
+      return { wood: 10, stone: 0 };
     case BuildingType.Barracks:
       return { wood: 20, stone: 10 };
     case BuildingType.University:

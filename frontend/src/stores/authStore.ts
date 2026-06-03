@@ -26,6 +26,9 @@ export const useAuthStore = defineStore("auth", {
         try {
           const res = await apiFetch<{ user: User | null }>("/auth/me");
           this.user = res.user;
+        } catch {
+          // Erreur réseau / CORS → on reste non connecté, on n'interrompt pas la navigation
+          this.user = null;
         } finally {
           this.ready = true;
           this.loading = false;
