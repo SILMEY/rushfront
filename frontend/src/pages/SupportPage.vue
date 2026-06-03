@@ -30,12 +30,20 @@ async function send() {
     });
     sent.value = true;
   } catch (e: any) {
-    const msg = e?.message ?? "";
-    error.value = msg.includes("too_many_requests")
-      ? "Trop de messages envoyés. Réessaie dans une heure."
-      : msg.includes("email_send_failed")
-        ? "L'envoi a échoué côté serveur. Contacte-nous directement à support@frontrush.net"
-        : "Une erreur est survenue. Réessaie plus tard.";
+    const raw = e?.message ?? "";
+    // Tenter de parser le JSON de l'erreur pour avoir le détail
+    let parsed: any = null;
+    try { parsed = JSON.parse(raw); } catch {}
+
+    if (raw.includes("too_many_requests") || parsed?.error === "too_many_requests") {
+      error.value = "Trop de messages envoyés. Réessaie dans une heure.";
+    } else if (parsed?.error === "email_send_failed") {
+      // Affiche le détail Resend s'il est disponible (aide au debug)
+      const detail = parsed?.detail ? ` — ${parsed.detail}` : "";
+      error.value = `Erreur d'envoi${detail}. En attendant : support@frontrush.net`;
+    } else {
+      error.value = `Erreur : ${raw.slice(0, 120) || "Réessaie plus tard."}`;
+    }
   } finally {
     sending.value = false;
   }

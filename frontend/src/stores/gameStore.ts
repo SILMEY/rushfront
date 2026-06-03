@@ -220,6 +220,7 @@ export const useGameStore = defineStore("game", {
       if (this.maritimeLandingMode) this.selectedBuilding = null;
     },
 
+    // Clic GAUCHE — toutes les actions : choisir base, claim, attaque, build
     async onTileClick(pos: Vec2) {
       if (!this.state) return;
       if (this.state.status === "PLACING") return this.chooseStart(this.state.gameId, pos);
@@ -232,13 +233,11 @@ export const useGameStore = defineStore("game", {
       const owner = this.state.tiles.owners[i];
 
       if (owner === meId) {
-        // Case à moi : construire si bâtiment sélectionné (le menu radial est géré par onTileContext)
         if (this.selectedBuilding != null) return this.build(this.state.gameId, pos, this.selectedBuilding);
         return;
       }
 
       if (owner && owner !== meId) {
-        // Case ennemie : toujours attaquer (indépendamment du bâtiment sélectionné)
         const hasBarracks = this.state.tiles.buildings.some(
           (b, j) => this.state!.tiles.owners[j] === meId && b === BuildingType.Barracks
         );
@@ -246,26 +245,21 @@ export const useGameStore = defineStore("game", {
         return this.attackTile(this.state.gameId, pos);
       }
 
-      // Case neutre : débarquement automatique si non adjacente à notre territoire,
-      // adjacente à l'eau, et on a des charges maritimes
+      // Case neutre : débarquement automatique si conditions réunies, sinon claim
       const neighbors = [
         { x: pos.x+1, y: pos.y }, { x: pos.x-1, y: pos.y },
         { x: pos.x, y: pos.y+1 }, { x: pos.x, y: pos.y-1 }
-      ].filter(n => n.x >= 0 && n.y >= 0 && n.x < this.state.width && n.y < this.state.height);
-
+      ].filter(n => n.x >= 0 && n.y >= 0 && n.x < this.state!.width && n.y < this.state!.height);
       const adjToMe    = neighbors.some(n => this.state!.tiles.owners[n.y * this.state!.width + n.x] === meId);
       const adjToWater = neighbors.some(n => (this.state!.tiles.types[n.y * this.state!.width + n.x] as TileType) === TileType.Water);
       const charges    = (this.mePlayer as any)?.maritimeCharges ?? 0;
-
-      if (!adjToMe && adjToWater && charges > 0) {
-        return this.maritimeLand(this.state.gameId, pos);
-      }
+      if (!adjToMe && adjToWater && charges > 0) return this.maritimeLand(this.state.gameId, pos);
       return this.claimTile(this.state.gameId, pos);
     },
 
+    // Clic DROIT — menu radial contextuel (uniquement sur ses propres cases vides)
     onTileContext(pos: Vec2, clientX: number, clientY: number) {
       if (!this.state || this.state.status !== "ACTIVE") return;
-      if (this.maritimeLandingMode || this.selectedBuilding !== null) return;
       const meId = this.mePlayer?.id;
       if (!meId) return;
       const i = tileIndex(pos.x, pos.y, this.state.width);

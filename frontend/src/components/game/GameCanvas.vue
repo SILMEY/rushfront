@@ -176,23 +176,21 @@ function toTile(clientX: number, clientY: number): Vec2 | null {
 
 function onPointerDown(e: PointerEvent) {
   if (!hasState.value) return;
-  // Left click: pan (drag) / select (click).
-  // Right click: select tiles only (no pan).
   if (e.button !== 0 && e.button !== 2) return;
   (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  dragging = e.button === 0;
-  selecting = e.button === 2;
+
+  if (e.button === 2) {
+    // Clic droit : menu radial contextuel (immédiat, pas de drag)
+    const tile = toTile(e.clientX, e.clientY);
+    if (tile) emit("tile-context", tile, e.clientX, e.clientY);
+    return;
+  }
+
+  // Clic gauche : pan + clic simple → actions (claim/attaque/build)
+  dragging = true;
+  selecting = false;
   dragStart = { x: e.clientX, y: e.clientY };
   dragMoved = 0;
-
-  if (selecting) {
-    const tile = toTile(e.clientX, e.clientY);
-    if (tile) {
-      const key = `${tile.x},${tile.y}`;
-      lastSelectedKey = key;
-      emit("tile-click", tile);
-    }
-  }
 }
 
 function onPointerMove(e: PointerEvent) {
@@ -216,13 +214,7 @@ function onPointerMove(e: PointerEvent) {
     return;
   }
 
-  if (selecting && tile) {
-    const key = `${tile.x},${tile.y}`;
-    if (key !== lastSelectedKey) {
-      lastSelectedKey = key;
-      emit("tile-click", tile);
-    }
-  }
+  // Plus de painting au clic droit — le droit clic est pour le menu contextuel
 }
 
 function onPointerUp(e: PointerEvent) {
@@ -244,8 +236,8 @@ function onPointerUp(e: PointerEvent) {
         lastClickTime = 0;
         lastClickTile = null;
       } else {
+        // Clic gauche simple → actions (claim, attaque, build, choisir base)
         emit("tile-click", tile);
-        emit("tile-context", tile, e.clientX, e.clientY);
         lastClickTime = now;
         lastClickTile = tile;
       }
