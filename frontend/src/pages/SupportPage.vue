@@ -30,9 +30,12 @@ async function send() {
     });
     sent.value = true;
   } catch (e: any) {
-    error.value = e?.message === "too_many_requests"
+    const msg = e?.message ?? "";
+    error.value = msg.includes("too_many_requests")
       ? "Trop de messages envoyés. Réessaie dans une heure."
-      : "Une erreur est survenue. Réessaie plus tard.";
+      : msg.includes("email_send_failed")
+        ? "L'envoi a échoué côté serveur. Contacte-nous directement à support@frontrush.net"
+        : "Une erreur est survenue. Réessaie plus tard.";
   } finally {
     sending.value = false;
   }
