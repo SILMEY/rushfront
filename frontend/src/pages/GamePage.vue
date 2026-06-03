@@ -12,6 +12,7 @@ import CompositionPanel from "../components/game/CompositionPanel.vue";
 import GameLeftPanel from "../components/game/GameLeftPanel.vue";
 import PortPanel from "../components/game/PortPanel.vue";
 import SectionTitle from "../components/game/SectionTitle.vue";
+import RadialMenu from "../components/game/RadialMenu.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route  = useRoute();
@@ -94,6 +95,17 @@ watch(
     </div>
   </Transition>
 
+<!-- Menu radial de construction -->
+  <RadialMenu
+    v-if="game.radialMenu && game.state"
+    :state="game.state"
+    :tile="game.radialMenu.tile"
+    :client-x="game.radialMenu.clientX"
+    :client-y="game.radialMenu.clientY"
+    @build="(b) => { game.build(game.state!.gameId, game.radialMenu!.tile, b); game.radialMenu = null; }"
+    @close="game.radialMenu = null"
+  />
+
 <!-- MAIN GAMEPLAY CANVAS (layout inspired by `public/codejeu.html`) -->
   <div class="rf-game">
     <GameLeftPanel :state="game.state" />
@@ -106,7 +118,13 @@ watch(
       <!-- Grid Area -->
       <div class="relative flex-1 overflow-auto bg-stone-950 p-4">
         <div class="min-h-full min-w-max border-4 border-outline-variant bg-stone-900/40 shadow-2xl">
-          <GameCanvas class="h-[calc(100vh-170px)] min-h-[720px] w-full" :state="game.state" @tile-click="game.onTileClick" @tile-dblclick="game.onTileDblClick" />
+          <GameCanvas
+            class="h-[calc(100vh-170px)] min-h-[720px] w-full"
+            :state="game.state"
+            @tile-click="game.onTileClick"
+            @tile-dblclick="game.onTileDblClick"
+            @tile-context="(pos, cx, cy) => game.onTileContext(pos, cx, cy)"
+          />
         </div>
       </div>
     </main>

@@ -13,6 +13,7 @@ const emit = defineEmits<{
   (e: "tile-click", pos: Vec2): void;
   (e: "tile-dblclick", pos: Vec2): void;
   (e: "tile-hover", pos: Vec2 | null): void;
+  (e: "tile-context", pos: Vec2, clientX: number, clientY: number): void;
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
@@ -228,6 +229,7 @@ function onPointerUp(e: PointerEvent) {
         lastClickTile = null;
       } else {
         emit("tile-click", tile);
+        emit("tile-context", tile, e.clientX, e.clientY);
         lastClickTime = now;
         lastClickTile = tile;
       }

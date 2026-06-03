@@ -87,8 +87,8 @@ const maxHabitants = computed(() => ownedTiles.value * 5 + cityCount.value * 500
 const habitantGrowthRate = computed(() => {
   if (!me.value) return 0;
   if (habitants.value >= maxHabitants.value) return 0;
-  // Backend : Math.sqrt(ownedTiles) * 0.07 par tick (1 tick/s)
-  return Math.sqrt(ownedTiles.value) * 0.07;
+  // Backend : Math.sqrt(ownedTiles + cityCount * 50) * 0.10 par seconde
+  return Math.sqrt(ownedTiles.value + cityCount.value * 50) * 0.10;
 });
 
 const production = computed(() => {

@@ -66,7 +66,8 @@ export function applyProduction(input: {
     const currentPop = player.resources.villagers + player.resources.soldiers;
 
     if (currentPop < maxPop) {
-      const ratePerTick = Math.sqrt(ownedTiles) * 0.07;
+      // Chaque cité équivaut à 50 cases supplémentaires pour la croissance
+      const ratePerTick = Math.sqrt(ownedTiles + cityCount * 50) * 0.10;
       const accumulated = ((player as any).habitantFraction ?? 0) + ratePerTick;
       const floored = Math.floor(accumulated);
       const newHabitants = Math.min(floored, maxPop - currentPop);

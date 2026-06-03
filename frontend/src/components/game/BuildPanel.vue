@@ -26,10 +26,9 @@ type BuildItem = {
 };
 
 const items: BuildItem[] = [
-  { type: null,                    label: "Territoire",   icon: "flag",          wood: 0,   stone: 0,   villagers: 1, hint: "Revendiquer une case neutre adjacente" },
-  { type: BuildingType.FishingHut, label: "Port",         icon: "sailing",       wood: 10,  stone: 10,  villagers: 0, hint: "Adjacent à l'eau. Construit bateaux de pêche et de transport maritime." },
   { type: BuildingType.Sawmill,    label: "Scierie",      icon: "forest",        wood: 5,   stone: 0,   villagers: 0, hint: "Doit être adjacente à une forêt" },
   { type: BuildingType.Mine,       label: "Mine",         icon: "construction",  wood: 10,  stone: 0,   villagers: 0, hint: "Doit être adjacente à une carrière" },
+  { type: BuildingType.FishingHut, label: "Port",         icon: "sailing",       wood: 10,  stone: 10,  villagers: 0, hint: "Adjacent à l'eau. Construit bateaux de pêche et de transport maritime." },
   { type: BuildingType.Barracks,   label: "Caserne",      icon: "shield",        wood: 20,  stone: 10,  villagers: 0, hint: "Débloque les militaires et les attaques" },
   { type: BuildingType.University, label: "Université",   icon: "history_edu",   wood: 20,  stone: 20,  villagers: 0, hint: "Débloque les recherches technologiques" },
   { type: BuildingType.City,       label: "Cité",         icon: "location_city", wood: 40,  stone: 80,  villagers: 0, hint: "+500 habitants maximum" },
