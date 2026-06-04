@@ -22,9 +22,9 @@ type RenderParams = {
 };
 
 const TILE_COLORS: Record<number, string> = {
-  [TileType.Plain]:  "#131312",
+  [TileType.Plain]:  "#c8af78",
   [TileType.Water]:  "rgba(30, 58, 138, 0.40)",
-  [TileType.Forest]: "rgba(20, 83, 45, 0.22)",
+  [TileType.Forest]: "rgba(20, 83, 45, 0.45)",
   [TileType.Quarry]: "rgba(68, 64, 60, 0.35)",
 };
 
@@ -200,15 +200,13 @@ export function useGameRenderer() {
           }
         }
 
-        // 1f. Terrain icons
+        // 1f. Terrain icons (no icon for water — shape + color are sufficient)
         if (tsScreen >= 28) {
           const icon =
-            type === TileType.Water  ? "water"     :
             type === TileType.Forest ? "park"       :
             type === TileType.Quarry ? "filter_hdr" : "";
           if (icon) {
             ctx.fillStyle =
-              type === TileType.Water  ? "rgba(96,165,250,0.35)"  :
               type === TileType.Forest ? "rgba(34,197,94,0.30)"   :
                                          "rgba(168,162,158,0.35)";
             ctx.font          = `${Math.max(18 / scale, R * 0.9)}px "Material Symbols Outlined"`;
@@ -243,8 +241,8 @@ export function useGameRenderer() {
             case BuildingType.Barracks:   bIcon = "shield";          bColor = "rgba(255,175,175,0.95)"; break;
             case BuildingType.University: bIcon = "history_edu";     bColor = "rgba(175,210,255,0.95)"; break;
             case BuildingType.City:       bIcon = "account_balance"; bColor = "rgba(135,200,255,0.95)"; break;
-            case BuildingType.Sawmill:    bIcon = "forest";          bColor = "rgba(155,240,155,0.95)"; break;
-            case BuildingType.Mine:       bIcon = "construction";    bColor = "rgba(255,215,135,0.95)"; break;
+            case BuildingType.Sawmill:    bIcon = "handsaw";         bColor = "rgba(155,240,155,0.95)"; break;
+            case BuildingType.Mine:       bIcon = "pickaxe";         bColor = "rgba(255,215,135,0.95)"; break;
             case BuildingType.FishingHut: bIcon = "sailing";         bColor = "rgba(135,215,255,0.95)"; break;
             case BuildingType.Bridge:     bIcon = "water";           bColor = "rgba(251,191,36,0.95)";  break;
           }

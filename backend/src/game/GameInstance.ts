@@ -45,6 +45,26 @@ export class GameInstance {
   private wonderTimers = new Map<string, NodeJS.Timeout>(); // playerId → timer
   wonders: Array<{ playerId: string; tileIndex: number; endsAt: number }> = [];
 
+  // O(1) building presence cache — avoids O(n) tileBuildings.some() scans
+  private _buildingCounts = new Map<string, Map<number, number>>();
+
+  private _addBuilding(playerId: string, b: number) {
+    const m = this._buildingCounts.get(playerId) ?? new Map<number, number>();
+    m.set(b, (m.get(b) ?? 0) + 1);
+    this._buildingCounts.set(playerId, m);
+  }
+
+  private _removeBuilding(playerId: string, b: number) {
+    const m = this._buildingCounts.get(playerId);
+    if (!m) return;
+    const c = m.get(b) ?? 0;
+    if (c <= 1) m.delete(b); else m.set(b, c - 1);
+  }
+
+  hasBuilding(playerId: string, b: BuildingType): boolean {
+    return (this._buildingCounts.get(playerId)?.get(b) ?? 0) > 0;
+  }
+
   private timer: NodeJS.Timeout | null = null;
   private placingTimer: NodeJS.Timeout | null = null;
 
@@ -158,6 +178,7 @@ export class GameInstance {
     const player = this.players.find((p) => p.id === playerId)!;
     player.eliminated = true;
     player.resources = { villagers: 0, soldiers: 0, wood: 0, stone: 0 };
+    this._buildingCounts.delete(playerId);
 
     const changes: TileChange[] = [];
     for (let i = 0; i < this.tileOwners.length; i++) {
@@ -262,6 +283,7 @@ export class GameInstance {
     player.resources = { villagers: 5, soldiers: 0, wood: 25, stone: 5 };
     this.tileOwners[index] = player.id;
     this.tileBuildings[index] = BuildingType.Base;
+    this._addBuilding(player.id, BuildingType.Base);
 
     void prisma.gamePlayer.update({
       where: { id: player.id },
@@ -352,10 +374,7 @@ export class GameInstance {
     if (!neighborOwned) throw new Error("not_adjacent");
 
     // Caserne obligatoire + au moins 1 soldat
-    const hasBarracks = this.tileBuildings.some((b, i) =>
-      this.tileOwners[i] === player.id && b === BuildingType.Barracks
-    );
-    if (!hasBarracks) throw new Error("need_barracks");
+    if (!this.hasBuilding(player.id, BuildingType.Barracks)) throw new Error("need_barracks");
     if (player.resources.soldiers < 1) throw new Error("not_enough_soldiers");
 
     const defender = this.players.find((p) => p.id === owner)!;
@@ -385,7 +404,12 @@ export class GameInstance {
     defender.resources.villagers = Math.max(0, defender.resources.villagers - defVillagerLoss);
     player.resources.soldiers    = Math.max(0, player.resources.soldiers    - atkSoldierLoss);
 
-    // La case est toujours prise
+    // La case est toujours prise — mettre à jour le cache bâtiments si besoin
+    const capturedBuilding = this.tileBuildings[index];
+    if (capturedBuilding != null) {
+      this._removeBuilding(defender.id, capturedBuilding);
+      this._addBuilding(player.id, capturedBuilding);
+    }
     this.tileOwners[index] = player.id;
 
     // Annuler la merveille si sa case est capturée
@@ -400,7 +424,8 @@ export class GameInstance {
 
     return {
       change: { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null },
-      defenderId: defender.id
+      defenderId: defender.id,
+      wonders: this.wonders.map(w => ({ playerId: w.playerId, endsAt: w.endsAt }))
     };
   }
 
@@ -444,6 +469,7 @@ export class GameInstance {
     player.resources.wood  -= cost.wood;
     player.resources.stone -= cost.stone;
     this.tileBuildings[tileIndex] = intent.building;
+    this._addBuilding(player.id, intent.building);
 
     // Merveille : démarrer le timer de victoire (10 minutes)
     if (intent.building === BuildingType.Wonder) {
@@ -472,14 +498,7 @@ export class GameInstance {
     if (!player) throw new Error("not_in_game");
     if (!isTechId(techId)) throw new Error("invalid_tech");
 
-    let hasUniversity = false;
-    for (let i = 0; i < this.tileBuildings.length; i++) {
-      if (this.tileOwners[i] === player.id && this.tileBuildings[i] === BuildingType.University) {
-        hasUniversity = true;
-        break;
-      }
-    }
-    if (!hasUniversity) throw new Error("need_university");
+    if (!this.hasBuilding(player.id, BuildingType.University)) throw new Error("need_university");
 
     const def = TECHS.find((t) => t.id === techId)!;
     const techs = new Set((player as any).techs as string[] | undefined);
@@ -503,9 +522,7 @@ export class GameInstance {
   // ── Port : bateaux ────────────────────────────────────────────────────────
 
   private hasPort(playerId: string): boolean {
-    return this.tileBuildings.some((b, i) =>
-      this.tileOwners[i] === playerId && b === BuildingType.FishingHut
-    );
+    return this.hasBuilding(playerId, BuildingType.FishingHut);
   }
 
   buyFishingBoat(userId: string) {
@@ -567,14 +584,7 @@ export class GameInstance {
     if (!player) throw new Error("not_in_game");
     if (tiles.length < 1 || tiles.length > 3) throw new Error("invalid_tiles_count");
 
-    let hasUniversity = false;
-    for (let i = 0; i < this.tileBuildings.length; i++) {
-      if (this.tileOwners[i] === player.id && this.tileBuildings[i] === BuildingType.University) {
-        hasUniversity = true;
-        break;
-      }
-    }
-    if (!hasUniversity) throw new Error("need_university");
+    if (!this.hasBuilding(player.id, BuildingType.University)) throw new Error("need_university");
 
     const expiresAt = Date.now() + 3000; // blocks for 3 seconds
     for (const t of tiles) {

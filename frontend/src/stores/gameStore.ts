@@ -1,9 +1,19 @@
 import { defineStore } from "pinia";
-import type { GameOverEvent, GameStateSnapshot, PlayerEliminatedEvent, ResourceUpdateEvent, TileUpdateEvent, Vec2 } from "../types/game";
+import type { BrouillagePatchEvent, GameOverEvent, GameStateSnapshot, PlayerEliminatedEvent, PlayerUpdateEvent, ResourceUpdateEvent, TileUpdateEvent, Vec2 } from "../types/game";
 import { BuildingType, TileType } from "../types/game";
 import { getSocket } from "../composables/useSocket";
 import { useAuthStore } from "./authStore";
 import { tileIndex } from "../utils/tileUtils";
+
+// Module-level cooldowns — not reactive, no overhead
+let _lastAttackEmit = 0;
+
+// Hex neighbor offsets for even-r offset grid (matches backend orthogonalNeighbors)
+function hexNeighborOffsets(row: number): [number, number][] {
+  return row % 2 === 0
+    ? [[0,-1],[1,0],[0,1],[-1,1],[-1,0],[-1,-1]]
+    : [[1,-1],[1,0],[1,1],[0,1],[-1,0],[0,-1]];
+}
 
 function inBounds(pos: Vec2, state: GameStateSnapshot) {
   return pos.x >= 0 && pos.y >= 0 && pos.x < state.width && pos.y < state.height;
@@ -13,10 +23,10 @@ function canClaimOptimistic(state: GameStateSnapshot, playerId: string, pos: Vec
   if (!inBounds(pos, state)) return false;
   const i = tileIndex(pos.x, pos.y, state.width);
   if ((state.tiles.types[i] as TileType) !== TileType.Plain) return false;
-  return [
-    { x: pos.x + 1, y: pos.y }, { x: pos.x - 1, y: pos.y },
-    { x: pos.x, y: pos.y + 1 }, { x: pos.x, y: pos.y - 1 }
-  ].some((n) => inBounds(n, state) && state.tiles.owners[tileIndex(n.x, n.y, state.width)] === playerId);
+  return hexNeighborOffsets(pos.y).some(([dc, dr]) => {
+    const n = { x: pos.x + dc, y: pos.y + dr };
+    return inBounds(n, state) && state.tiles.owners[tileIndex(n.x, n.y, state.width)] === playerId;
+  });
 }
 
 export const useGameStore = defineStore("game", {
@@ -35,7 +45,8 @@ export const useGameStore = defineStore("game", {
     attackTarget: null as Vec2 | null,
     _attackIntervalId: null as number | null,
     attackWarnings: [] as Array<{ x: number; y: number; expiresAt: number }>,
-    radialMenu: null as { tile: Vec2; clientX: number; clientY: number } | null
+    radialMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
+    stateRevision: 0   // incremented on every mutation — watched instead of deep state
   }),
   getters: {
     mePlayer(state) {
@@ -54,6 +65,7 @@ export const useGameStore = defineStore("game", {
         this.currentGameId = snapshot.gameId;
         this.optimisticClaims = {};
         if (snapshot.status !== "FINISHED") this.gameOver = null;
+        this.stateRevision++;
       });
 
       // Lightweight tile patch — immediate result of claim/attack/build
@@ -63,7 +75,6 @@ export const useGameStore = defineStore("game", {
         const now = Date.now();
         for (const ch of event.changes) {
           const i = tileIndex(ch.x, ch.y, this.state.width);
-          // Avertissement radar : une de mes cases vient d'être capturée
           if (myId && this.state.tiles.owners[i] === myId && ch.owner !== myId) {
             this.attackWarnings.push({ x: ch.x, y: ch.y, expiresAt: now + 3000 });
           }
@@ -73,9 +84,14 @@ export const useGameStore = defineStore("game", {
         }
         for (const p of event.players) {
           const player = this.state.players.find((pl) => pl.id === p.id);
-          if (player) player.resources = p.resources;
+          if (player) {
+            player.resources = p.resources;
+            if (p.maritimeCharges !== undefined) player.maritimeCharges = p.maritimeCharges;
+          }
         }
+        if (event.wonders !== undefined) this.state.wonders = event.wonders;
         this.attackWarnings = this.attackWarnings.filter(w => w.expiresAt > now);
+        this.stateRevision++;
       });
 
       // Resource-only patch — from the 1s production tick
@@ -85,6 +101,24 @@ export const useGameStore = defineStore("game", {
           const player = this.state.players.find((pl) => pl.id === p.id);
           if (player) player.resources = p.resources;
         }
+        this.stateRevision++;
+      });
+
+      socket.on("game:player_update", (event: PlayerUpdateEvent) => {
+        if (!this.state) return;
+        const player = this.state.players.find((pl) => pl.id === event.player.id);
+        if (player) Object.assign(player, event.player);
+        this.stateRevision++;
+      });
+
+      socket.on("game:brouillage_patch", (event: BrouillagePatchEvent) => {
+        if (!this.state) return;
+        const now = Date.now();
+        this.state.brouillage = [
+          ...this.state.brouillage.filter(b => b.expiresAt > now),
+          ...event.added
+        ];
+        this.stateRevision++;
       });
 
       socket.on("game:player_eliminated", (event: PlayerEliminatedEvent) => {
@@ -99,6 +133,7 @@ export const useGameStore = defineStore("game", {
           player.eliminated = true;
           player.resources  = { villagers: 0, soldiers: 0, wood: 0, stone: 0 };
         }
+        this.stateRevision++;
       });
 
       socket.on("game:over", (event: GameOverEvent) => {
@@ -176,6 +211,11 @@ export const useGameStore = defineStore("game", {
       if (!owner || owner === meId) return;
       if (!canClaimOptimistic(this.state, meId, pos)) return;
 
+      // Rate-limit: max 1 attack emit per 120ms to avoid flooding
+      const now = Date.now();
+      if (now - _lastAttackEmit < 120) return;
+      _lastAttackEmit = now;
+
       const socket = await getSocket();
       socket.emit("game:attack_tile", { gameId, x: pos.x, y: pos.y });
     },
@@ -246,10 +286,9 @@ export const useGameStore = defineStore("game", {
       }
 
       // Case neutre : débarquement automatique si conditions réunies, sinon claim
-      const neighbors = [
-        { x: pos.x+1, y: pos.y }, { x: pos.x-1, y: pos.y },
-        { x: pos.x, y: pos.y+1 }, { x: pos.x, y: pos.y-1 }
-      ].filter(n => n.x >= 0 && n.y >= 0 && n.x < this.state!.width && n.y < this.state!.height);
+      const neighbors = hexNeighborOffsets(pos.y)
+        .map(([dc, dr]) => ({ x: pos.x + dc, y: pos.y + dr }))
+        .filter(n => n.x >= 0 && n.y >= 0 && n.x < this.state!.width && n.y < this.state!.height);
       const adjToMe    = neighbors.some(n => this.state!.tiles.owners[n.y * this.state!.width + n.x] === meId);
       const adjToWater = neighbors.some(n => (this.state!.tiles.types[n.y * this.state!.width + n.x] as TileType) === TileType.Water);
       const charges    = (this.mePlayer as any)?.maritimeCharges ?? 0;
@@ -310,6 +349,12 @@ export const useGameStore = defineStore("game", {
       }
     },
 
+    // Cached frontiers — rebuilt only when stateRevision changes
+    _attackFrontierRev: -1,
+    _attackFrontierCache: [] as Vec2[],
+    _expandFrontierRev: -1,
+    _expandFrontierCache: [] as Vec2[],
+
     autoAttack() {
       const state = this.state;
       const target = this.attackTarget;
@@ -319,28 +364,31 @@ export const useGameStore = defineStore("game", {
       const mySoldiers = this.mePlayer?.resources.soldiers ?? 0;
       if (!myId || mySoldiers < 1) return;
 
-      // Cible déjà conquise ?
       if (state.tiles.owners[target.y * state.width + target.x] === myId) {
         this.clearAttackTarget();
         return;
       }
 
-      // Cases ennemies adjacentes à notre territoire
-      const frontier: Vec2[] = [];
-      for (let i = 0; i < state.tiles.owners.length; i++) {
-        const owner = state.tiles.owners[i];
-        if (!owner || owner === myId) continue;
-        if ((state.tiles.types[i] as TileType) !== TileType.Plain) continue;
-        const x = i % state.width;
-        const y = Math.floor(i / state.width);
-        const adjToMe = (
-          [{ x: x+1, y }, { x: x-1, y }, { x, y: y+1 }, { x, y: y-1 }] as Vec2[]
-        ).some(n => {
-          if (n.x < 0 || n.y < 0 || n.x >= state.width || n.y >= state.height) return false;
-          return state.tiles.owners[n.y * state.width + n.x] === myId;
-        });
-        if (adjToMe) frontier.push({ x, y });
+      // Rebuild frontier only if state changed since last call
+      if (this._attackFrontierRev !== this.stateRevision) {
+        this._attackFrontierRev = this.stateRevision;
+        const result: Vec2[] = [];
+        for (let i = 0; i < state.tiles.owners.length; i++) {
+          const owner = state.tiles.owners[i];
+          if (!owner || owner === myId) continue;
+          if ((state.tiles.types[i] as TileType) !== TileType.Plain) continue;
+          const x = i % state.width;
+          const y = Math.floor(i / state.width);
+          const adjToMe = hexNeighborOffsets(y).some(([dc, dr]) => {
+            const nx = x + dc, ny = y + dr;
+            if (nx < 0 || ny < 0 || nx >= state.width || ny >= state.height) return false;
+            return state.tiles.owners[ny * state.width + nx] === myId;
+          });
+          if (adjToMe) result.push({ x, y });
+        }
+        this._attackFrontierCache = result;
       }
+      const frontier = this._attackFrontierCache;
 
       if (frontier.length === 0) { this.clearAttackTarget(); return; }
 
@@ -391,25 +439,29 @@ export const useGameStore = defineStore("game", {
         return;
       }
 
-      // Trouver toutes les cases frontière (cases vides adjacentes à notre territoire)
-      const frontierSet = new Set<string>();
-      const frontier: Vec2[] = [];
-      for (let i = 0; i < state.tiles.owners.length; i++) {
-        if (state.tiles.owners[i] !== myId) continue;
-        const x = i % state.width;
-        const y = Math.floor(i / state.width);
-        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]] as [number,number][]) {
-          const nx = x + dx, ny = y + dy;
-          if (nx < 0 || ny < 0 || nx >= state.width || ny >= state.height) continue;
-          const key = `${nx},${ny}`;
-          if (frontierSet.has(key)) continue;
-          const ni = ny * state.width + nx;
-          if (state.tiles.owners[ni] === null && (state.tiles.types[ni] as TileType) === TileType.Plain) {
-            frontier.push({ x: nx, y: ny });
-            frontierSet.add(key);
+      // Rebuild frontier only if state changed since last call
+      if (this._expandFrontierRev !== this.stateRevision) {
+        this._expandFrontierRev = this.stateRevision;
+        const seen = new Set<number>();
+        const result: Vec2[] = [];
+        for (let i = 0; i < state.tiles.owners.length; i++) {
+          if (state.tiles.owners[i] !== myId) continue;
+          const x = i % state.width;
+          const y = Math.floor(i / state.width);
+          for (const [dc, dr] of hexNeighborOffsets(y)) {
+            const nx = x + dc, ny = y + dr;
+            if (nx < 0 || ny < 0 || nx >= state.width || ny >= state.height) continue;
+            const ni = ny * state.width + nx;
+            if (seen.has(ni)) continue;
+            seen.add(ni);
+            if (state.tiles.owners[ni] === null && (state.tiles.types[ni] as TileType) === TileType.Plain) {
+              result.push({ x: nx, y: ny });
+            }
           }
         }
+        this._expandFrontierCache = result;
       }
+      const frontier = this._expandFrontierCache;
 
       if (frontier.length === 0) { this.clearExpandTarget(); return; }
 

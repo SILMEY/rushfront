@@ -20,12 +20,16 @@ const auth = useAuthStore();
 const me   = computed(() => props.state.players.find(p => p.userId === auth.user?.id) ?? null);
 
 function adjHasType(type: TileType): boolean {
-  const { x, y } = props.tile;
-  const { width, height } = props.state;
-  for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]] as [number,number][]) {
-    const nx = x + dx, ny = y + dy;
-    if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
-    if ((props.state.tiles.types[ny * width + nx] as TileType) === type) return true;
+  const { x: col, y: row } = props.tile;
+  const { width, height, tiles } = props.state;
+  const even = row % 2 === 0;
+  const offsets: [number, number][] = even
+    ? [[0,-1],[1,0],[0,1],[-1,1],[-1,0],[-1,-1]]
+    : [[1,-1],[1,0],[1,1],[0,1],[-1,0],[0,-1]];
+  for (const [dc, dr] of offsets) {
+    const nc = col + dc, nr = row + dr;
+    if (nc < 0 || nr < 0 || nc >= width || nr >= height) continue;
+    if ((tiles.types[nr * width + nc] as TileType) === type) return true;
   }
   return false;
 }
@@ -37,8 +41,8 @@ const hasWonder = computed(() =>
 type Entry = { building: BuildingType; label: string; icon: string; wood: number; stone: number };
 
 const ALL: Entry[] = [
-  { building: BuildingType.Sawmill,    label: "Scierie",    icon: "forest",          wood: 5,   stone: 0   },
-  { building: BuildingType.Mine,       label: "Mine",       icon: "construction",    wood: 10,  stone: 0   },
+  { building: BuildingType.Sawmill,    label: "Scierie",    icon: "handsaw",         wood: 5,   stone: 0   },
+  { building: BuildingType.Mine,       label: "Mine",       icon: "pickaxe",         wood: 10,  stone: 0   },
   { building: BuildingType.FishingHut, label: "Port",       icon: "sailing",         wood: 10,  stone: 10  },
   { building: BuildingType.Barracks,   label: "Caserne",    icon: "shield",          wood: 20,  stone: 10  },
   { building: BuildingType.University, label: "Université", icon: "history_edu",     wood: 20,  stone: 20  },

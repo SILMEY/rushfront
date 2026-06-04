@@ -81,9 +81,20 @@ export type TileChangePatch = {
 
 export type TileUpdateEvent = {
   changes: TileChangePatch[];
-  players: Array<{ id: string; resources: PlayerResources }>;
+  players: Array<{ id: string; resources: PlayerResources; maritimeCharges?: number }>;
+  wonders?: Array<{ playerId: string; endsAt: number }>;
 };
 
 export type ResourceUpdateEvent = {
   players: Array<{ id: string; resources: PlayerResources }>;
+};
+
+// Lightweight player-only patch (tech purchase, boat purchase, etc.)
+export type PlayerUpdateEvent = {
+  player: { id: string } & Partial<GamePlayerState>;
+};
+
+// Brouillage patch — only the newly-added entries
+export type BrouillagePatchEvent = {
+  added: Array<{ casterPlayerId: string; x: number; y: number; expiresAt: number }>;
 };

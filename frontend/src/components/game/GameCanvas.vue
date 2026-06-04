@@ -122,25 +122,24 @@ watch(
 );
 
 let cameraReady = false;
+// Init caméra une seule fois quand le state arrive (shallow — juste la référence)
 watch(
   () => props.state,
   (state) => {
-    // Initialise la caméra une seule fois, centrée sur la map, légèrement dézoomée
     if (state && !cameraReady) {
       cameraReady = true;
       const canvas = canvasRef.value;
       const rect = canvas ? canvas.getBoundingClientRect() : { width: 1200, height: 800 };
       const { w: mapW, h: mapH } = hexMapBounds(state.width, state.height, tileSize);
-      // Zoom pour que la map rentre dans la vue (avec 10% de marge)
       const fitZoom = Math.min(rect.width / mapW, rect.height / mapH) * 0.90;
       camera.zoom = Math.max(0.10, Math.min(0.40, fitZoom));
       camera.x = rect.width  / 2 - (mapW / 2) * camera.zoom;
       camera.y = rect.height / 2 - (mapH / 2) * camera.zoom;
     }
-    scheduleDraw();
-  },
-  { deep: true }
+  }
 );
+// Redraw déclenché par le compteur de révisions — pas de deep watch sur 9800 tuiles
+watch(() => game.stateRevision, () => scheduleDraw());
 watch(
   () => [camera.x, camera.y, camera.zoom],
   () => scheduleDraw()

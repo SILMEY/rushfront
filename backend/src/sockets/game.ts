@@ -42,18 +42,22 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       await socket.join(`game:${payload.gameId}`);
       const room = `game:${payload.gameId}`;
 
-      instance.onResourceTick = (players) => {
-        io.to(room).emit("game:resources_update", { players });
-      };
-      instance.onPlayerEliminated = (playerId, changes) => {
-        io.to(room).emit("game:player_eliminated", { playerId, changes });
-      };
-      instance.onGameOver = (winner) => {
-        io.to(room).emit("game:over", { winnerId: winner?.id ?? null, winnerName: winner?.name ?? null });
-      };
-      instance.onPlacingTimeout = () => {
-        io.to(room).emit("game:state", instance.snapshot());
-      };
+      // Only wire callbacks once per game instance (prevents duplicate broadcasts on reconnect)
+      if (!instance.onResourceTick) {
+        instance.onResourceTick = (players) => {
+          const active = players.filter(p => !(p as any).eliminated);
+          io.to(room).emit("game:resources_update", { players: active });
+        };
+        instance.onPlayerEliminated = (playerId, changes) => {
+          io.to(room).emit("game:player_eliminated", { playerId, changes });
+        };
+        instance.onGameOver = (winner) => {
+          io.to(room).emit("game:over", { winnerId: winner?.id ?? null, winnerName: winner?.name ?? null });
+        };
+        instance.onPlacingTimeout = () => {
+          io.to(room).emit("game:state", instance.snapshot());
+        };
+      }
       // Wonder victory already fires through onGameOver
 
       socket.emit("game:state", instance.snapshot());
@@ -129,12 +133,12 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     try {
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
-      const { change, defenderId } = instance.attackTile(userId, { x: payload.x, y: payload.y });
+      const { change, defenderId, wonders } = instance.attackTile(userId, { x: payload.x, y: payload.y });
       const attacker = instance.getPlayerByUserId(userId)!;
       const defender = instance.players.find((p) => p.id === defenderId);
       const playerPatches = [{ id: attacker.id, resources: attacker.resources }];
       if (defender) playerPatches.push({ id: defender.id, resources: defender.resources });
-      io.to(`game:${payload.gameId}`).emit("game:tile_update", { changes: [change], players: playerPatches });
+      io.to(`game:${payload.gameId}`).emit("game:tile_update", { changes: [change], players: playerPatches, wonders });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
@@ -150,15 +154,14 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
         throw new Error("invalid_building");
       const change = instance.build(userId, { x: payload.x, y: payload.y, building: payload.building as BuildingType });
       const player = instance.getPlayerByUserId(userId)!;
-      // La merveille modifie wonderEndsAt/wonderPlayerId dans le snapshot → full state pour tous
+      const update: Record<string, unknown> = {
+        changes: [change],
+        players: [{ id: player.id, resources: player.resources }]
+      };
       if (payload.building === BuildingType.Wonder) {
-        io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
-      } else {
-        io.to(`game:${payload.gameId}`).emit("game:tile_update", {
-          changes: [change],
-          players: [{ id: player.id, resources: player.resources }]
-        });
+        update.wonders = instance.wonders.map(w => ({ playerId: w.playerId, endsAt: w.endsAt }));
       }
+      io.to(`game:${payload.gameId}`).emit("game:tile_update", update);
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
@@ -173,10 +176,7 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       const player = instance.getPlayerByUserId(userId);
       if (!player) throw new Error("not_in_game");
 
-      const hasBarracks = instance.tileOwners.some(
-        (o, i) => o === player.id && instance.tileBuildings[i] === BuildingType.Barracks
-      );
-      if (!hasBarracks) throw new Error("need_barracks");
+      if (!instance.hasBuilding(player.id, BuildingType.Barracks)) throw new Error("need_barracks");
 
       const total = player.resources.villagers + player.resources.soldiers;
       if (typeof payload.soldierPct === "number" && Number.isFinite(payload.soldierPct)) {
@@ -211,7 +211,10 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
       instance.buyTech(userId, payload.techId);
-      io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+      const player = instance.getPlayerByUserId(userId)!;
+      io.to(`game:${payload.gameId}`).emit("game:player_update", {
+        player: { id: player.id, resources: player.resources, techs: (player as any).techs }
+      });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
@@ -224,7 +227,10 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
       instance.buyFishingBoat(userId);
-      socket.emit("game:state", instance.snapshot());
+      const player = instance.getPlayerByUserId(userId)!;
+      socket.emit("game:player_update", {
+        player: { id: player.id, resources: player.resources, fishingBoats: player.fishingBoats }
+      });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
@@ -235,7 +241,10 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
       instance.buyTransportBoat(userId);
-      socket.emit("game:state", instance.snapshot());
+      const player = instance.getPlayerByUserId(userId)!;
+      socket.emit("game:player_update", {
+        player: { id: player.id, resources: player.resources, maritimeCharges: player.maritimeCharges }
+      });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
@@ -245,9 +254,12 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     try {
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
-      instance.maritimeLand(userId, { x: payload.x, y: payload.y });
-      // Full state car les maritime charges changent (pas dans tile_update)
-      io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+      const change = instance.maritimeLand(userId, { x: payload.x, y: payload.y });
+      const player = instance.getPlayerByUserId(userId)!;
+      io.to(`game:${payload.gameId}`).emit("game:tile_update", {
+        changes: [change],
+        players: [{ id: player.id, resources: player.resources, maritimeCharges: player.maritimeCharges }]
+      });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
@@ -260,7 +272,11 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
       instance.setBrouillage(userId, payload.tiles);
-      io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
+      const added = payload.tiles.map(t => {
+        const entry = instance.brouillageTiles.get(t.y * instance.width + t.x)!;
+        return { casterPlayerId: entry.casterPlayerId, x: t.x, y: t.y, expiresAt: entry.expiresAt };
+      });
+      io.to(`game:${payload.gameId}`).emit("game:brouillage_patch", { added });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }

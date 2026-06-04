@@ -75,10 +75,23 @@ export function withinRadius(a: Vec2, b: Vec2, radius: number) {
 }
 
 export function orthogonalNeighbors(pos: Vec2): Vec2[] {
-  return [
-    { x: pos.x + 1, y: pos.y },
-    { x: pos.x - 1, y: pos.y },
-    { x: pos.x, y: pos.y + 1 },
-    { x: pos.x, y: pos.y - 1 }
-  ];
+  const { x: col, y: row } = pos;
+  const even = row % 2 === 0;
+  return even
+    ? [
+        { x: col,     y: row - 1 },
+        { x: col + 1, y: row     },
+        { x: col,     y: row + 1 },
+        { x: col - 1, y: row + 1 },
+        { x: col - 1, y: row     },
+        { x: col - 1, y: row - 1 },
+      ]
+    : [
+        { x: col + 1, y: row - 1 },
+        { x: col + 1, y: row     },
+        { x: col + 1, y: row + 1 },
+        { x: col,     y: row + 1 },
+        { x: col - 1, y: row     },
+        { x: col,     y: row - 1 },
+      ];
 }
