@@ -13,6 +13,7 @@ import GameLeftPanel from "../components/game/GameLeftPanel.vue";
 import PortPanel from "../components/game/PortPanel.vue";
 import SectionTitle from "../components/game/SectionTitle.vue";
 import RadialMenu from "../components/game/RadialMenu.vue";
+import PortMenu   from "../components/game/PortMenu.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route  = useRoute();
@@ -104,6 +105,19 @@ watch(
     :client-y="game.radialMenu.clientY"
     @build="(b) => { game.build(game.state!.gameId, game.radialMenu!.tile, b); game.radialMenu = null; }"
     @close="game.radialMenu = null"
+  />
+
+<!-- Menu port (clic droit sur un port) -->
+  <PortMenu
+    v-if="game.portMenu && game.state"
+    :state="game.state"
+    :tile="game.portMenu.tile"
+    :client-x="game.portMenu.clientX"
+    :client-y="game.portMenu.clientY"
+    @buy-fishing-boat="() => { game.buyFishingBoat(game.state!.gameId); game.portMenu = null; }"
+    @buy-transport-boat="() => { game.buyTransportBoat(game.state!.gameId); game.portMenu = null; }"
+    @maritime-landing="() => { game.toggleMaritimeLanding(); game.portMenu = null; }"
+    @close="game.portMenu = null"
   />
 
 <!-- MAIN GAMEPLAY CANVAS (layout inspired by `public/codejeu.html`) -->

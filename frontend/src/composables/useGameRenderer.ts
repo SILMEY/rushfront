@@ -64,6 +64,17 @@ function terrainNoise(x: number, y: number): number {
   return smoothNoise(x, y, 9) * 0.65 + smoothNoise(x, y, 3) * 0.35;
 }
 
+// Append a pointy-top hex to an existing Path2D (no beginPath — used for batching)
+function addHexToPath(path: Path2D, cx: number, cy: number, R: number): void {
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i - Math.PI / 2;
+    const x = cx + R * Math.cos(a);
+    const y = cy + R * Math.sin(a);
+    if (i === 0) path.moveTo(x, y); else path.lineTo(x, y);
+  }
+  path.closePath();
+}
+
 // --- Screen-space grain texture (generated once) ---
 
 let _grainPattern: CanvasPattern | null = null;
@@ -130,50 +141,90 @@ export function useGameRenderer() {
     ctx.imageSmoothingEnabled = false;
 
     // ── Pass 1: tiles ──────────────────────────────────────────────────────
-    for (let row = y0; row <= y1; row++) {
-      for (let col = x0; col <= x1; col++) {
-        const i        = row * state.width + col;
-        const type     = state.tiles.types[i]     as TileType;
-        const owner    = state.tiles.owners[i];
-        const building = state.tiles.buildings[i] as BuildingType | null;
+    if (tsScreen < 10) {
+      // ── FAST PATH: batched fills — one fill() per color group ─────────────
+      // At this zoom tiles are < 10px; noise, bevel, outlines and icons are
+      // invisible. Batching 9 800 hexes into ~15 fill() calls vs ~50 000.
+      const basePaths  = new Map<string, Path2D>();
+      const ownerPaths = new Map<string, Path2D>();
 
-        const base       = TILE_COLORS[type] ?? TILE_COLORS[TileType.Plain];
-        const ownerColor = owner ? (colorByPlayer.get(owner) ?? "#64748b") : null;
+      for (let row = y0; row <= y1; row++) {
+        for (let col = x0; col <= x1; col++) {
+          const i          = row * state.width + col;
+          const type       = state.tiles.types[i] as TileType;
+          const owner      = state.tiles.owners[i];
+          const base       = TILE_COLORS[type] ?? TILE_COLORS[TileType.Plain];
+          const ownerColor = owner ? (colorByPlayer.get(owner) ?? "#64748b") : null;
+          const { x: cx, y: cy } = hexCenter(col, row, tileSize);
 
-        const { x: cx, y: cy } = hexCenter(col, row, tileSize);
-        const noise = terrainNoise(col, row);
+          if (!basePaths.has(base)) basePaths.set(base, new Path2D());
+          addHexToPath(basePaths.get(base)!, cx, cy, R);
 
-        // 1a. Base fill
-        hexPathAt(ctx, cx, cy, R);
-        ctx.fillStyle = base;
-        ctx.fill();
-
-        // 1b. Smooth noise brightness variation (±8%)
-        hexPathAt(ctx, cx, cy, R);
-        ctx.fillStyle = noise > 0.5
-          ? `rgba(255,255,255,${((noise - 0.5) * 0.16).toFixed(3)})`
-          : `rgba(0,0,0,${((0.5 - noise) * 0.14).toFixed(3)})`;
-        ctx.fill();
-
-        // 1c. Water — additional reflective highlight from secondary noise
-        if (type === TileType.Water) {
-          const wn = smoothNoise(col, row, 5);
-          hexPathAt(ctx, cx, cy, R);
-          ctx.fillStyle = `rgba(96,165,250,${(wn * 0.09).toFixed(3)})`;
-          ctx.fill();
+          if (ownerColor) {
+            if (!ownerPaths.has(ownerColor)) ownerPaths.set(ownerColor, new Path2D());
+            addHexToPath(ownerPaths.get(ownerColor)!, cx, cy, R);
+          }
         }
+      }
 
-        // 1d. Owner color
-        if (ownerColor) {
+      // 4 fills max for tile types
+      for (const [color, path] of basePaths) {
+        ctx.fillStyle = color;
+        ctx.fill(path);
+      }
+      // 1 fill per player for ownership (typically 2–10 fills)
+      ctx.globalAlpha = 0.85;
+      for (const [color, path] of ownerPaths) {
+        ctx.fillStyle = color;
+        ctx.fill(path);
+      }
+      ctx.globalAlpha = 1;
+
+    } else {
+      // ── FULL QUALITY: per-tile with noise, bevel, outlines, icons ─────────
+      for (let row = y0; row <= y1; row++) {
+        for (let col = x0; col <= x1; col++) {
+          const i        = row * state.width + col;
+          const type     = state.tiles.types[i]     as TileType;
+          const owner    = state.tiles.owners[i];
+          const building = state.tiles.buildings[i] as BuildingType | null;
+
+          const base       = TILE_COLORS[type] ?? TILE_COLORS[TileType.Plain];
+          const ownerColor = owner ? (colorByPlayer.get(owner) ?? "#64748b") : null;
+
+          const { x: cx, y: cy } = hexCenter(col, row, tileSize);
+          const noise = terrainNoise(col, row);
+
+          // 1a. Base fill
           hexPathAt(ctx, cx, cy, R);
-          ctx.fillStyle   = ownerColor;
-          ctx.globalAlpha = 0.85;
+          ctx.fillStyle = base;
           ctx.fill();
-          ctx.globalAlpha = 1;
-        }
 
-        // 1e. Bevel + outline
-        if (tsScreen >= 10) {
+          // 1b. Smooth noise brightness variation (±8%)
+          hexPathAt(ctx, cx, cy, R);
+          ctx.fillStyle = noise > 0.5
+            ? `rgba(255,255,255,${((noise - 0.5) * 0.16).toFixed(3)})`
+            : `rgba(0,0,0,${((0.5 - noise) * 0.14).toFixed(3)})`;
+          ctx.fill();
+
+          // 1c. Water — additional reflective highlight from secondary noise
+          if (type === TileType.Water) {
+            const wn = smoothNoise(col, row, 5);
+            hexPathAt(ctx, cx, cy, R);
+            ctx.fillStyle = `rgba(96,165,250,${(wn * 0.09).toFixed(3)})`;
+            ctx.fill();
+          }
+
+          // 1d. Owner color
+          if (ownerColor) {
+            hexPathAt(ctx, cx, cy, R);
+            ctx.fillStyle   = ownerColor;
+            ctx.globalAlpha = 0.85;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+
+          // 1e. Bevel + outline (tsScreen >= 10 guaranteed here)
           if (type !== TileType.Water) {
             hexBevel(ctx, cx, cy, R, scale);
             hexPathAt(ctx, cx, cy, R);
@@ -198,56 +249,58 @@ export function useGameRenderer() {
               ctx.stroke();
             }
           }
-        }
 
-        // 1f. Terrain icons (no icon for water — shape + color are sufficient)
-        if (tsScreen >= 28) {
-          const icon =
-            type === TileType.Forest ? "park"       :
-            type === TileType.Quarry ? "filter_hdr" : "";
-          if (icon) {
-            ctx.fillStyle =
-              type === TileType.Forest ? "rgba(34,197,94,0.30)"   :
-                                         "rgba(168,162,158,0.35)";
-            ctx.font          = `${Math.max(18 / scale, R * 0.9)}px "Material Symbols Outlined"`;
-            ctx.textAlign     = "center";
-            ctx.textBaseline  = "middle";
-            ctx.fillText(icon, cx, cy);
+          // 1f. Terrain icons
+          if (tsScreen >= 28) {
+            const icon =
+              type === TileType.Forest ? "park"       :
+              type === TileType.Quarry ? "filter_hdr" : "";
+            if (icon) {
+              ctx.fillStyle =
+                type === TileType.Forest ? "rgba(34,197,94,0.30)"   :
+                                           "rgba(168,162,158,0.35)";
+              ctx.font          = `${Math.max(18 / scale, R * 0.9)}px "Material Symbols Outlined"`;
+              ctx.textAlign     = "center";
+              ctx.textBaseline  = "middle";
+              ctx.fillText(icon, cx, cy);
+            }
           }
-        }
 
-        // 1g. Buildings
-        if (building != null && building !== BuildingType.Wonder) {
-          const isBase = building === BuildingType.Base;
-          const iconPx = R * (isBase ? 1.15 : 0.95);
-          const bgR2   = R * (isBase ? 0.80 : 0.68);
+          // 1g. Buildings
+          if (building != null && building !== BuildingType.Wonder) {
+            const isBase = building === BuildingType.Base;
+            const iconPx = R * (isBase ? 1.15 : 0.95);
+            const bgR2   = R * (isBase ? 0.80 : 0.68);
 
-          // Circular badge — no more black square
-          ctx.beginPath();
-          ctx.arc(cx, cy, bgR2, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(8, 8, 14, 0.80)";
-          ctx.fill();
-          ctx.strokeStyle = ownerColor ? `${ownerColor}55` : "rgba(255,255,255,0.12)";
-          ctx.lineWidth   = 1 / scale;
-          ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(cx, cy, bgR2, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(8, 8, 14, 0.80)";
+            ctx.fill();
+            ctx.strokeStyle = ownerColor ? `${ownerColor}55` : "rgba(255,255,255,0.12)";
+            ctx.lineWidth   = 1 / scale;
+            ctx.stroke();
 
-          ctx.textAlign    = "center";
-          ctx.textBaseline = "middle";
-          ctx.font         = `${iconPx}px "Material Symbols Outlined"`;
+            ctx.textAlign    = "center";
+            ctx.textBaseline = "middle";
 
-          let bIcon = "help", bColor = "rgba(255,255,255,0.95)";
-          switch (building) {
-            case BuildingType.Base:       bIcon = "location_city";   bColor = "rgba(255,255,255,0.98)"; break;
-            case BuildingType.Barracks:   bIcon = "shield";          bColor = "rgba(255,175,175,0.95)"; break;
-            case BuildingType.University: bIcon = "history_edu";     bColor = "rgba(175,210,255,0.95)"; break;
-            case BuildingType.City:       bIcon = "account_balance"; bColor = "rgba(135,200,255,0.95)"; break;
-            case BuildingType.Sawmill:    bIcon = "handsaw";         bColor = "rgba(155,240,155,0.95)"; break;
-            case BuildingType.Mine:       bIcon = "pickaxe";         bColor = "rgba(255,215,135,0.95)"; break;
-            case BuildingType.FishingHut: bIcon = "sailing";         bColor = "rgba(135,215,255,0.95)"; break;
-            case BuildingType.Bridge:     bIcon = "water";           bColor = "rgba(251,191,36,0.95)";  break;
+            let bIcon = "help", bColor = "rgba(255,255,255,0.95)";
+            switch (building) {
+              case BuildingType.Base:       bIcon = "location_city";   bColor = "rgba(255,255,255,0.98)"; break;
+              case BuildingType.Barracks:   bIcon = "shield";          bColor = "rgba(255,175,175,0.95)"; break;
+              case BuildingType.University: bIcon = "history_edu";     bColor = "rgba(175,210,255,0.95)"; break;
+              case BuildingType.City:       bIcon = "account_balance"; bColor = "rgba(135,200,255,0.95)"; break;
+              case BuildingType.Sawmill:    bIcon = "🪚";              bColor = "rgba(155,240,155,0.95)"; break;
+              case BuildingType.Mine:       bIcon = "⛏️";             bColor = "rgba(255,215,135,0.95)"; break;
+              case BuildingType.FishingHut: bIcon = "sailing";         bColor = "rgba(135,215,255,0.95)"; break;
+              case BuildingType.Bridge:     bIcon = "water";           bColor = "rgba(251,191,36,0.95)";  break;
+            }
+            const useEmoji = (bIcon.codePointAt(0) ?? 0) > 127;
+            ctx.font = useEmoji
+              ? `${iconPx}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`
+              : `${iconPx}px "Material Symbols Outlined"`;
+            ctx.fillStyle = bColor;
+            ctx.fillText(bIcon, cx, cy);
           }
-          ctx.fillStyle = bColor;
-          ctx.fillText(bIcon, cx, cy);
         }
       }
     }
@@ -343,6 +396,29 @@ export function useGameRenderer() {
       ctx.strokeStyle = rgba("#60a5fa", 0.9);
       ctx.lineWidth   = 2 / scale;
       ctx.stroke();
+    }
+
+    // ── Pass 7: maritime animation (boat emoji traveling through water) ─────
+    const anim = game.maritimeAnimation;
+    if (anim) {
+      const step = Math.min(anim.step, anim.path.length - 1);
+      const pos  = anim.path[step];
+      const { x: cx, y: cy } = hexCenter(pos.x, pos.y, tileSize);
+      const boatSize = Math.max(R * 1.6, 18 / scale);
+
+      // Wake / shadow under the boat
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle   = "#0a1a3a";
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + R * 0.3, R * 0.7, R * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Boat
+      ctx.font         = `${boatSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      ctx.textAlign    = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("🚢", cx, cy);
     }
 
     ctx.restore();

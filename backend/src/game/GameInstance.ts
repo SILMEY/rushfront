@@ -409,6 +409,19 @@ export class GameInstance {
     if (capturedBuilding != null) {
       this._removeBuilding(defender.id, capturedBuilding);
       this._addBuilding(player.id, capturedBuilding);
+
+      // Port capturé → le défenseur perd des bateaux
+      if (capturedBuilding === BuildingType.FishingHut) {
+        if (!this.hasBuilding(defender.id, BuildingType.FishingHut)) {
+          // Plus aucun port : perte totale
+          (defender as any).fishingBoats    = 0;
+          (defender as any).maritimeCharges = 0;
+        } else {
+          // Perte partielle (autres ports restants)
+          (defender as any).fishingBoats    = Math.max(0, ((defender as any).fishingBoats    ?? 0) - 1);
+          (defender as any).maritimeCharges = Math.max(0, ((defender as any).maritimeCharges ?? 0) - 1);
+        }
+      }
     }
     this.tileOwners[index] = player.id;
 

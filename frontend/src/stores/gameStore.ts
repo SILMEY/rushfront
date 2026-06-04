@@ -4,6 +4,7 @@ import { BuildingType, TileType } from "../types/game";
 import { getSocket } from "../composables/useSocket";
 import { useAuthStore } from "./authStore";
 import { tileIndex } from "../utils/tileUtils";
+import { findWaterPath } from "../utils/waterPath";
 
 // Module-level cooldowns — not reactive, no overhead
 let _lastAttackEmit = 0;
@@ -46,6 +47,10 @@ export const useGameStore = defineStore("game", {
     _attackIntervalId: null as number | null,
     attackWarnings: [] as Array<{ x: number; y: number; expiresAt: number }>,
     radialMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
+    portMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
+    selectedPortPos: null as Vec2 | null,
+    maritimeAnimation: null as { path: Vec2[]; step: number; gameId: string } | null,
+    _maritimeAnimIntervalId: null as number | null,
     stateRevision: 0   // incremented on every mutation — watched instead of deep state
   }),
   getters: {
@@ -87,6 +92,7 @@ export const useGameStore = defineStore("game", {
           if (player) {
             player.resources = p.resources;
             if (p.maritimeCharges !== undefined) player.maritimeCharges = p.maritimeCharges;
+            if (p.fishingBoats    !== undefined) player.fishingBoats    = p.fishingBoats;
           }
         }
         if (event.wonders !== undefined) this.state.wonders = event.wonders;
@@ -245,9 +251,49 @@ export const useGameStore = defineStore("game", {
     },
 
     async maritimeLand(gameId: string, pos: Vec2) {
-      const socket = await getSocket();
-      socket.emit("game:maritime_land", { gameId, x: pos.x, y: pos.y });
       this.maritimeLandingMode = false;
+
+      // Trouver le port de départ (sélectionné ou premier port disponible)
+      let portPos = this.selectedPortPos;
+      if (!portPos && this.state) {
+        const meId = this.mePlayer?.id;
+        if (meId) {
+          const idx = this.state.tiles.buildings.findIndex(
+            (b, i) => b === BuildingType.FishingHut && this.state!.tiles.owners[i] === meId
+          );
+          if (idx >= 0) portPos = { x: idx % this.state.width, y: Math.floor(idx / this.state.width) };
+        }
+      }
+
+      const socket = await getSocket();
+
+      if (portPos && this.state) {
+        const path = findWaterPath(this.state, portPos, pos);
+        if (path && path.length > 2) {
+          // Durée totale max 3s
+          const stepMs = Math.min(280, Math.floor(3000 / path.length));
+          this.maritimeAnimation = { path, step: 0, gameId };
+          this.stateRevision++;
+
+          this._maritimeAnimIntervalId = window.setInterval(() => {
+            if (!this.maritimeAnimation) return;
+            this.maritimeAnimation.step++;
+            this.stateRevision++;
+
+            if (this.maritimeAnimation.step >= this.maritimeAnimation.path.length - 1) {
+              window.clearInterval(this._maritimeAnimIntervalId!);
+              this._maritimeAnimIntervalId = null;
+              this.maritimeAnimation = null;
+              socket.emit("game:maritime_land", { gameId, x: pos.x, y: pos.y });
+              this.stateRevision++;
+            }
+          }, stepMs);
+          return;
+        }
+      }
+
+      // Pas de chemin trouvé ou pas de port — envoi immédiat
+      socket.emit("game:maritime_land", { gameId, x: pos.x, y: pos.y });
     },
 
     selectBuilding(building: BuildingType | null) {
@@ -296,15 +342,26 @@ export const useGameStore = defineStore("game", {
       return this.claimTile(this.state.gameId, pos);
     },
 
-    // Clic DROIT — menu radial contextuel (uniquement sur ses propres cases vides)
+    // Clic DROIT — menu contextuel selon la case
     onTileContext(pos: Vec2, clientX: number, clientY: number) {
       if (!this.state || this.state.status !== "ACTIVE") return;
       const meId = this.mePlayer?.id;
       if (!meId) return;
       const i = tileIndex(pos.x, pos.y, this.state.width);
       if (this.state.tiles.owners[i] !== meId) return;
+
+      const building = this.state.tiles.buildings[i];
+
+      // Port : menu dédié achat bateaux / débarquement
+      if (building === BuildingType.FishingHut) {
+        this.selectedPortPos = pos;
+        this.portMenu = { tile: pos, clientX, clientY };
+        return;
+      }
+
+      // Case plain vide : menu de construction
       if ((this.state.tiles.types[i] as TileType) !== TileType.Plain) return;
-      if (this.state.tiles.buildings[i] !== null) return;
+      if (building !== null) return;
       this.radialMenu = { tile: pos, clientX, clientY };
     },
 

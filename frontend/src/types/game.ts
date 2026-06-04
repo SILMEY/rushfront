@@ -81,7 +81,7 @@ export type TileChangePatch = {
 
 export type TileUpdateEvent = {
   changes: TileChangePatch[];
-  players: Array<{ id: string; resources: PlayerResources; maritimeCharges?: number }>;
+  players: Array<{ id: string; resources: PlayerResources; maritimeCharges?: number; fishingBoats?: number }>;
   wonders?: Array<{ playerId: string; endsAt: number }>;
 };
 

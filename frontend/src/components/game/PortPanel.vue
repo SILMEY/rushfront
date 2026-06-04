@@ -34,10 +34,13 @@ function buyTransportBoat() { if (props.state) game.buyTransportBoat(props.state
     <div class="space-y-1.5 text-[11px] mb-3">
       <div class="flex items-center justify-between text-white/50">
         <span>Bateaux de pêche</span>
-        <span class="font-bold text-[#a8c090]">{{ fishingBoats }}</span>
+        <div class="flex items-center gap-2">
+          <span class="text-[9px] text-[#a8c090]/60 font-mono">+{{ fishingBoats * 18 }} bois/min</span>
+          <span class="font-bold text-[#a8c090]">{{ fishingBoats }}</span>
+        </div>
       </div>
       <div class="flex items-center justify-between text-white/50">
-        <span>Charges maritimes</span>
+        <span>Transports maritimes</span>
         <span class="font-bold text-[#06b6d4]">{{ maritimeCharges }}</span>
       </div>
     </div>

@@ -41,8 +41,8 @@ const hasWonder = computed(() =>
 type Entry = { building: BuildingType; label: string; icon: string; wood: number; stone: number };
 
 const ALL: Entry[] = [
-  { building: BuildingType.Sawmill,    label: "Scierie",    icon: "handsaw",         wood: 5,   stone: 0   },
-  { building: BuildingType.Mine,       label: "Mine",       icon: "pickaxe",         wood: 10,  stone: 0   },
+  { building: BuildingType.Sawmill,    label: "Scierie",    icon: "🪚",              wood: 5,   stone: 0   },
+  { building: BuildingType.Mine,       label: "Mine",       icon: "⛏️",             wood: 10,  stone: 0   },
   { building: BuildingType.FishingHut, label: "Port",       icon: "sailing",         wood: 10,  stone: 10  },
   { building: BuildingType.Barracks,   label: "Caserne",    icon: "shield",          wood: 20,  stone: 10  },
   { building: BuildingType.University, label: "Université", icon: "history_edu",     wood: 20,  stone: 20  },
@@ -137,8 +137,10 @@ function itemStyle(i: number, total: number) {
             : 'bg-[#1c1812]/70 border-[#8b7e66]/25 opacity-40'"
         >
           <span
-            class="material-symbols-outlined text-[19px]"
-            :class="canAfford(entry) ? 'text-[#d4c59f]' : 'text-white/30'"
+            :class="[
+              (entry.icon.codePointAt(0) ?? 0) > 127 ? 'text-[22px]' : 'material-symbols-outlined text-[19px]',
+              canAfford(entry) ? 'text-[#d4c59f]' : 'text-white/30'
+            ]"
           >{{ entry.icon }}</span>
         </div>
         <span
