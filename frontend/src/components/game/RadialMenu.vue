@@ -79,11 +79,11 @@ function itemStyle(i: number, total: number) {
 </script>
 
 <template>
-  <!-- Couche 1 : backdrop qui ferme le menu au clic -->
+  <!-- Couche 1 : backdrop — ferme au clic GAUCHE seulement -->
   <div
     class="fixed inset-0 z-[400]"
     @click="emit('close')"
-    @contextmenu.prevent="emit('close')"
+    @contextmenu.prevent
   />
 
   <!-- Couche 2 : items au-dessus du backdrop -->
