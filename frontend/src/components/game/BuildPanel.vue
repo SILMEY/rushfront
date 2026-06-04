@@ -27,14 +27,14 @@ type BuildItem = {
 };
 
 const items: BuildItem[] = [
-  { type: BuildingType.Sawmill,    label: "Scierie",      icon: "🪚",            wood: 5,   stone: 0,   villagers: 0,
+  { type: BuildingType.Sawmill,    label: "Scierie",      icon: "handsaw",       wood: 5,   stone: 0,   villagers: 0,
     hint: "Doit être adjacente à une forêt. Produit +30 bois/min par forêt adjacente (max 3 forêts = +90/min).",
     production: "+30/min 🪵" },
-  { type: BuildingType.Mine,       label: "Mine",         icon: "⛏️",           wood: 10,  stone: 0,   villagers: 0,
+  { type: BuildingType.Mine,       label: "Mine",         icon: "construction",  wood: 10,  stone: 0,   villagers: 0,
     hint: "Doit être adjacente à une carrière. Produit +30 pierre/min par carrière adjacente (max 3 = +90/min).",
     production: "+30/min 🪨" },
   { type: BuildingType.FishingHut, label: "Port",         icon: "sailing",       wood: 10,  stone: 10,  villagers: 0,
-    hint: "Adjacent à l'eau. Permet d'acheter des bateaux de pêche (+18 bois/min par bateau) et des transports maritimes." },
+    hint: "Adjacent à l'eau. Clic droit pour acheter des bateaux de pêche (+1 hab./s chacun, max 10 par port) et des transports maritimes (débarquement)." },
   { type: BuildingType.Barracks,   label: "Caserne",      icon: "shield",        wood: 20,  stone: 10,  villagers: 0,
     hint: "Débloque les militaires et les attaques" },
   { type: BuildingType.University, label: "Université",   icon: "history_edu",   wood: 20,  stone: 20,  villagers: 0,

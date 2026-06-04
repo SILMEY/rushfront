@@ -35,7 +35,7 @@ function buyTransportBoat() { if (props.state) game.buyTransportBoat(props.state
       <div class="flex items-center justify-between text-white/50">
         <span>Bateaux de pêche</span>
         <div class="flex items-center gap-2">
-          <span class="text-[9px] text-[#a8c090]/60 font-mono">+{{ fishingBoats * 18 }} bois/min</span>
+          <span class="text-[9px] text-[#a8c090]/60 font-mono">+{{ fishingBoats }} hab./s</span>
           <span class="font-bold text-[#a8c090]">{{ fishingBoats }}</span>
         </div>
       </div>

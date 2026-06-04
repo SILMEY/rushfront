@@ -116,7 +116,6 @@ watch(
     :client-y="game.portMenu.clientY"
     @buy-fishing-boat="() => { game.buyFishingBoat(game.state!.gameId); game.portMenu = null; }"
     @buy-transport-boat="() => { game.buyTransportBoat(game.state!.gameId); game.portMenu = null; }"
-    @maritime-landing="() => { game.toggleMaritimeLanding(); game.portMenu = null; }"
     @close="game.portMenu = null"
   />
 

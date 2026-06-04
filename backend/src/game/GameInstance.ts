@@ -65,6 +65,10 @@ export class GameInstance {
     return (this._buildingCounts.get(playerId)?.get(b) ?? 0) > 0;
   }
 
+  buildingCount(playerId: string, b: BuildingType): number {
+    return this._buildingCounts.get(playerId)?.get(b) ?? 0;
+  }
+
   private timer: NodeJS.Timeout | null = null;
   private placingTimer: NodeJS.Timeout | null = null;
 
@@ -351,7 +355,7 @@ export class GameInstance {
 
   // ── Attack (immediate) ────────────────────────────────────────────────────
 
-  attackTile(userId: string, pos: Vec2): { change: TileChange; defenderId: string } {
+  attackTile(userId: string, pos: Vec2): { change: TileChange; defenderId: string; wonders: Array<{ playerId: string; endsAt: number }> } {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
@@ -543,6 +547,8 @@ export class GameInstance {
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
     if (!this.hasPort(player.id)) throw new Error("need_port");
+    const portCount = this.buildingCount(player.id, BuildingType.FishingHut);
+    if ((player.fishingBoats ?? 0) >= portCount * 10) throw new Error("max_boats_reached");
     if (player.resources.villagers < 1) throw new Error("not_enough_habitants");
     player.resources.villagers -= 1;
     player.fishingBoats = (player.fishingBoats ?? 0) + 1;

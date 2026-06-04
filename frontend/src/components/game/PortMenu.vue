@@ -13,85 +13,102 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "buy-fishing-boat"): void;
   (e: "buy-transport-boat"): void;
-  (e: "maritime-landing"): void;
   (e: "close"): void;
 }>();
 
-const auth    = useAuthStore();
-const me      = computed(() => props.state.players.find(p => p.userId === auth.user?.id) ?? null);
-const villagers       = computed(() => me.value?.resources.villagers ?? 0);
-const fishingBoats    = computed(() => me.value?.fishingBoats ?? 0);
-const maritimeCharges = computed(() => me.value?.maritimeCharges ?? 0);
+const auth = useAuthStore();
+const me   = computed(() => props.state.players.find(p => p.userId === auth.user?.id) ?? null);
 
-// Keep menu within viewport
-const MARGIN = 120;
+type PortEntry = { action: "fishing-boat" | "transport"; label: string; icon: string; cost: number; detail: string };
+
+const ALL: PortEntry[] = [
+  { action: "fishing-boat", label: "Pêche",     icon: "sailing",          cost: 1,  detail: "+1 hab./s" },
+  { action: "transport",    label: "Transport",  icon: "directions_boat",  cost: 10, detail: "1 débarquement" },
+];
+
+function canAfford(e: PortEntry): boolean {
+  if (!me.value) return false;
+  return me.value.resources.villagers >= e.cost;
+}
+
+function onAction(e: PortEntry) {
+  if (!canAfford(e)) return;
+  emit(e.action === "fishing-boat" ? "buy-fishing-boat" : "buy-transport-boat");
+}
+
+const RADIUS   = 58;
+const HALF_BTN = 24;
+const MARGIN   = RADIUS + HALF_BTN + 6;
+
 const cx = computed(() => Math.min(Math.max(props.clientX, MARGIN), window.innerWidth  - MARGIN));
 const cy = computed(() => Math.min(Math.max(props.clientY, MARGIN), window.innerHeight - MARGIN));
+
+function itemStyle(i: number, total: number) {
+  const angle = (i / total) * 2 * Math.PI - Math.PI / 2;
+  const x = Math.round(Math.cos(angle) * RADIUS);
+  const y = Math.round(Math.sin(angle) * RADIUS);
+  return { transform: `translate(calc(${x}px - 50%), calc(${y}px - 50%))` };
+}
 </script>
 
 <template>
   <!-- Backdrop -->
   <div class="fixed inset-0 z-[400]" @click="emit('close')" @contextmenu.prevent />
 
-  <!-- Menu card -->
-  <div
-    class="fixed z-[401]"
-    :style="{ left: cx + 'px', top: cy + 'px', transform: 'translate(-50%, -50%)' }"
-  >
-    <div class="bg-[#1c1812]/97 border border-[#8b7e66] rounded-lg shadow-2xl min-w-[200px] overflow-hidden">
-      <!-- Header -->
-      <div class="px-3 py-2 border-b border-[#8b7e66]/40 flex items-center gap-2">
-        <span class="text-lg">⚓</span>
-        <span class="text-[11px] font-bold uppercase tracking-widest text-[#d4af37]">Port</span>
-        <div class="ml-auto flex gap-3 text-[10px] text-white/40">
-          <span>🚣 {{ fishingBoats }}</span>
-          <span>🚢 {{ maritimeCharges }}</span>
+  <!-- Menu -->
+  <div class="fixed z-[401]" :style="{ left: cx + 'px', top: cy + 'px' }">
+
+    <!-- Lignes SVG vers items -->
+    <svg class="absolute overflow-visible pointer-events-none" style="transform: translate(-50%, -50%)" width="1" height="1">
+      <line
+        v-for="(item, i) in ALL"
+        :key="'l' + item.action"
+        x1="0" y1="0"
+        :x2="Math.round(Math.cos((i / ALL.length) * 2 * Math.PI - Math.PI / 2) * RADIUS)"
+        :y2="Math.round(Math.sin((i / ALL.length) * 2 * Math.PI - Math.PI / 2) * RADIUS)"
+        stroke="rgba(242,202,80,0.18)"
+        stroke-width="1"
+      />
+    </svg>
+
+    <!-- Point central -->
+    <div
+      class="absolute w-2.5 h-2.5 rounded-full bg-[#f2ca50]/50 border border-[#f2ca50]/70 pointer-events-none"
+      style="transform: translate(-50%, -50%)"
+    />
+
+    <!-- Items -->
+    <div
+      v-for="(entry, i) in ALL"
+      :key="entry.action"
+      class="absolute"
+      :style="itemStyle(i, ALL.length)"
+    >
+      <button
+        class="flex flex-col items-center gap-0.5 group"
+        :disabled="!canAfford(entry)"
+        @click.stop="onAction(entry)"
+      >
+        <div
+          class="w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all duration-150 shadow-lg"
+          :class="canAfford(entry)
+            ? 'bg-[#1c1812]/95 border-[#8b7e66] group-hover:border-[#f2ca50] group-hover:scale-110'
+            : 'bg-[#1c1812]/70 border-[#8b7e66]/25 opacity-40'"
+        >
+          <span
+            class="material-symbols-outlined text-[19px]"
+            :class="canAfford(entry) ? 'text-[#d4c59f]' : 'text-white/30'"
+          >{{ entry.icon }}</span>
         </div>
-      </div>
-
-      <div class="p-2 space-y-1">
-        <!-- Bateau de pêche -->
-        <button
-          class="w-full flex items-center gap-2 px-3 py-2 rounded text-left text-[11px] transition-all"
-          :class="villagers >= 1
-            ? 'text-[#d4c59f] hover:bg-white/8 cursor-pointer'
-            : 'text-white/25 cursor-not-allowed'"
-          :disabled="villagers < 1"
-          @click.stop="emit('buy-fishing-boat')"
-        >
-          <span class="text-base leading-none">🚣</span>
-          <div class="flex-1">
-            <div class="font-bold">Bateau de pêche</div>
-            <div class="text-[9px] text-[#a8c090]/60 font-mono">+18 bois/min</div>
-          </div>
-          <span class="text-white/40">1 hab.</span>
-        </button>
-
-        <!-- Transport maritime -->
-        <button
-          class="w-full flex items-center gap-2 px-3 py-2 rounded text-left text-[11px] transition-all"
-          :class="villagers >= 10
-            ? 'text-[#06b6d4] hover:bg-white/8 cursor-pointer'
-            : 'text-white/25 cursor-not-allowed'"
-          :disabled="villagers < 10"
-          @click.stop="emit('buy-transport-boat')"
-        >
-          <span class="text-base leading-none">🚢</span>
-          <span class="flex-1 font-bold">Transport maritime</span>
-          <span class="text-white/40">10 hab.</span>
-        </button>
-
-        <!-- Débarquement (si charges disponibles) -->
-        <button
-          v-if="maritimeCharges > 0"
-          class="w-full flex items-center gap-2 px-3 py-2 rounded text-left text-[11px] transition-all border border-[#06b6d4]/30 text-[#06b6d4] hover:bg-[#06b6d4]/10 cursor-pointer"
-          @click.stop="emit('maritime-landing')"
-        >
-          <span class="material-symbols-outlined text-[14px]">anchor</span>
-          <span class="flex-1 font-bold">Débarquement</span>
-          <span class="text-white/40">{{ maritimeCharges }}×</span>
-        </button>
-      </div>
+        <span
+          class="text-[8px] font-bold uppercase tracking-wide whitespace-nowrap"
+          :class="canAfford(entry) ? 'text-white/60' : 'text-white/20'"
+        >{{ entry.label }}</span>
+        <span
+          class="text-[7px] whitespace-nowrap"
+          :class="canAfford(entry) ? 'text-[#a8c090]/70' : 'text-white/15'"
+        >{{ entry.detail }}</span>
+      </button>
     </div>
   </div>
 </template>

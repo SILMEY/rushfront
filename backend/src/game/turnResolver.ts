@@ -52,6 +52,8 @@ export function applyProduction(input: {
   for (const player of players) {
     const techs = new Set((player as any).techs as string[] | undefined);
 
+    const fishingBoats = (player as any).fishingBoats ?? 0;
+
     // Count owned tiles and cities
     let ownedTiles = 0;
     let cityCount = 0;
@@ -66,8 +68,10 @@ export function applyProduction(input: {
     const currentPop = player.resources.villagers + player.resources.soldiers;
 
     if (currentPop < maxPop) {
-      // Chaque cité équivaut à 50 cases supplémentaires pour la croissance
-      const ratePerTick = Math.sqrt(ownedTiles + cityCount * 50) * 0.10;
+      // Chaque cité équivaut à 50 cases supplémentaires pour la croissance naturelle
+      // Chaque bateau de pêche ajoute +1 habitant/s (0.1 par tick à 10 ticks/s)
+      const naturalRate = Math.sqrt(ownedTiles + cityCount * 50) * 0.10;
+      const ratePerTick = naturalRate + fishingBoats * 0.1;
       const accumulated = ((player as any).habitantFraction ?? 0) + ratePerTick;
       const floored = Math.floor(accumulated);
       const newHabitants = Math.min(floored, maxPop - currentPop);
@@ -161,9 +165,7 @@ export function applyProduction(input: {
       }
     }
 
-    // Bateaux de pêche (passif bois par bateau)
-    const fishingBoats = (player as any).fishingBoats ?? 0;
-    if (fishingBoats > 0) player.resources.wood += pGain(fishingBoats * 3);
+    // (bateaux de pêche → croissance habitants, géré dans le bloc maxPop ci-dessus)
 
     // Empire d'Aurélien territorial bonus
     if (player.civilization === "aurelian_empire") {

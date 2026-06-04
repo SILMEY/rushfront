@@ -48,7 +48,6 @@ export const useGameStore = defineStore("game", {
     attackWarnings: [] as Array<{ x: number; y: number; expiresAt: number }>,
     radialMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
     portMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
-    selectedPortPos: null as Vec2 | null,
     maritimeAnimation: null as { path: Vec2[]; step: number; gameId: string } | null,
     _maritimeAnimIntervalId: null as number | null,
     stateRevision: 0   // incremented on every mutation — watched instead of deep state
@@ -253,15 +252,20 @@ export const useGameStore = defineStore("game", {
     async maritimeLand(gameId: string, pos: Vec2) {
       this.maritimeLandingMode = false;
 
-      // Trouver le port de départ (sélectionné ou premier port disponible)
-      let portPos = this.selectedPortPos;
-      if (!portPos && this.state) {
+      // Port le plus proche de la destination (Euclidien)
+      let portPos: Vec2 | null = null;
+      if (this.state) {
         const meId = this.mePlayer?.id;
         if (meId) {
-          const idx = this.state.tiles.buildings.findIndex(
-            (b, i) => b === BuildingType.FishingHut && this.state!.tiles.owners[i] === meId
-          );
-          if (idx >= 0) portPos = { x: idx % this.state.width, y: Math.floor(idx / this.state.width) };
+          let minDist = Infinity;
+          for (let i = 0; i < this.state.tiles.buildings.length; i++) {
+            if (this.state.tiles.buildings[i] !== BuildingType.FishingHut) continue;
+            if (this.state.tiles.owners[i] !== meId) continue;
+            const px = i % this.state.width;
+            const py = Math.floor(i / this.state.width);
+            const d = (px - pos.x) ** 2 + (py - pos.y) ** 2;
+            if (d < minDist) { minDist = d; portPos = { x: px, y: py }; }
+          }
         }
       }
 
@@ -354,7 +358,6 @@ export const useGameStore = defineStore("game", {
 
       // Port : menu dédié achat bateaux / débarquement
       if (building === BuildingType.FishingHut) {
-        this.selectedPortPos = pos;
         this.portMenu = { tile: pos, clientX, clientY };
         return;
       }

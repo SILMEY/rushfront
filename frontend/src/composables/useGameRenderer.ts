@@ -289,8 +289,8 @@ export function useGameRenderer() {
               case BuildingType.Barracks:   bIcon = "shield";          bColor = "rgba(255,175,175,0.95)"; break;
               case BuildingType.University: bIcon = "history_edu";     bColor = "rgba(175,210,255,0.95)"; break;
               case BuildingType.City:       bIcon = "account_balance"; bColor = "rgba(135,200,255,0.95)"; break;
-              case BuildingType.Sawmill:    bIcon = "🪚";              bColor = "rgba(155,240,155,0.95)"; break;
-              case BuildingType.Mine:       bIcon = "⛏️";             bColor = "rgba(255,215,135,0.95)"; break;
+              case BuildingType.Sawmill:    bIcon = "handsaw";         bColor = "rgba(155,240,155,0.95)"; break;
+              case BuildingType.Mine:       bIcon = "construction";    bColor = "rgba(255,215,135,0.95)"; break;
               case BuildingType.FishingHut: bIcon = "sailing";         bColor = "rgba(135,215,255,0.95)"; break;
               case BuildingType.Bridge:     bIcon = "water";           bColor = "rgba(251,191,36,0.95)";  break;
             }

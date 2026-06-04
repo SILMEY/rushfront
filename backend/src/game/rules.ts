@@ -1,6 +1,6 @@
 import { BuildingType, TileType, type Vec2 } from "./types.js";
 
-export const MAP_WIDTH = 140;
+export const MAP_WIDTH = 93;
 export const MAP_HEIGHT = 70;
 export const TURN_MS = 100; // 100ms per turn — near-instantaneous
 export const TURN_SECONDS = TURN_MS / 1000;

@@ -80,7 +80,9 @@ export type TileChange = {
 export type GameStateSnapshot = {
   gameId: string;
   status: "PLACING" | "ACTIVE" | "FINISHED";
-  placingEndsAt?: number; // unix ms — countdown for start selection
+  gameType?: "quick" | "custom";
+  placingEndsAt?: number;
+  wonders?: Array<{ playerId: string; endsAt: number }>;
   width: number;
   height: number;
   players: GamePlayerState[];
