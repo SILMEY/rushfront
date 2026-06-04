@@ -27,7 +27,7 @@ type BuildItem = {
 };
 
 const items: BuildItem[] = [
-  { type: BuildingType.Sawmill,    label: "Scierie",      icon: "handsaw",       wood: 5,   stone: 0,   villagers: 0,
+  { type: BuildingType.Sawmill,    label: "Scierie",      icon: "forest",        wood: 5,   stone: 0,   villagers: 0,
     hint: "Doit être adjacente à une forêt. Produit +30 bois/min par forêt adjacente (max 3 forêts = +90/min).",
     production: "+30/min 🪵" },
   { type: BuildingType.Mine,       label: "Mine",         icon: "construction",  wood: 10,  stone: 0,   villagers: 0,

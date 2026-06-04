@@ -1,4 +1,4 @@
-export type TechId = "eco_tools" | "cote_de_maille" | "epee_longue" | "pont";
+export type TechId = "eco_tools" | "cote_de_maille" | "epee_longue";
 
 export type TechDef = {
   id: TechId;
@@ -26,13 +26,6 @@ export const TECHS: TechDef[] = [
     name: "Épée longue",
     description: "Réduit de moitié vos pertes militaires quand vous attaquez.",
     cost: { wood: 40, stone: 20 }
-  },
-  {
-    id: "pont",
-    name: "Pont",
-    description: "Permet de revendiquer une case d'eau adjacente (1 charge par achat).",
-    cost: { wood: 15, stone: 10 },
-    stackable: true
   }
 ];
 

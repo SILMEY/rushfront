@@ -87,9 +87,6 @@ function isBought(t: TechDef) {
               <span v-if="t.cost.stone > 0" :class="(me?.resources.stone ?? 0) >= t.cost.stone ? 'text-[#a8a090]' : 'text-red-400/70'">
                 {{ t.cost.stone }} pierre
               </span>
-              <span v-if="t.id === 'pont' && (me?.bridgeCharges ?? 0) > 0" class="text-[#f2ca50]/70">
-                ({{ me?.bridgeCharges }} charge{{ (me?.bridgeCharges ?? 0) > 1 ? 's' : '' }})
-              </span>
             </div>
           </div>
           <button

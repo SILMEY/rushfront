@@ -12,8 +12,9 @@ import CompositionPanel from "../components/game/CompositionPanel.vue";
 import GameLeftPanel from "../components/game/GameLeftPanel.vue";
 import PortPanel from "../components/game/PortPanel.vue";
 import SectionTitle from "../components/game/SectionTitle.vue";
-import RadialMenu from "../components/game/RadialMenu.vue";
-import PortMenu   from "../components/game/PortMenu.vue";
+import RadialMenu    from "../components/game/RadialMenu.vue";
+import PortMenu      from "../components/game/PortMenu.vue";
+import MaritimeMenu  from "../components/game/MaritimeMenu.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route  = useRoute();
@@ -105,6 +106,15 @@ watch(
     :client-y="game.radialMenu.clientY"
     @build="(b) => { game.build(game.state!.gameId, game.radialMenu!.tile, b); game.radialMenu = null; }"
     @close="game.radialMenu = null"
+  />
+
+<!-- Menu débarquement (clic droit sur case côtière non possédée) -->
+  <MaritimeMenu
+    v-if="game.maritimeMenu"
+    :client-x="game.maritimeMenu.clientX"
+    :client-y="game.maritimeMenu.clientY"
+    @land="() => { game.maritimeLand(game.state!.gameId, game.maritimeMenu!.tile); game.maritimeMenu = null; }"
+    @close="game.maritimeMenu = null"
   />
 
 <!-- Menu port (clic droit sur un port) -->

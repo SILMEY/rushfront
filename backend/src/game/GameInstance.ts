@@ -315,8 +315,7 @@ export class GameInstance {
       throw new Error("tile_blocked");
 
     const tileType = this.tileTypes[index] as TileType;
-    const isWater = tileType === TileType.Water;
-    if (tileType !== TileType.Plain && !isWater) throw new Error("invalid_tile");
+    if (tileType !== TileType.Plain) throw new Error("invalid_tile");
     if (this.tileOwners[index]) throw new Error("already_owned");
 
     const neighborOwned = orthogonalNeighbors(pos).some((n) => {
@@ -325,20 +324,11 @@ export class GameInstance {
     });
     if (!neighborOwned) throw new Error("not_adjacent");
 
-    if (isWater) {
-      const charges = (player as any).bridgeCharges ?? 0;
-      if (charges < 1) throw new Error("need_bridge_charge");
-      (player as any).bridgeCharges = charges - 1;
-    }
-
-    // Claiming costs 1 villager (habitants colonisent les cases)
     if (player.resources.villagers < 1) throw new Error("not_enough_habitants");
     player.resources.villagers -= 1;
 
     this.tileOwners[index] = player.id;
-    const building = isWater ? BuildingType.Bridge : (this.tileBuildings[index] ?? null);
-    if (isWater) this.tileBuildings[index] = BuildingType.Bridge;
-    return { x: pos.x, y: pos.y, owner: player.id, building };
+    return { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null };
   }
 
   claimTiles(userId: string, positions: Vec2[]): TileChange[] {
@@ -412,18 +402,22 @@ export class GameInstance {
     const capturedBuilding = this.tileBuildings[index];
     if (capturedBuilding != null) {
       this._removeBuilding(defender.id, capturedBuilding);
-      this._addBuilding(player.id, capturedBuilding);
 
-      // Port capturé → le défenseur perd des bateaux
-      if (capturedBuilding === BuildingType.FishingHut) {
-        if (!this.hasBuilding(defender.id, BuildingType.FishingHut)) {
-          // Plus aucun port : perte totale
-          (defender as any).fishingBoats    = 0;
-          (defender as any).maritimeCharges = 0;
-        } else {
-          // Perte partielle (autres ports restants)
-          (defender as any).fishingBoats    = Math.max(0, ((defender as any).fishingBoats    ?? 0) - 1);
-          (defender as any).maritimeCharges = Math.max(0, ((defender as any).maritimeCharges ?? 0) - 1);
+      if (capturedBuilding === BuildingType.Mine || capturedBuilding === BuildingType.Sawmill) {
+        // Bâtiments de production détruits à la capture (défenseur perd la production,
+        // attaquant reçoit une case vide — symétrie avec la perte des bateaux)
+        this.tileBuildings[index] = null;
+      } else {
+        // Tous les autres bâtiments (caserne, université, port…) passent à l'attaquant
+        this._addBuilding(player.id, capturedBuilding);
+
+        if (capturedBuilding === BuildingType.FishingHut) {
+          const remainingPorts = this.buildingCount(defender.id, BuildingType.FishingHut);
+          const maxBoats = remainingPorts * 10;
+          (defender as any).fishingBoats    = Math.min((defender as any).fishingBoats    ?? 0, maxBoats);
+          (defender as any).maritimeCharges = remainingPorts > 0
+            ? (defender as any).maritimeCharges ?? 0
+            : 0;
         }
       }
     }
@@ -529,9 +523,6 @@ export class GameInstance {
     player.resources.wood  -= def.cost.wood;
     player.resources.stone -= def.cost.stone;
 
-    if (def.stackable && techId === "pont") {
-      (player as any).bridgeCharges = ((player as any).bridgeCharges ?? 0) + 1;
-    }
     techs.add(techId);
     (player as any).techs = Array.from(techs);
   }

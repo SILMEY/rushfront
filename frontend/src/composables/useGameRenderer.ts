@@ -225,27 +225,32 @@ export function useGameRenderer() {
           }
 
           // 1e. Bevel + outline (tsScreen >= 10 guaranteed here)
-          if (type !== TileType.Water) {
+          // Water, Forest, Quarry: seamless interiors — only border edges facing a different type
+          if (type === TileType.Plain) {
             hexBevel(ctx, cx, cy, R, scale);
             hexPathAt(ctx, cx, cy, R);
             ctx.strokeStyle = OUTLINE;
             ctx.lineWidth   = 0.5 / scale;
             ctx.stroke();
           } else {
-            // Only draw coastline edges — skip edges shared with other water tiles
             const nbrs = hexNeighbors(col, row);
+            const borderColor =
+              type === TileType.Water  ? "rgba(96, 165, 250, 0.50)"  :
+              type === TileType.Forest ? "rgba(34, 197, 94,  0.45)"  :
+                                         "rgba(168, 162, 158, 0.50)";
             ctx.lineWidth = 0.8 / scale;
             for (let e = 0; e < 6; e++) {
               const [nc, nr] = nbrs[e];
               if (nc >= 0 && nc < state.width && nr >= 0 && nr < state.height) {
-                if ((state.tiles.types[nr * state.width + nc] as TileType) === TileType.Water) continue;
+                // Skip the edge if the neighbor is the same type
+                if ((state.tiles.types[nr * state.width + nc] as TileType) === type) continue;
               }
               const a1 = (Math.PI / 3) * e       - Math.PI / 2;
               const a2 = (Math.PI / 3) * (e + 1) - Math.PI / 2;
               ctx.beginPath();
               ctx.moveTo(cx + R * Math.cos(a1), cy + R * Math.sin(a1));
               ctx.lineTo(cx + R * Math.cos(a2), cy + R * Math.sin(a2));
-              ctx.strokeStyle = "rgba(96, 165, 250, 0.50)";
+              ctx.strokeStyle = borderColor;
               ctx.stroke();
             }
           }
@@ -289,7 +294,7 @@ export function useGameRenderer() {
               case BuildingType.Barracks:   bIcon = "shield";          bColor = "rgba(255,175,175,0.95)"; break;
               case BuildingType.University: bIcon = "history_edu";     bColor = "rgba(175,210,255,0.95)"; break;
               case BuildingType.City:       bIcon = "account_balance"; bColor = "rgba(135,200,255,0.95)"; break;
-              case BuildingType.Sawmill:    bIcon = "handsaw";         bColor = "rgba(155,240,155,0.95)"; break;
+              case BuildingType.Sawmill:    bIcon = "forest";          bColor = "rgba(155,240,155,0.95)"; break;
               case BuildingType.Mine:       bIcon = "construction";    bColor = "rgba(255,215,135,0.95)"; break;
               case BuildingType.FishingHut: bIcon = "sailing";         bColor = "rgba(135,215,255,0.95)"; break;
               case BuildingType.Bridge:     bIcon = "water";           bColor = "rgba(251,191,36,0.95)";  break;
@@ -398,15 +403,14 @@ export function useGameRenderer() {
       ctx.stroke();
     }
 
-    // ── Pass 7: maritime animation (boat emoji traveling through water) ─────
-    const anim = game.maritimeAnimation;
-    if (anim) {
+    // ── Pass 7: maritime animations (one boat per active landing) ────────────
+    for (const anim of game.maritimeAnimations) {
       const step = Math.min(anim.step, anim.path.length - 1);
       const pos  = anim.path[step];
       const { x: cx, y: cy } = hexCenter(pos.x, pos.y, tileSize);
       const boatSize = Math.max(R * 1.6, 18 / scale);
 
-      // Wake / shadow under the boat
+      // Wake shadow
       ctx.globalAlpha = 0.35;
       ctx.fillStyle   = "#0a1a3a";
       ctx.beginPath();
@@ -414,7 +418,7 @@ export function useGameRenderer() {
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      // Boat
+      // Boat emoji
       ctx.font         = `${boatSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
       ctx.textAlign    = "center";
       ctx.textBaseline = "middle";

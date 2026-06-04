@@ -9,6 +9,10 @@ import { findWaterPath } from "../utils/waterPath";
 // Module-level cooldowns — not reactive, no overhead
 let _lastAttackEmit = 0;
 
+// Boat animation intervals — keyed by animId
+const _boatIntervals = new Map<string, number>();
+const BOAT_STEP_MS   = 350; // ms per water tile — intentionally slow
+
 // Hex neighbor offsets for even-r offset grid (matches backend orthogonalNeighbors)
 function hexNeighborOffsets(row: number): [number, number][] {
   return row % 2 === 0
@@ -48,8 +52,8 @@ export const useGameStore = defineStore("game", {
     attackWarnings: [] as Array<{ x: number; y: number; expiresAt: number }>,
     radialMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
     portMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
-    maritimeAnimation: null as { path: Vec2[]; step: number; gameId: string } | null,
-    _maritimeAnimIntervalId: null as number | null,
+    maritimeMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
+    maritimeAnimations: [] as Array<{ id: string; path: Vec2[]; step: number; isOwn: boolean; gameId: string; targetPos: Vec2 }>,
     stateRevision: 0   // incremented on every mutation — watched instead of deep state
   }),
   getters: {
@@ -116,6 +120,12 @@ export const useGameStore = defineStore("game", {
         this.stateRevision++;
       });
 
+      socket.on("game:maritime_animation", (event: { animId: string; path: Vec2[] }) => {
+        if (!this.currentGameId) return;
+        const targetPos = event.path[event.path.length - 1] ?? { x: 0, y: 0 };
+        this._startBoatAnimation(event.animId, event.path, this.currentGameId, false, targetPos);
+      });
+
       socket.on("game:brouillage_patch", (event: BrouillagePatchEvent) => {
         if (!this.state) return;
         const now = Date.now();
@@ -163,6 +173,10 @@ export const useGameStore = defineStore("game", {
         this.optimisticClaims = {};
         this.gameOver = null;
         this.clearExpandTarget();
+        // Cancel any running boat animations
+        for (const timer of _boatIntervals.values()) clearInterval(timer);
+        _boatIntervals.clear();
+        this.maritimeAnimations = [];
       }
       socket.emit("game:get_state", { gameId });
     },
@@ -274,30 +288,40 @@ export const useGameStore = defineStore("game", {
       if (portPos && this.state) {
         const path = findWaterPath(this.state, portPos, pos);
         if (path && path.length > 2) {
-          // Durée totale max 3s
-          const stepMs = Math.min(280, Math.floor(3000 / path.length));
-          this.maritimeAnimation = { path, step: 0, gameId };
-          this.stateRevision++;
-
-          this._maritimeAnimIntervalId = window.setInterval(() => {
-            if (!this.maritimeAnimation) return;
-            this.maritimeAnimation.step++;
-            this.stateRevision++;
-
-            if (this.maritimeAnimation.step >= this.maritimeAnimation.path.length - 1) {
-              window.clearInterval(this._maritimeAnimIntervalId!);
-              this._maritimeAnimIntervalId = null;
-              this.maritimeAnimation = null;
-              socket.emit("game:maritime_land", { gameId, x: pos.x, y: pos.y });
-              this.stateRevision++;
-            }
-          }, stepMs);
+          const animId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          // Broadcast to all other players
+          socket.emit("game:maritime_animation", { gameId, animId, path });
+          // Start locally as the initiating client
+          this._startBoatAnimation(animId, path, gameId, true, pos);
           return;
         }
       }
 
-      // Pas de chemin trouvé ou pas de port — envoi immédiat
       socket.emit("game:maritime_land", { gameId, x: pos.x, y: pos.y });
+    },
+
+    _startBoatAnimation(animId: string, path: Vec2[], gameId: string, isOwn: boolean, targetPos: Vec2) {
+      this.maritimeAnimations.push({ id: animId, path, step: 0, isOwn, gameId, targetPos });
+      this.stateRevision++;
+
+      const timer = window.setInterval(async () => {
+        const idx = this.maritimeAnimations.findIndex(a => a.id === animId);
+        if (idx === -1) { clearInterval(timer); _boatIntervals.delete(animId); return; }
+        const anim = this.maritimeAnimations[idx];
+        anim.step++;
+        this.stateRevision++;
+        if (anim.step >= anim.path.length - 1) {
+          clearInterval(timer);
+          _boatIntervals.delete(animId);
+          this.maritimeAnimations.splice(idx, 1);
+          if (anim.isOwn) {
+            const socket = await getSocket();
+            socket.emit("game:maritime_land", { gameId: anim.gameId, x: anim.targetPos.x, y: anim.targetPos.y });
+          }
+          this.stateRevision++;
+        }
+      }, BOAT_STEP_MS);
+      _boatIntervals.set(animId, timer);
     },
 
     selectBuilding(building: BuildingType | null) {
@@ -310,12 +334,11 @@ export const useGameStore = defineStore("game", {
       if (this.maritimeLandingMode) this.selectedBuilding = null;
     },
 
-    // Clic GAUCHE — toutes les actions : choisir base, claim, attaque, build
+    // Clic GAUCHE — choisir base, claim, attaque, build (plus de maritime par clic gauche)
     async onTileClick(pos: Vec2) {
       if (!this.state) return;
       if (this.state.status === "PLACING") return this.chooseStart(this.state.gameId, pos);
       if (this.state.status !== "ACTIVE") return;
-      if (this.maritimeLandingMode) return this.maritimeLand(this.state.gameId, pos);
 
       const meId = this.mePlayer?.id;
       if (!meId) return;
@@ -335,14 +358,6 @@ export const useGameStore = defineStore("game", {
         return this.attackTile(this.state.gameId, pos);
       }
 
-      // Case neutre : débarquement automatique si conditions réunies, sinon claim
-      const neighbors = hexNeighborOffsets(pos.y)
-        .map(([dc, dr]) => ({ x: pos.x + dc, y: pos.y + dr }))
-        .filter(n => n.x >= 0 && n.y >= 0 && n.x < this.state!.width && n.y < this.state!.height);
-      const adjToMe    = neighbors.some(n => this.state!.tiles.owners[n.y * this.state!.width + n.x] === meId);
-      const adjToWater = neighbors.some(n => (this.state!.tiles.types[n.y * this.state!.width + n.x] as TileType) === TileType.Water);
-      const charges    = (this.mePlayer as any)?.maritimeCharges ?? 0;
-      if (!adjToMe && adjToWater && charges > 0) return this.maritimeLand(this.state.gameId, pos);
       return this.claimTile(this.state.gameId, pos);
     },
 
@@ -352,20 +367,33 @@ export const useGameStore = defineStore("game", {
       const meId = this.mePlayer?.id;
       if (!meId) return;
       const i = tileIndex(pos.x, pos.y, this.state.width);
-      if (this.state.tiles.owners[i] !== meId) return;
+      const owner = this.state.tiles.owners[i];
 
-      const building = this.state.tiles.buildings[i];
-
-      // Port : menu dédié achat bateaux / débarquement
-      if (building === BuildingType.FishingHut) {
-        this.portMenu = { tile: pos, clientX, clientY };
+      if (owner === meId) {
+        // Port → menu achat bateaux
+        if (this.state.tiles.buildings[i] === BuildingType.FishingHut) {
+          this.portMenu = { tile: pos, clientX, clientY };
+          return;
+        }
+        // Case plain vide → menu de construction
+        if ((this.state.tiles.types[i] as TileType) === TileType.Plain && this.state.tiles.buildings[i] === null) {
+          this.radialMenu = { tile: pos, clientX, clientY };
+        }
         return;
       }
 
-      // Case plain vide : menu de construction
-      if ((this.state.tiles.types[i] as TileType) !== TileType.Plain) return;
-      if (building !== null) return;
-      this.radialMenu = { tile: pos, clientX, clientY };
+      // Case neutre plain + adjacent à l'eau + charges dispo → menu débarquement
+      if (!owner && (this.state.tiles.types[i] as TileType) === TileType.Plain) {
+        const charges = (this.mePlayer as any)?.maritimeCharges ?? 0;
+        if (charges > 0) {
+          const adjToWater = hexNeighborOffsets(pos.y).some(([dc, dr]) => {
+            const nx = pos.x + dc, ny = pos.y + dr;
+            if (nx < 0 || ny < 0 || nx >= this.state!.width || ny >= this.state!.height) return false;
+            return (this.state!.tiles.types[ny * this.state!.width + nx] as TileType) === TileType.Water;
+          });
+          if (adjToWater) this.maritimeMenu = { tile: pos, clientX, clientY };
+        }
+      }
     },
 
     setExpandTarget(pos: Vec2) {

@@ -41,7 +41,7 @@ const hasWonder = computed(() =>
 type Entry = { building: BuildingType; label: string; icon: string; wood: number; stone: number };
 
 const ALL: Entry[] = [
-  { building: BuildingType.Sawmill,    label: "Scierie",    icon: "handsaw",         wood: 5,   stone: 0   },
+  { building: BuildingType.Sawmill,    label: "Scierie",    icon: "forest",          wood: 5,   stone: 0   },
   { building: BuildingType.Mine,       label: "Mine",       icon: "construction",    wood: 10,  stone: 0   },
   { building: BuildingType.FishingHut, label: "Port",       icon: "sailing",         wood: 10,  stone: 10  },
   { building: BuildingType.Barracks,   label: "Caserne",    icon: "shield",          wood: 20,  stone: 10  },

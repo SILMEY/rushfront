@@ -274,6 +274,14 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
 
   // ── Brouillage ───────────────────────────────────────────────────────────
 
+  socket.on("game:maritime_animation", (payload: { gameId: string; animId: string; path: Array<{ x: number; y: number }> }) => {
+    // Relay to all OTHER players in the room (sender already started theirs locally)
+    socket.to(`game:${payload.gameId}`).emit("game:maritime_animation", {
+      animId: payload.animId,
+      path:   payload.path
+    });
+  });
+
   socket.on("game:brouillage", async (payload: { gameId: string; tiles: Array<{ x: number; y: number }> }) => {
     try {
       const userId = userIdOf(socket);
