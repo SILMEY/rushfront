@@ -4,6 +4,7 @@ import type { GameStateSnapshot, Vec2 } from "../../types/game";
 import { useCamera } from "../../composables/useCamera";
 import { useGameRenderer } from "../../composables/useGameRenderer";
 import { useGameStore } from "../../stores/gameStore";
+import { worldToHex, hexCenter, hexMapBounds } from "../../utils/hexGrid";
 
 const props = defineProps<{
   state: GameStateSnapshot | null;
@@ -65,8 +66,7 @@ function draw() {
   // Marqueur de cible d'expansion (or)
   const target = game.expandTarget;
   if (target) {
-    const wx = (target.x + 0.5) * tileSize;
-    const wy = (target.y + 0.5) * tileSize;
+    const { x: wx, y: wy } = hexCenter(target.x, target.y, tileSize);
     const { x: sx, y: sy } = worldToScreen(wx, wy);
     const pulse = 0.7 + 0.3 * Math.sin(Date.now() / 250);
     const r = tileSize * camera.zoom * 0.45 * pulse;
@@ -90,8 +90,7 @@ function draw() {
   // Marqueur de cible d'attaque (rouge)
   const atkTarget = game.attackTarget;
   if (atkTarget) {
-    const wx = (atkTarget.x + 0.5) * tileSize;
-    const wy = (atkTarget.y + 0.5) * tileSize;
+    const { x: wx, y: wy } = hexCenter(atkTarget.x, atkTarget.y, tileSize);
     const { x: sx, y: sy } = worldToScreen(wx, wy);
     const pulse = 0.6 + 0.4 * Math.abs(Math.sin(Date.now() / 180));
     const r = tileSize * camera.zoom * 0.42 * pulse;
@@ -131,8 +130,7 @@ watch(
       cameraReady = true;
       const canvas = canvasRef.value;
       const rect = canvas ? canvas.getBoundingClientRect() : { width: 1200, height: 800 };
-      const mapW = state.width  * tileSize;
-      const mapH = state.height * tileSize;
+      const { w: mapW, h: mapH } = hexMapBounds(state.width, state.height, tileSize);
       // Zoom pour que la map rentre dans la vue (avec 10% de marge)
       const fitZoom = Math.min(rect.width / mapW, rect.height / mapH) * 0.90;
       camera.zoom = Math.max(0.10, Math.min(0.40, fitZoom));
@@ -168,10 +166,7 @@ function toTile(clientX: number, clientY: number): Vec2 | null {
   const localX = clientX - rect.left;
   const localY = clientY - rect.top;
   const world = screenToWorld(localX, localY);
-  const tx = Math.floor(world.x / tileSize);
-  const ty = Math.floor(world.y / tileSize);
-  if (tx < 0 || ty < 0 || tx >= state.width || ty >= state.height) return null;
-  return { x: tx, y: ty };
+  return worldToHex(world.x, world.y, tileSize, state.width, state.height);
 }
 
 function onPointerDown(e: PointerEvent) {
