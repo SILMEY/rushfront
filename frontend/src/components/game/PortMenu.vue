@@ -33,7 +33,8 @@ function canAfford(e: PortEntry): boolean {
 
 function onAction(e: PortEntry) {
   if (!canAfford(e)) return;
-  emit(e.action === "fishing-boat" ? "buy-fishing-boat" : "buy-transport-boat");
+  if (e.action === "fishing-boat") emit("buy-fishing-boat");
+  else emit("buy-transport-boat");
 }
 
 const RADIUS   = 58;
