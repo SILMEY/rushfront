@@ -30,6 +30,14 @@ const TILE_COLORS: Record<number, string> = {
 
 const OUTLINE = "rgba(77, 70, 53, 0.85)";
 
+// The 6 neighbours of hex (col, row) in edge order (NE, E, SE, SW, W, NW)
+// matching vertex pairs 0-1, 1-2, 2-3, 3-4, 4-5, 5-0
+function hexNeighbors(col: number, row: number): [number, number][] {
+  return row % 2 === 0
+    ? [[col, row-1], [col+1, row], [col, row+1], [col-1, row+1], [col-1, row], [col-1, row-1]]
+    : [[col+1, row-1], [col+1, row], [col+1, row+1], [col, row+1], [col-1, row], [col, row-1]];
+}
+
 // --- Terrain noise (smooth, two-octave) ---
 
 function hash2(x: number, y: number): number {
@@ -166,12 +174,30 @@ export function useGameRenderer() {
 
         // 1e. Bevel + outline
         if (tsScreen >= 10) {
-          hexBevel(ctx, cx, cy, R, scale);
-
-          hexPathAt(ctx, cx, cy, R);
-          ctx.strokeStyle = OUTLINE;
-          ctx.lineWidth   = 0.5 / scale;
-          ctx.stroke();
+          if (type !== TileType.Water) {
+            hexBevel(ctx, cx, cy, R, scale);
+            hexPathAt(ctx, cx, cy, R);
+            ctx.strokeStyle = OUTLINE;
+            ctx.lineWidth   = 0.5 / scale;
+            ctx.stroke();
+          } else {
+            // Only draw coastline edges — skip edges shared with other water tiles
+            const nbrs = hexNeighbors(col, row);
+            ctx.lineWidth = 0.8 / scale;
+            for (let e = 0; e < 6; e++) {
+              const [nc, nr] = nbrs[e];
+              if (nc >= 0 && nc < state.width && nr >= 0 && nr < state.height) {
+                if ((state.tiles.types[nr * state.width + nc] as TileType) === TileType.Water) continue;
+              }
+              const a1 = (Math.PI / 3) * e       - Math.PI / 2;
+              const a2 = (Math.PI / 3) * (e + 1) - Math.PI / 2;
+              ctx.beginPath();
+              ctx.moveTo(cx + R * Math.cos(a1), cy + R * Math.sin(a1));
+              ctx.lineTo(cx + R * Math.cos(a2), cy + R * Math.sin(a2));
+              ctx.strokeStyle = "rgba(96, 165, 250, 0.50)";
+              ctx.stroke();
+            }
+          }
         }
 
         // 1f. Terrain icons
@@ -196,10 +222,16 @@ export function useGameRenderer() {
         if (building != null && building !== BuildingType.Wonder) {
           const isBase = building === BuildingType.Base;
           const iconPx = R * (isBase ? 1.15 : 0.95);
-          const bgPx   = R * (isBase ? 1.52 : 1.30);
+          const bgR2   = R * (isBase ? 0.80 : 0.68);
 
-          ctx.fillStyle = "rgba(0,0,0,0.62)";
-          ctx.fillRect(cx - bgPx / 2, cy - bgPx / 2, bgPx, bgPx);
+          // Circular badge — no more black square
+          ctx.beginPath();
+          ctx.arc(cx, cy, bgR2, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(8, 8, 14, 0.80)";
+          ctx.fill();
+          ctx.strokeStyle = ownerColor ? `${ownerColor}55` : "rgba(255,255,255,0.12)";
+          ctx.lineWidth   = 1 / scale;
+          ctx.stroke();
 
           ctx.textAlign    = "center";
           ctx.textBaseline = "middle";
