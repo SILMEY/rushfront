@@ -36,12 +36,12 @@ async function save() {
 // ── Préférences (couleur + civilisation) ────────────────
 const COLORS = ["#3b82f6","#ef4444","#a855f7","#fde047","#f97316","#ffffff","#22c55e","#f472b6","#06b6d4","#e11d48"];
 
-const CIVILIZATIONS = [
-  { id: "iron_dwarves",    name: "Nains de Fer",       icon: "🏔️", role: "Défense"   },
-  { id: "sylvan_elves",    name: "Elfes Sylvains",      icon: "🌲", role: "Équilibré" },
-  { id: "steppe_horde",    name: "Horde des Steppes",   icon: "⚔️", role: "Attaque"   },
-  { id: "aurelian_empire", name: "Empire d'Aurélien",   icon: "🏛️", role: "Économie"  }
-];
+const CIVILIZATIONS = computed(() => [
+  { id: "iron_dwarves",    icon: "🏔️", name: t('civ.iron_dwarves.name'),    role: t('civ.iron_dwarves.role') },
+  { id: "sylvan_elves",    icon: "🌲", name: t('civ.sylvan_elves.name'),    role: t('civ.sylvan_elves.role') },
+  { id: "steppe_horde",    icon: "⚔️", name: t('civ.steppe_horde.name'),    role: t('civ.steppe_horde.role') },
+  { id: "aurelian_empire", icon: "🏛️", name: t('civ.aurelian_empire.name'), role: t('civ.aurelian_empire.role') },
+]);
 
 const prefColor = ref<string | null>(auth.user?.preferredColor ?? null);
 const prefCiv   = ref<string | null>(auth.user?.preferredCivilization ?? null);

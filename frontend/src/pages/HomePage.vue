@@ -90,14 +90,14 @@ function hostNameOf(g: any) {
                     <div class="flex items-center gap-3 rounded-md border border-[#d4af37]/30 bg-[#d4af37]/5 px-4 py-2.5">
                       <span class="material-symbols-outlined animate-spin text-base text-[#d4af37]">progress_activity</span>
                       <span class="font-headline text-xs font-bold uppercase tracking-widest text-[#d4af37]">
-                        {{ lobby.quickQueueSize }}/10 joueurs · {{ lobby.quickCountdownSeconds }}s
+                        {{ t('home.quick_queue_status', { size: lobby.quickQueueSize, secs: lobby.quickCountdownSeconds }) }}
                       </span>
                     </div>
                     <button
                       class="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-red-400 transition hover:bg-red-500/20"
                       @click="requireAuth(() => lobby.leaveQuickGame())"
                     >
-                      Annuler
+                      {{ t('home.quick_queue_cancel') }}
                     </button>
                   </div>
                   <!-- Bouton lancer -->

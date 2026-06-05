@@ -26,7 +26,7 @@ export const router = createRouter({
   ]
 });
 
-const PUBLIC_PATHS = ["/", "/login", "/leaderboard", "/privacy"];
+const PUBLIC_PATHS = ["/", "/login", "/leaderboard", "/privacy", "/support"];
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore();

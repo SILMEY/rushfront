@@ -65,7 +65,7 @@ watch(
 <template>
   <!-- ── Overlay fin de partie ─────────────────────────── -->
   <Transition name="fade">
-    <div v-if="game.gameOver" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div v-if="game.gameOver || isEliminated" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div class="mx-4 max-w-md w-full rounded-2xl border p-10 text-center shadow-[0_0_80px_rgba(0,0,0,0.8)]"
            :class="isWinner
              ? 'border-[#d4af37]/60 bg-gradient-to-b from-[#1c1a0e] to-[#131312]'
@@ -84,16 +84,16 @@ watch(
           <div class="mb-2 text-6xl">⚔️</div>
           <div class="text-xs font-headline font-bold uppercase tracking-[0.4em] text-slate-400/70">{{ t('game.eliminated_label') }}</div>
           <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-tight text-slate-300">{{ t('game.eliminated_title') }}</h1>
-          <p v-if="game.gameOver.winnerName" class="mt-4 text-sm italic text-slate-400">
-            <span class="text-[#d4af37]">{{ game.gameOver.winnerName }}</span> {{ t('game.winner_msg', { winner: '' }).replace('{winner} ', '') }}
+          <p v-if="game.gameOver?.winnerName" class="mt-4 text-sm italic text-slate-400">
+            <span class="text-[#d4af37]">{{ game.gameOver?.winnerName }}</span> {{ t('game.winner_msg', { winner: '' }).replace('{winner} ', '') }}
           </p>
         </template>
 
         <template v-else>
           <div class="mb-2 text-6xl">🏆</div>
           <h1 class="font-headline text-4xl font-extrabold uppercase text-[#d4af37]">{{ t('game.game_over_title') }}</h1>
-          <p v-if="game.gameOver.winnerName" class="mt-3 text-sm italic text-slate-400">
-            {{ t('game.winner_msg', { winner: game.gameOver.winnerName }) }}
+          <p v-if="game.gameOver?.winnerName" class="mt-3 text-sm italic text-slate-400">
+            {{ t('game.winner_msg', { winner: game.gameOver?.winnerName }) }}
           </p>
         </template>
 
@@ -203,16 +203,14 @@ watch(
       </div>
 
       <!-- Zone de jeu -->
-      <div class="relative flex-1 overflow-auto bg-stone-950 p-2 md:p-4">
-        <div class="min-h-full min-w-max border-4 border-outline-variant bg-stone-900/40 shadow-2xl">
-          <GameCanvas
-            class="h-[calc(100vh-8.75rem)] min-h-[24rem] md:h-[calc(100vh-10.625rem)] w-full"
-            :state="game.state"
-            @tile-click="game.onTileClick"
-            @tile-dblclick="game.onTileDblClick"
-            @tile-context="(pos, cx, cy) => game.onTileContext(pos, cx, cy)"
-          />
-        </div>
+      <div class="relative flex-1 overflow-hidden bg-stone-950">
+        <GameCanvas
+          class="h-full w-full"
+          :state="game.state"
+          @tile-click="game.onTileClick"
+          @tile-dblclick="game.onTileDblClick"
+          @tile-context="(pos, cx, cy) => game.onTileContext(pos, cx, cy)"
+        />
       </div>
     </main>
 

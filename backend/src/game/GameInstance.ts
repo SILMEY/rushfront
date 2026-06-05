@@ -94,6 +94,7 @@ export class GameInstance {
 
   private timer: NodeJS.Timeout | null = null;
   private placingTimer: NodeJS.Timeout | null = null;
+  private maxDurationTimer: NodeJS.Timeout | null = null;
   private bots: { stop(): void }[] = [];
 
   registerBot(bot: { stop(): void }) {
@@ -140,9 +141,17 @@ export class GameInstance {
     this.placingTimer = setTimeout(() => { void this.handlePlacingTimeout().catch(e => console.error("[placing timeout]", e)); }, PLACING_MS);
   }
 
+  private static readonly MAX_DURATION_MS = 2 * 60 * 60 * 1000; // 2 heures
+
   start() {
     if (this.timer) return;
     this.status = "ACTIVE";
+    this.maxDurationTimer = setTimeout(() => {
+      console.log(`[game ${this.id}] 2h timeout — forcing game over`);
+      this.stop();
+      void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
+      this.onGameOver?.(null);
+    }, GameInstance.MAX_DURATION_MS);
     this.timer = setInterval(() => {
       try {
         applyProduction({
@@ -169,6 +178,8 @@ export class GameInstance {
     this.timer = null;
     if (this.placingTimer) clearTimeout(this.placingTimer);
     this.placingTimer = null;
+    if (this.maxDurationTimer) clearTimeout(this.maxDurationTimer);
+    this.maxDurationTimer = null;
     for (const t of this.wonderTimers.values()) clearTimeout(t);
     this.wonderTimers.clear();
     this.wonders = [];
@@ -235,6 +246,13 @@ export class GameInstance {
 
   private checkGameOver() {
     const alive = this.players.filter((p) => p.hasChosenStart && !p.eliminated);
+    // If all remaining players are bots, stop the game immediately — no point continuing without humans.
+    if (alive.length > 1 && alive.every((p) => p.isBot)) {
+      this.stop();
+      void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
+      this.onGameOver?.(null);
+      return;
+    }
     if (alive.length > 1) return;
 
     const winner = alive[0] ?? null;

@@ -23,6 +23,8 @@ export default {
     quick_game_desc: "Face unknown commanders across the realm and climb the ranks of the imperial league.",
     quick_game_btn: "Start quick game",
     quick_game_soon: "Join (coming soon)",
+    quick_queue_status: "{size}/10 players · {secs}s",
+    quick_queue_cancel: "Cancel",
     custom_game_title: "Custom game",
     custom_game_desc: "Organise a private battle with your friends.",
     create_btn: "Create",
@@ -105,6 +107,12 @@ export default {
     preferences_saved_btn: "✓ Saved",
     preferences_saving_btn: "Saving…",
     preferences_save_btn: "Save",
+  },
+  civ: {
+    iron_dwarves:    { name: "Iron Dwarves",     role: "Defense",   bonus: "Stone ×2 · Defense ↑ · Attack ↓" },
+    sylvan_elves:    { name: "Sylvan Elves",     role: "Balanced",  bonus: "Wood ×2 · Balanced" },
+    steppe_horde:    { name: "Steppe Horde",     role: "Offense",   bonus: "Fast expansion · Attack ↑ · Defense ↓" },
+    aurelian_empire: { name: "Aurelian Empire",  role: "Economy",   bonus: "Roads · Compact territory · +eco/tile" },
   },
   support: {
     header_label: "Frontrush Empire",

@@ -23,6 +23,8 @@ export default {
     quick_game_desc: "Tritt gegen unbekannte Kommandanten im ganzen Reich an und erklimme die Ränge der kaiserlichen Liga.",
     quick_game_btn: "Schnellspiel starten",
     quick_game_soon: "Beitreten (demnächst)",
+    quick_queue_status: "{size}/10 Spieler · {secs}s",
+    quick_queue_cancel: "Abbrechen",
     custom_game_title: "Benutzerdefiniertes Spiel",
     custom_game_desc: "Organisiere eine private Schlacht mit deinen Freunden.",
     create_btn: "Erstellen",
@@ -105,6 +107,12 @@ export default {
     preferences_saved_btn: "✓ Gespeichert",
     preferences_saving_btn: "Speichere…",
     preferences_save_btn: "Speichern",
+  },
+  civ: {
+    iron_dwarves:    { name: "Eisenzwerge",          role: "Verteidigung", bonus: "Stein ×2 · Verteidigung ↑ · Angriff ↓" },
+    sylvan_elves:    { name: "Waldelfen",             role: "Ausgewogen",   bonus: "Holz ×2 · Ausgewogen" },
+    steppe_horde:    { name: "Steppenhorde",          role: "Angriff",      bonus: "Schnelle Expansion · Angriff ↑ · Verteidigung ↓" },
+    aurelian_empire: { name: "Aurelianisches Reich",  role: "Wirtschaft",   bonus: "Straßen · Kompaktes Gebiet · +Öko/Feld" },
   },
   support: {
     header_label: "Frontrush Empire",

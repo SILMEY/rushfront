@@ -23,6 +23,8 @@ export default {
     quick_game_desc: "Affrontez des commandants inconnus à travers le royaume et gravissez les échelons de la ligue impériale.",
     quick_game_btn: "Lancer partie rapide",
     quick_game_soon: "Rejoindre (bientôt)",
+    quick_queue_status: "{size}/10 joueurs · {secs}s",
+    quick_queue_cancel: "Annuler",
     custom_game_title: "Partie personnalisée",
     custom_game_desc: "Organisez une bataille privée avec vos amis.",
     create_btn: "Créer",
@@ -105,6 +107,12 @@ export default {
     preferences_saved_btn: "✓ Enregistré",
     preferences_saving_btn: "Sauvegarde…",
     preferences_save_btn: "Sauvegarder",
+  },
+  civ: {
+    iron_dwarves:    { name: "Nains de Fer",       role: "Défense",    bonus: "Pierre ×2 · Défense ↑ · Attaque ↓" },
+    sylvan_elves:    { name: "Elfes Sylvains",      role: "Équilibré",  bonus: "Bois ×2 · Équilibré" },
+    steppe_horde:    { name: "Horde des Steppes",   role: "Attaque",    bonus: "Expansion rapide · Attaque ↑ · Défense ↓" },
+    aurelian_empire: { name: "Empire d'Aurélien",   role: "Économie",   bonus: "Routes · Territoire compact · +éco/case" },
   },
   support: {
     header_label: "Frontrush Empire",

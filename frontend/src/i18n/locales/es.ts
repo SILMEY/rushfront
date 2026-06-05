@@ -23,6 +23,8 @@ export default {
     quick_game_desc: "Enfréntate a comandantes desconocidos por todo el reino y escala en la liga imperial.",
     quick_game_btn: "Iniciar partida rápida",
     quick_game_soon: "Unirse (próximamente)",
+    quick_queue_status: "{size}/10 jugadores · {secs}s",
+    quick_queue_cancel: "Cancelar",
     custom_game_title: "Partida personalizada",
     custom_game_desc: "Organiza una batalla privada con tus amigos.",
     create_btn: "Crear",
@@ -105,6 +107,12 @@ export default {
     preferences_saved_btn: "✓ Guardado",
     preferences_saving_btn: "Guardando…",
     preferences_save_btn: "Guardar",
+  },
+  civ: {
+    iron_dwarves:    { name: "Enanos de Hierro",  role: "Defensa",     bonus: "Piedra ×2 · Defensa ↑ · Ataque ↓" },
+    sylvan_elves:    { name: "Elfos Silvanos",    role: "Equilibrado", bonus: "Madera ×2 · Equilibrado" },
+    steppe_horde:    { name: "Horda de la Estepa", role: "Ataque",    bonus: "Expansión rápida · Ataque ↑ · Defensa ↓" },
+    aurelian_empire: { name: "Imperio Aureliano", role: "Economía",   bonus: "Rutas · Territorio compacto · +eco/casilla" },
   },
   support: {
     header_label: "Frontrush Empire",
