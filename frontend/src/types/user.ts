@@ -6,4 +6,5 @@ export type User = {
   avatarUrl?: string | null;
   preferredColor?: string | null;
   preferredCivilization?: string | null;
+  isAdmin?: boolean;
 };

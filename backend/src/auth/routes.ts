@@ -86,6 +86,8 @@ export async function authRoutes(app: FastifyInstance) {
     reply.setCookie("tr_session", jwt, cookieOpts).redirect(redirectUrl);
   });
 
+  const ADMIN_EMAIL = "silvin10@gmail.com";
+
   function serializeUser(user: any) {
     return {
       id: user.id,
@@ -94,7 +96,8 @@ export async function authRoutes(app: FastifyInstance) {
       pseudo: user.pseudo,
       avatarUrl: user.avatarUrl,
       preferredColor: user.preferredColor ?? null,
-      preferredCivilization: user.preferredCivilization ?? null
+      preferredCivilization: user.preferredCivilization ?? null,
+      isAdmin: user.email === ADMIN_EMAIL
     };
   }
 

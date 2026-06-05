@@ -8,6 +8,7 @@ import ProfilePage from "../pages/ProfilePage.vue";
 import LeaderboardPage from "../pages/LeaderboardPage.vue";
 import PrivacyPage from "../pages/PrivacyPage.vue";
 import SupportPage from "../pages/SupportPage.vue";
+import AdminPage from "../pages/AdminPage.vue";
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -20,7 +21,8 @@ export const router = createRouter({
     { path: "/support",     component: SupportPage },
     { path: "/profile",     component: ProfilePage },
     { path: "/lobby/:id",   component: LobbyPage, props: true },
-    { path: "/game/:id",    component: GamePage,  props: true }
+    { path: "/game/:id",    component: GamePage,  props: true },
+    { path: "/admin",       component: AdminPage }
   ]
 });
 
@@ -31,5 +33,6 @@ router.beforeEach(async (to) => {
   if (!auth.ready) await auth.fetchMe();
   if (!auth.user && !PUBLIC_PATHS.includes(to.path)) return "/login";
   if (auth.user && to.path === "/login") return "/";
+  if (to.path === "/admin" && !auth.user?.isAdmin) return "/";
   return true;
 });

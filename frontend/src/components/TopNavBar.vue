@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
 import { useI18n } from "vue-i18n";
@@ -63,6 +63,13 @@ function navigate(path: string) {
         @click="navigate('/leaderboard')"
       >
         {{ t('nav.leaderboards') }}
+      </button>
+      <button
+        v-if="auth.user?.isAdmin"
+        class="font-headline text-sm font-medium uppercase tracking-widest text-amber-400 transition-colors duration-200 hover:text-amber-300"
+        @click="navigate('/admin')"
+      >
+        Admin
       </button>
     </div>
 
@@ -172,6 +179,14 @@ function navigate(path: string) {
           @click="navigate('/leaderboard')"
         >
           {{ t('nav.leaderboards') }}
+        </button>
+        <button
+          v-if="auth.user?.isAdmin"
+          class="px-6 py-4 text-left font-headline text-sm font-medium uppercase tracking-widest text-amber-400 hover:bg-white/5 transition"
+          role="menuitem"
+          @click="navigate('/admin')"
+        >
+          Admin
         </button>
         <div class="mx-6 my-1 h-px bg-white/10"></div>
         <button

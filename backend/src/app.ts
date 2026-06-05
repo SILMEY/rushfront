@@ -4,6 +4,7 @@ import cors from "@fastify/cors";
 import { prismaPlugin } from "./prisma/plugin.js";
 import { jwtPlugin } from "./auth/jwt.js";
 import { authRoutes } from "./auth/routes.js";
+import { adminRoutes } from "./admin/routes.js";
 import { supportRoute } from "./support.js";
 
 export function buildApp() {
@@ -29,6 +30,7 @@ export function buildApp() {
   app.register(prismaPlugin);
   app.register(jwtPlugin);
   app.register(authRoutes);
+  app.register(adminRoutes);
   app.register(supportRoute);
 
   app.get("/healthz", async () => ({ ok: true }));
