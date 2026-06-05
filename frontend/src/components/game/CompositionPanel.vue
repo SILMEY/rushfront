@@ -5,10 +5,12 @@ import { BuildingType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
 import { useGameStore } from "../../stores/gameStore";
 import SectionTitle from "./SectionTitle.vue";
+import { useI18n } from "vue-i18n";
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
 const auth = useAuthStore();
 const game = useGameStore();
+const { t } = useI18n();
 
 const me = computed(() => props.state?.players.find((p) => p.userId === auth.user?.id) ?? null);
 
@@ -62,46 +64,39 @@ function scheduleCommit() {
 
 <template>
   <section v-if="state && me" class="mb-5">
-    <SectionTitle>Répartition</SectionTitle>
+    <SectionTitle>{{ t('composition.title') }}</SectionTitle>
 
     <div v-if="!hasBarracks" class="text-[10px] italic text-white/25 text-center py-2">
-      Construisez une caserne pour former des militaires.
+      {{ t('composition.no_barracks') }}
     </div>
 
     <template v-else>
-      <!-- Compteurs -->
       <div class="flex justify-between items-end mb-2.5">
         <div>
-          <div class="text-[9px] uppercase tracking-widest text-[#a8c090]/60 mb-0.5">Villageois</div>
+          <div class="text-[9px] uppercase tracking-widest text-[#a8c090]/60 mb-0.5">{{ t('composition.villagers_label') }}</div>
           <div class="text-[15px] font-bold text-[#a8c090] leading-none">{{ me.resources.villagers }}</div>
         </div>
         <div class="text-center">
-          <div class="text-[9px] text-white/25 mb-0.5">total</div>
+          <div class="text-[9px] text-white/25 mb-0.5">{{ t('composition.total_label') }}</div>
           <div class="text-[12px] font-bold text-white/40 leading-none">{{ me.resources.villagers + me.resources.soldiers }}</div>
         </div>
         <div class="text-right">
-          <div class="text-[9px] uppercase tracking-widest text-[#ef4444]/60 mb-0.5">Militaires</div>
+          <div class="text-[9px] uppercase tracking-widest text-[#ef4444]/60 mb-0.5">{{ t('composition.soldiers_label') }}</div>
           <div class="text-[15px] font-bold text-[#ef4444]/80 leading-none">{{ me.resources.soldiers }}</div>
         </div>
       </div>
 
-      <!-- Barre de répartition (proportion RÉELLE) -->
       <div class="h-1.5 rounded-full overflow-hidden flex mb-1 bg-white/5">
-        <div
-          class="bg-[#4ade80]/50 transition-all duration-700"
-          :style="{ width: (100 - actualSoldierPct) + '%' }"
-        ></div>
+        <div class="bg-[#4ade80]/50 transition-all duration-700" :style="{ width: (100 - actualSoldierPct) + '%' }"></div>
         <div class="bg-[#ef4444]/50 transition-all duration-700 flex-1"></div>
       </div>
 
-      <!-- Indicateur conversion en cours -->
       <div class="flex justify-between items-center mb-2">
-        <span class="text-[9px] text-white/20">{{ 100 - actualSoldierPct }}% civ. → cible {{ 100 - compositionPct }}%</span>
-        <span v-if="isConverting" class="text-[9px] text-[#f2ca50]/50 italic animate-pulse">formation…</span>
-        <span class="text-[9px] text-white/20">{{ actualSoldierPct }}% mil. → cible {{ compositionPct }}%</span>
+        <span class="text-[9px] text-white/20">{{ 100 - actualSoldierPct }}% civ. → {{ 100 - compositionPct }}%</span>
+        <span v-if="isConverting" class="text-[9px] text-[#f2ca50]/50 italic animate-pulse">{{ t('composition.converting') }}</span>
+        <span class="text-[9px] text-white/20">{{ actualSoldierPct }}% mil. → {{ compositionPct }}%</span>
       </div>
 
-      <!-- Slider (contrôle la CIBLE) -->
       <input
         v-model.number="compositionPct"
         type="range"
@@ -109,7 +104,7 @@ function scheduleCommit() {
         max="100"
         step="1"
         class="w-full accent-[#f2ca50]"
-        :aria-label="`Répartition militaires : ${compositionPct}%`"
+        :aria-label="t('composition.slider_label', { pct: compositionPct })"
         :aria-valuenow="compositionPct"
         aria-valuemin="0"
         aria-valuemax="100"

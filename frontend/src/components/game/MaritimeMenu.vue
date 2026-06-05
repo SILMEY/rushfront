@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 
 const props = defineProps<{ clientX: number; clientY: number }>();
 const emit  = defineEmits<{ (e: "land"): void; (e: "close"): void }>();
+const { t } = useI18n();
 
 const MARGIN = 70;
 const cx = computed(() => Math.min(Math.max(props.clientX, MARGIN), window.innerWidth  - MARGIN));
@@ -32,7 +34,7 @@ const cy = computed(() => Math.min(Math.max(props.clientY, MARGIN), window.inner
           <span class="material-symbols-outlined text-[19px] text-[#06b6d4] group-hover:text-[#f2ca50]">anchor</span>
         </div>
         <span class="text-[8px] font-bold uppercase tracking-wide whitespace-nowrap text-white/60">
-          Débarquement
+          {{ t('maritime_menu.landing_label') }}
         </span>
       </button>
     </div>

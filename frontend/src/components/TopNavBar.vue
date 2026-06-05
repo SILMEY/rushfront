@@ -2,14 +2,30 @@
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
+import { useI18n } from "vue-i18n";
+import { setLocale, getLocale, type Locale } from "../i18n";
 
 const auth = useAuthStore();
 const router = useRouter();
+const { t } = useI18n();
 
 const displayName = computed(() => auth.displayName);
 const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase());
 
 const mobileMenuOpen = ref(false);
+
+const currentLocale = ref<Locale>(getLocale());
+
+const LOCALES: { code: Locale; flag: string; label: string }[] = [
+  { code: "fr", flag: "🇫🇷", label: "Français" },
+  { code: "en", flag: "🇬🇧", label: "English" },
+];
+
+function switchLocale() {
+  const next: Locale = currentLocale.value === "fr" ? "en" : "fr";
+  setLocale(next);
+  currentLocale.value = next;
+}
 
 function navigate(path: string) {
   router.push(path);
@@ -21,14 +37,14 @@ function navigate(path: string) {
   <nav
     class="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[#4d4635] bg-stone-900/90 px-4 md:px-6 backdrop-blur-md"
     role="navigation"
-    aria-label="Navigation principale"
+    :aria-label="t('nav.menu')"
   >
     <button
       class="flex items-center gap-3"
-      aria-label="Retour à l'accueil"
+      :aria-label="t('nav.brand')"
       @click="navigate('/')"
     >
-      <span class="font-headline text-xl md:text-2xl font-bold tracking-widest text-[#d4af37]">FRONTRUSH</span>
+      <span class="font-headline text-xl md:text-2xl font-bold tracking-widest text-[#d4af37]">{{ t('nav.brand') }}</span>
     </button>
 
     <!-- Navigation desktop (centrée) -->
@@ -37,21 +53,31 @@ function navigate(path: string) {
         class="font-headline text-sm font-medium uppercase tracking-widest text-[#d4c59f] transition-colors duration-200 hover:text-[#d4af37]"
         @click="navigate('/')"
       >
-        GAMES
+        {{ t('nav.games') }}
       </button>
       <button
         class="font-headline text-sm font-medium uppercase tracking-widest text-[#d4c59f] transition-colors duration-200 hover:text-[#d4af37]"
         @click="navigate('/leaderboard')"
       >
-        LEADERBOARDS
+        {{ t('nav.leaderboards') }}
       </button>
     </div>
 
-    <div class="flex items-center gap-2 md:gap-4">
-      <!-- Profil (toujours visible) -->
+    <div class="flex items-center gap-2 md:gap-3">
+      <!-- Sélecteur de langue -->
+      <button
+        class="flex h-8 w-8 items-center justify-center rounded-full text-lg transition hover:scale-110 active:scale-95"
+        :aria-label="`Langue : ${LOCALES.find(l => l.code !== currentLocale)?.label}`"
+        :title="`Switch to ${LOCALES.find(l => l.code !== currentLocale)?.label}`"
+        @click="switchLocale"
+      >
+        {{ LOCALES.find(l => l.code === currentLocale)?.flag }}
+      </button>
+
+      <!-- Profil -->
       <button
         class="text-[#d4c59f] transition-all hover:text-[#d4af37] active:scale-95"
-        aria-label="Mon profil"
+        :aria-label="t('nav.profile')"
         @click="navigate('/profile')"
       >
         <span class="material-symbols-outlined" aria-hidden="true">account_circle</span>
@@ -64,21 +90,21 @@ function navigate(path: string) {
         @click="auth.logout()"
       >
         <span class="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-[10px]" aria-hidden="true">{{ initials }}</span>
-        Logout
+        {{ t('nav.logout') }}
       </button>
       <button
         v-else
         class="hidden items-center gap-2 rounded-md border border-[#d4af37]/40 bg-[#d4af37]/10 px-3 py-2 text-xs font-bold uppercase tracking-widest text-[#d4af37] transition hover:bg-[#d4af37]/20 md:flex"
         @click="navigate('/login')"
       >
-        Se connecter
+        {{ t('nav.login') }}
       </button>
 
       <!-- Hamburger mobile -->
       <button
         class="flex h-9 w-9 items-center justify-center rounded-md border border-[#4d4635] bg-black/20 text-[#d4c59f] transition hover:text-[#d4af37] md:hidden"
         :aria-expanded="mobileMenuOpen"
-        aria-label="Menu"
+        :aria-label="t('nav.menu')"
         @click="mobileMenuOpen = !mobileMenuOpen"
       >
         <span class="material-symbols-outlined text-[20px]" aria-hidden="true">{{ mobileMenuOpen ? 'close' : 'menu' }}</span>
@@ -99,14 +125,14 @@ function navigate(path: string) {
           role="menuitem"
           @click="navigate('/')"
         >
-          Games
+          {{ t('nav.games') }}
         </button>
         <button
           class="px-6 py-4 text-left font-headline text-sm font-medium uppercase tracking-widest text-[#d4c59f] hover:bg-white/5 hover:text-[#d4af37] transition"
           role="menuitem"
           @click="navigate('/leaderboard')"
         >
-          Leaderboards
+          {{ t('nav.leaderboards') }}
         </button>
         <div class="mx-6 my-1 h-px bg-white/10"></div>
         <button
@@ -115,7 +141,7 @@ function navigate(path: string) {
           role="menuitem"
           @click="auth.logout(); mobileMenuOpen = false"
         >
-          Déconnexion
+          {{ t('nav.logout_mobile') }}
         </button>
         <button
           v-else
@@ -123,7 +149,7 @@ function navigate(path: string) {
           role="menuitem"
           @click="navigate('/login')"
         >
-          Se connecter
+          {{ t('nav.login') }}
         </button>
       </div>
     </div>

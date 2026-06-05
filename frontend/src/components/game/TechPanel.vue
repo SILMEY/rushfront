@@ -6,12 +6,14 @@ import { useAuthStore } from "../../stores/authStore";
 import { useGameStore } from "../../stores/gameStore";
 import { getSocket } from "../../composables/useSocket";
 import SectionTitle from "./SectionTitle.vue";
+import { useI18n } from "vue-i18n";
 
 type TechDef = { id: string; name: string; description: string; cost: { wood: number; stone: number }; stackable?: boolean };
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
 const auth = useAuthStore();
 const game = useGameStore();
+const { t } = useI18n();
 
 const me = computed(() => props.state?.players.find((p) => p.userId === auth.user?.id) ?? null);
 const myTechs = computed(() => new Set(me.value?.techs ?? []));
@@ -61,10 +63,10 @@ function isBought(t: TechDef) {
 
 <template>
   <div v-if="state && me && hasUniversity" class="px-6 py-5">
-    <SectionTitle>Technologies</SectionTitle>
+    <SectionTitle>{{ t('tech_panel.title') }}</SectionTitle>
 
     <div v-if="techs.length === 0" class="text-[10px] italic text-white/25 text-center py-2">
-      Chargement…
+      {{ t('tech_panel.loading') }}
     </div>
 
     <div class="space-y-2">
@@ -82,10 +84,10 @@ function isBought(t: TechDef) {
             <div class="text-[10px] text-white/40 italic leading-snug mt-0.5">{{ t.description }}</div>
             <div class="text-[10px] mt-1.5 space-x-2">
               <span v-if="t.cost.wood > 0" :class="(me?.resources.wood ?? 0) >= t.cost.wood ? 'text-[#a8c090]' : 'text-red-400/70'">
-                {{ t.cost.wood }} bois
+                {{ $t('tech_panel.cost_wood', { n: t.cost.wood }) }}
               </span>
               <span v-if="t.cost.stone > 0" :class="(me?.resources.stone ?? 0) >= t.cost.stone ? 'text-[#a8a090]' : 'text-red-400/70'">
-                {{ t.cost.stone }} pierre
+                {{ $t('tech_panel.cost_stone', { n: t.cost.stone }) }}
               </span>
             </div>
           </div>
@@ -99,7 +101,7 @@ function isBought(t: TechDef) {
             :disabled="isBought(t) || !canAfford(t)"
             @click="!isBought(t) && buy(t.id)"
           >
-            {{ isBought(t) ? '✓ Acheté' : 'Acheter' }}
+            {{ isBought(t) ? $t('tech_panel.bought_btn') : $t('tech_panel.buy_btn') }}
           </button>
         </div>
       </div>

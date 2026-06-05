@@ -5,10 +5,12 @@ import { useAuthStore } from "../../stores/authStore";
 import { tileIndex } from "../../utils/tileUtils";
 import ChatPanel from "./ChatPanel.vue";
 import SectionTitle from "./SectionTitle.vue";
+import { useI18n } from "vue-i18n";
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
 const emit = defineEmits<{ (e: "close"): void }>();
 const auth = useAuthStore();
+const { t } = useI18n();
 
 const me = computed(() => props.state?.players.find((p) => p.userId === auth.user?.id) ?? null);
 const myName = computed(() => me.value?.name ?? auth.user?.name ?? "?");
@@ -53,12 +55,12 @@ function fmt(s: number) {
 </script>
 
 <template>
-  <aside class="stone-texture fixed left-0 top-16 z-40 flex h-[calc(100vh-64px)] w-72 flex-col border-r-4 border-outline-variant" role="complementary" aria-label="Informations">
+  <aside class="stone-texture fixed left-0 top-16 z-40 flex h-[calc(100vh-64px)] w-72 flex-col border-r-4 border-outline-variant" role="complementary" :aria-label="t('left_panel.title')">
 
     <!-- Bouton fermeture mobile -->
     <button
       class="md:hidden absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/60 hover:text-white transition"
-      aria-label="Fermer le panneau"
+      :aria-label="t('left_panel.close_btn')"
       @click="emit('close')"
     >
       <span class="material-symbols-outlined text-[18px]">close</span>
@@ -67,8 +69,8 @@ function fmt(s: number) {
     <!-- En-tête "Informations" -->
     <div class="border-b-2 border-outline-variant bg-black/20 px-5 py-4 flex items-center justify-between shrink-0">
       <div>
-        <h2 class="text-lg font-bold uppercase text-[#d4af37] leading-tight carved-text">Informations</h2>
-        <p class="text-[9px] font-bold uppercase tracking-widest text-white/30 italic mt-0.5">Battle Intelligence Report</p>
+        <h2 class="text-lg font-bold uppercase text-[#d4af37] leading-tight carved-text">{{ t('left_panel.title') }}</h2>
+        <p class="text-[9px] font-bold uppercase tracking-widest text-white/30 italic mt-0.5">{{ t('left_panel.subtitle') }}</p>
       </div>
       <span class="material-symbols-outlined text-[#d4af37]/60" aria-hidden="true">leaderboard</span>
     </div>
@@ -83,7 +85,7 @@ function fmt(s: number) {
         <div class="h-3 w-3 shrink-0 rounded-full border border-black/30" :style="{ backgroundColor: w.player.color }"></div>
         <span class="material-symbols-outlined text-[15px] shrink-0" style="font-variation-settings:'FILL' 1">temple_hindu</span>
         <div class="min-w-0 flex-1">
-          <div class="text-[9px] font-bold uppercase tracking-widest text-white/40">Merveille</div>
+          <div class="text-[9px] font-bold uppercase tracking-widest text-white/40">{{ t('left_panel.wonder_label') }}</div>
           <div class="text-[11px] font-bold truncate" :style="{ color: w.player.color }">
             {{ w.player.name }} — {{ fmt(w.secondsLeft) }}
           </div>
@@ -93,7 +95,7 @@ function fmt(s: number) {
 
     <!-- Classement -->
     <div class="border-b-2 border-outline-variant px-5 pt-4 pb-3 shrink-0">
-      <SectionTitle>Classement</SectionTitle>
+      <SectionTitle>{{ t('left_panel.ranking_title') }}</SectionTitle>
       <div class="space-y-1">
         <div
           v-for="(p, i) in rankedPlayers"
@@ -120,7 +122,7 @@ function fmt(s: number) {
     <!-- Chat -->
     <div class="flex-1 min-h-0 flex flex-col">
       <div class="px-5 pt-4 pb-2 shrink-0">
-        <SectionTitle>Chat</SectionTitle>
+        <SectionTitle>{{ t('left_panel.chat_title') }}</SectionTitle>
       </div>
       <ChatPanel
         v-if="state && me"

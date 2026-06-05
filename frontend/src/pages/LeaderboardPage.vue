@@ -2,6 +2,7 @@
 import { onMounted, ref } from "vue";
 import { apiFetch } from "../api/http";
 import AppFooter from "../components/AppFooter.vue";
+import { useI18n } from "vue-i18n";
 
 type LeaderboardEntry = {
   id: string;
@@ -13,6 +14,7 @@ type LeaderboardEntry = {
 
 const players = ref<LeaderboardEntry[]>([]);
 const loading = ref(true);
+const { t } = useI18n();
 
 onMounted(async () => {
   try {
@@ -34,11 +36,9 @@ function displayName(p: LeaderboardEntry) {
 
     <!-- En-tête -->
     <div class="mb-10 text-center">
-      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-primary/70">Gloire éternelle</div>
-      <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-[0.12em] text-primary">
-        Classement
-      </h1>
-      <p class="mt-3 text-sm italic text-secondary/60">Parties rapides remportées</p>
+      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-primary/70">{{ t('leaderboard.glory_label') }}</div>
+      <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-[0.12em] text-primary">{{ t('leaderboard.title') }}</h1>
+      <p class="mt-3 text-sm italic text-secondary/60">{{ t('leaderboard.subtitle') }}</p>
     </div>
 
     <!-- Tableau -->
@@ -46,20 +46,20 @@ function displayName(p: LeaderboardEntry) {
 
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-outline-variant/30 bg-stone-900/60 px-6 py-3">
-        <span class="text-[10px] font-headline font-bold uppercase tracking-[0.3em] text-secondary/50">Rang · Commandant</span>
-        <span class="text-[10px] font-headline font-bold uppercase tracking-[0.3em] text-secondary/50">Victoires</span>
+        <span class="text-[10px] font-headline font-bold uppercase tracking-[0.3em] text-secondary/50">{{ t('leaderboard.col_rank') }}</span>
+        <span class="text-[10px] font-headline font-bold uppercase tracking-[0.3em] text-secondary/50">{{ t('leaderboard.col_wins') }}</span>
       </div>
 
       <!-- Chargement -->
       <div v-if="loading" class="flex items-center justify-center py-20">
-        <span class="text-sm italic text-secondary/40">Chargement...</span>
+        <span class="text-sm italic text-secondary/40">{{ t('leaderboard.loading') }}</span>
       </div>
 
       <!-- Vide -->
       <div v-else-if="players.length === 0" class="flex flex-col items-center justify-center gap-4 py-20">
         <span class="material-symbols-outlined text-5xl text-primary/20" style="font-variation-settings:'FILL' 0">military_tech</span>
-        <p class="text-sm italic text-secondary/40">Aucune victoire enregistrée pour l'instant.</p>
-        <p class="text-xs uppercase tracking-widest text-secondary/30">Les parties rapides arrivent bientôt.</p>
+        <p class="text-sm italic text-secondary/40">{{ t('leaderboard.no_victories') }}</p>
+        <p class="text-xs uppercase tracking-widest text-secondary/30">{{ t('leaderboard.coming_soon') }}</p>
       </div>
 
       <!-- Lignes -->
@@ -98,7 +98,7 @@ function displayName(p: LeaderboardEntry) {
             <span class="font-headline text-2xl font-extrabold" :class="i === 0 ? 'text-primary' : 'text-secondary/80'">
               {{ p.quickGameWins }}
             </span>
-            <span class="text-[10px] uppercase tracking-widest text-secondary/40">victoires</span>
+            <span class="text-[10px] uppercase tracking-widest text-secondary/40">{{ t('leaderboard.wins') }}</span>
           </div>
         </div>
       </div>

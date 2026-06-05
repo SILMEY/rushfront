@@ -1,55 +1,49 @@
 <script setup lang="ts">
 import AppFooter from "../components/AppFooter.vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 </script>
 
 <template>
   <div class="mx-auto max-w-3xl px-6 py-12">
 
     <div class="mb-10">
-      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-primary/70">Frontrush Empire</div>
-      <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-[0.12em] text-primary">Confidentialité</h1>
-      <p class="mt-3 text-sm text-secondary/50">Dernière mise à jour : juin 2026</p>
+      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-primary/70">{{ t('privacy.header_label') }}</div>
+      <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-[0.12em] text-primary">{{ t('privacy.title') }}</h1>
+      <p class="mt-3 text-sm text-secondary/50">{{ t('privacy.last_updated') }}</p>
     </div>
 
     <div class="space-y-8 rounded-2xl border border-outline-variant/30 bg-black/30 p-8 text-secondary/80 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
 
       <section>
-        <h2 class="mb-3 font-headline text-xl font-bold uppercase tracking-wide text-primary">Données collectées</h2>
-        <p class="leading-relaxed">Lors de la connexion via Google ou Discord, nous récupérons uniquement les informations fournies par ces services : identifiant unique, adresse email, nom d'affichage et photo de profil. Aucun mot de passe n'est stocké.</p>
+        <h2 class="mb-3 font-headline text-xl font-bold uppercase tracking-wide text-primary">{{ t('privacy.section_data') }}</h2>
+        <p class="leading-relaxed">{{ t('privacy.data_text') }}</p>
       </section>
-
       <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-
       <section>
-        <h2 class="mb-3 font-headline text-xl font-bold uppercase tracking-wide text-primary">Utilisation</h2>
-        <p class="leading-relaxed">Ces données sont utilisées exclusivement pour :</p>
+        <h2 class="mb-3 font-headline text-xl font-bold uppercase tracking-wide text-primary">{{ t('privacy.section_usage') }}</h2>
+        <p class="leading-relaxed">{{ t('privacy.usage_intro') }}</p>
         <ul class="mt-2 list-inside list-disc space-y-1 text-secondary/70">
-          <li>Identifier les joueurs en partie</li>
-          <li>Afficher le pseudo et l'avatar en jeu</li>
-          <li>Sauvegarder les préférences de jeu (couleur, civilisation)</li>
-          <li>Alimenter le classement des meilleures parties</li>
+          <li>{{ t('privacy.usage_identify') }}</li>
+          <li>{{ t('privacy.usage_display') }}</li>
+          <li>{{ t('privacy.usage_prefs') }}</li>
+          <li>{{ t('privacy.usage_leaderboard') }}</li>
         </ul>
       </section>
-
       <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-
       <section>
-        <h2 class="mb-3 font-headline text-xl font-bold uppercase tracking-wide text-primary">Partage des données</h2>
-        <p class="leading-relaxed">Aucune donnée personnelle n'est vendue, partagée ou transmise à des tiers. Les données sont hébergées sur des serveurs sécurisés via Railway.</p>
+        <h2 class="mb-3 font-headline text-xl font-bold uppercase tracking-wide text-primary">{{ t('privacy.section_sharing') }}</h2>
+        <p class="leading-relaxed">{{ t('privacy.sharing_text') }}</p>
       </section>
-
       <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-
       <section>
-        <h2 class="mb-3 font-headline text-xl font-bold uppercase tracking-wide text-primary">Cookies</h2>
-        <p class="leading-relaxed">Un cookie de session sécurisé (HttpOnly) est utilisé uniquement pour maintenir ta connexion. Aucun cookie publicitaire ou de tracking n'est utilisé.</p>
+        <h2 class="mb-3 font-headline text-xl font-bold uppercase tracking-wide text-primary">{{ t('privacy.section_cookies') }}</h2>
+        <p class="leading-relaxed">{{ t('privacy.cookies_text') }}</p>
       </section>
-
       <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-
       <section>
-        <h2 class="mb-3 font-headline text-xl font-bold uppercase tracking-wide text-primary">Tes droits</h2>
-        <p class="leading-relaxed">Tu peux demander la suppression de ton compte et de tes données à tout moment en contactant le support. Ton compte sera supprimé sous 30 jours.</p>
+        <h2 class="mb-3 font-headline text-xl font-bold uppercase tracking-wide text-primary">{{ t('privacy.section_rights') }}</h2>
+        <p class="leading-relaxed">{{ t('privacy.rights_text') }}</p>
       </section>
 
     </div>

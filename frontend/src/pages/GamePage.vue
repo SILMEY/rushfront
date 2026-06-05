@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { useAuthStore } from "../stores/authStore";
 import { getSocket } from "../composables/useSocket";
 import GameCanvas from "../components/game/GameCanvas.vue";
@@ -22,6 +23,7 @@ const router = useRouter();
 const game   = useGameStore();
 const auth   = useAuthStore();
 const gameId = computed(() => String(route.params.id));
+const { t } = useI18n();
 
 const mePlayer   = computed(() => game.mePlayer);
 const isWinner   = computed(() => game.gameOver?.winnerId === mePlayer.value?.id);
@@ -64,31 +66,27 @@ watch(
 
         <template v-if="isWinner">
           <div class="mb-2 text-6xl">🏆</div>
-          <div class="text-xs font-headline font-bold uppercase tracking-[0.4em] text-[#d4af37]/70">Gloire à l'Empire</div>
+          <div class="text-xs font-headline font-bold uppercase tracking-[0.4em] text-[#d4af37]/70">{{ t('game.victory_label') }}</div>
           <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-tight text-[#d4af37] drop-shadow-[0_0_20px_rgba(212,175,55,0.5)]">
-            Victoire !
+            {{ t('game.victory_title') }}
           </h1>
-          <p class="mt-4 text-sm italic text-[#d4c59f]/70">
-            Tu as conquis le champ de bataille. Ton nom entre dans la légende.
-          </p>
+          <p class="mt-4 text-sm italic text-[#d4c59f]/70">{{ t('game.victory_msg') }}</p>
         </template>
 
         <template v-else-if="isEliminated">
           <div class="mb-2 text-6xl">⚔️</div>
-          <div class="text-xs font-headline font-bold uppercase tracking-[0.4em] text-slate-400/70">Tombé au combat</div>
-          <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-tight text-slate-300">
-            Éliminé
-          </h1>
+          <div class="text-xs font-headline font-bold uppercase tracking-[0.4em] text-slate-400/70">{{ t('game.eliminated_label') }}</div>
+          <h1 class="mt-2 font-headline text-5xl font-extrabold uppercase tracking-tight text-slate-300">{{ t('game.eliminated_title') }}</h1>
           <p v-if="game.gameOver.winnerName" class="mt-4 text-sm italic text-slate-400">
-            <span class="text-[#d4af37]">{{ game.gameOver.winnerName }}</span> remporte la bataille.
+            <span class="text-[#d4af37]">{{ game.gameOver.winnerName }}</span> {{ t('game.winner_msg', { winner: '' }).replace('{winner} ', '') }}
           </p>
         </template>
 
         <template v-else>
           <div class="mb-2 text-6xl">🏆</div>
-          <h1 class="font-headline text-4xl font-extrabold uppercase text-[#d4af37]">Partie terminée</h1>
+          <h1 class="font-headline text-4xl font-extrabold uppercase text-[#d4af37]">{{ t('game.game_over_title') }}</h1>
           <p v-if="game.gameOver.winnerName" class="mt-3 text-sm italic text-slate-400">
-            <span class="text-[#d4af37]">{{ game.gameOver.winnerName }}</span> remporte la bataille.
+            {{ t('game.winner_msg', { winner: game.gameOver.winnerName }) }}
           </p>
         </template>
 
@@ -96,7 +94,7 @@ watch(
           class="mt-8 w-full rounded-lg border border-[#d4af37]/40 bg-[#d4af37]/10 py-3 font-headline text-sm font-bold uppercase tracking-widest text-[#d4af37] transition hover:bg-[#d4af37]/20"
           @click="router.push('/')"
         >
-          Retour à l'accueil
+          {{ t('game.return_home') }}
         </button>
       </div>
     </div>
@@ -149,7 +147,7 @@ watch(
     <button
       class="flex h-12 w-12 items-center justify-center rounded-full bg-stone-900/95 border-2 border-[#4d4635] text-[#d4af37] shadow-xl transition-transform active:scale-90"
       :aria-expanded="showLeft"
-      :aria-label="showLeft ? 'Fermer le panneau Informations' : 'Ouvrir le panneau Informations'"
+      :aria-label="showLeft ? t('game.close_info_panel') : t('game.open_info_panel')"
       @click="toggleLeft"
     >
       <span class="material-symbols-outlined text-[22px]">{{ showLeft ? 'close' : 'leaderboard' }}</span>
@@ -159,7 +157,7 @@ watch(
     <button
       class="flex h-12 w-12 items-center justify-center rounded-full bg-stone-900/95 border-2 border-[#4d4635] text-[#d4af37] shadow-xl transition-transform active:scale-90"
       :aria-expanded="showRight"
-      :aria-label="showRight ? 'Fermer le Poste de Contrôle' : 'Ouvrir le Poste de Contrôle'"
+      :aria-label="showRight ? t('game.close_panel') : t('game.open_control_panel')"
       @click="toggleRight"
     >
       <span class="material-symbols-outlined text-[22px]">{{ showRight ? 'close' : 'radar' }}</span>
@@ -202,20 +200,20 @@ watch(
       class="stone-texture fixed right-0 top-16 z-40 flex h-[calc(100vh-64px)] w-[min(320px,100vw)] flex-col border-l-4 border-outline-variant transition-transform duration-300 ease-in-out"
       :class="showRight ? 'translate-x-0' : 'translate-x-full md:translate-x-0'"
       role="complementary"
-      aria-label="Poste de Contrôle"
+      :aria-label="t('game.control_panel_title')"
     >
       <div class="border-b-2 border-outline-variant bg-black/20 p-4 md:p-6">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="font-headline text-lg font-bold uppercase text-primary carved-text leading-tight">Poste de Contrôle</h2>
-            <p class="text-[9px] font-bold uppercase tracking-widest text-on-surface/40 italic mt-0.5">Imperial Management Console</p>
+            <h2 class="font-headline text-lg font-bold uppercase text-primary carved-text leading-tight">{{ t('game.control_panel_title') }}</h2>
+            <p class="text-[9px] font-bold uppercase tracking-widest text-on-surface/40 italic mt-0.5">{{ t('game.control_panel_subtitle') }}</p>
           </div>
           <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-primary/70" aria-hidden="true">radar</span>
             <!-- Bouton fermeture mobile -->
             <button
               class="md:hidden flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/60 hover:text-white transition"
-              aria-label="Fermer le Poste de Contrôle"
+              :aria-label="t('game.close_panel')"
               @click="showRight = false"
             >
               <span class="material-symbols-outlined text-[18px]">close</span>
@@ -233,7 +231,7 @@ watch(
 
         <!-- Construction -->
         <div class="px-4 md:px-6 py-5 border-b-2 border-outline-variant">
-          <SectionTitle>Construction</SectionTitle>
+          <SectionTitle>{{ t('game.construction_title') }}</SectionTitle>
           <BuildPanel :state="game.state" :selected="game.selectedBuilding" @select="game.selectBuilding($event)" />
         </div>
 
@@ -248,7 +246,7 @@ watch(
       <div class="border-t-2 border-outline-variant bg-black/40 p-4 md:p-6">
         <div class="flex items-center gap-3">
           <div class="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_#f2ca50]"></div>
-          <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface/40">Connection Established</span>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface/40">{{ t('game.connection_status') }}</span>
         </div>
       </div>
     </aside>

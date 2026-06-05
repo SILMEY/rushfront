@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { getSocket } from "../../composables/useSocket";
 
 type ChatMsg = { authorName: string; authorColor: string; text: string; timestamp: number };
@@ -13,6 +14,7 @@ const props = defineProps<{
 
 const messages = ref<ChatMsg[]>([]);
 const input = ref("");
+const { t } = useI18n();
 const scrollRef = ref<HTMLElement | null>(null);
 // Si l'utilisateur a scrollé vers le haut, on ne force pas le scroll bas
 const userScrolled = ref(false);
@@ -73,7 +75,7 @@ async function send() {
       <!-- Spacer qui pousse les messages vers le bas -->
       <div class="flex flex-col justify-end min-h-full pt-4">
         <div v-if="messages.length === 0" class="text-[10px] italic text-white/15 text-center pb-2">
-          Aucun message pour l'instant
+          {{ t('chat.no_messages') }}
         </div>
         <div
           v-for="(m, i) in messages"
@@ -96,7 +98,7 @@ async function send() {
       class="mx-3 mb-1 rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] text-primary/70 text-center cursor-pointer select-none"
       @click="userScrolled = false; scrollBottom()"
     >
-      ↓ nouveau message
+      {{ t('chat.new_message') }}
     </div>
 
     <!-- Input -->
@@ -104,12 +106,12 @@ async function send() {
       class="chat-input-bar px-3 py-2 flex gap-2 border-t border-white/8"
       @submit.prevent="send"
     >
-      <label for="chat-message-input" class="sr-only">Message du chat</label>
+      <label for="chat-message-input" class="sr-only">{{ t('chat.input_label') }}</label>
       <input
         id="chat-message-input"
         v-model="input"
         maxlength="300"
-        placeholder="Envoyer un message"
+        :placeholder="t('chat.placeholder')"
         autocomplete="off"
         class="flex-1 min-w-0 bg-white/5 border border-white/10 rounded px-2 py-1.5 text-[11px] text-white/85 placeholder-white/20 outline-none focus:border-primary/30 focus:bg-white/8 transition"
         @keydown.enter.exact.prevent="send"
@@ -117,9 +119,9 @@ async function send() {
       <button
         type="submit"
         class="shrink-0 rounded bg-primary/10 border border-primary/25 px-2.5 text-[11px] font-bold text-primary/80 hover:bg-primary/20 transition"
-        aria-label="Envoyer le message"
+        :aria-label="t('chat.send_btn')"
       >
-        Envoyer
+        {{ t('chat.send_btn') }}
       </button>
     </form>
   </div>

@@ -4,11 +4,13 @@ import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
 import { useAuthStore } from "../stores/authStore";
 import ChatPanel from "../components/game/ChatPanel.vue";
+import { useI18n } from "vue-i18n";
 
 const lobby = useLobbyStore();
 const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const gameId = computed(() => String(route.params.id));
 const current = computed(() => lobby.lobbies.find((l) => l.id === gameId.value) ?? null);
@@ -113,18 +115,18 @@ onBeforeRouteLeave(() => {
       <!-- Header pleine largeur -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div class="text-xs font-headline font-bold uppercase tracking-[0.3em] text-primary/80">War Room</div>
+          <div class="text-xs font-headline font-bold uppercase tracking-[0.3em] text-primary/80">{{ t('lobby.subtitle') }}</div>
           <h1 class="mt-2 text-4xl font-headline font-extrabold uppercase tracking-[0.12em] text-primary">
-            Partie de {{ hostName || "..." }}
+            {{ t('lobby.game_title', { host: hostName || '...' }) }}
           </h1>
-          <div class="mt-2 text-xs uppercase tracking-[0.25em] text-secondary/60">ID: {{ gameId }}</div>
+          <div class="mt-2 text-xs uppercase tracking-[0.25em] text-secondary/60">{{ t('lobby.game_id', { id: gameId }) }}</div>
         </div>
         <div class="flex items-center gap-2">
           <button
             class="rounded-md border border-primary/30 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-primary transition hover:bg-primary hover:text-on-primary"
             @click="quitLobby()"
           >
-            Quitter
+            {{ t('lobby.quit_btn') }}
           </button>
         </div>
       </div>
@@ -136,8 +138,8 @@ onBeforeRouteLeave(() => {
         <div class="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-20 overflow-hidden rounded-2xl border border-outline-variant/30 bg-black/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex flex-col h-64 lg:h-[560px]">
           <div class="scroll-banner flex items-center gap-4 px-6 py-4 shrink-0">
             <div>
-              <div class="text-[10px] font-headline font-bold uppercase tracking-[0.25em] text-primary/80">Salon</div>
-              <div class="text-base font-headline font-bold uppercase tracking-widest text-primary">Chat</div>
+              <div class="text-[10px] font-headline font-bold uppercase tracking-[0.25em] text-primary/80">{{ t('lobby.chat_section') }}</div>
+              <div class="text-base font-headline font-bold uppercase tracking-widest text-primary">{{ t('lobby.chat_title') }}</div>
             </div>
           </div>
           <div class="flex-1 min-h-0">
@@ -159,14 +161,14 @@ onBeforeRouteLeave(() => {
               <span class="material-symbols-outlined text-white text-3xl">campaign</span>
             </div>
             <div>
-              <div class="text-xs font-headline font-bold uppercase tracking-[0.25em] text-primary/80">Rassemblement</div>
-              <div class="text-lg font-headline font-bold uppercase tracking-widest text-primary">Salon de jeu</div>
+              <div class="text-xs font-headline font-bold uppercase tracking-[0.25em] text-primary/80">{{ t('lobby.gathering_label') }}</div>
+              <div class="text-lg font-headline font-bold uppercase tracking-widest text-primary">{{ t('lobby.game_room_title') }}</div>
             </div>
           </div>
           <div
             :class="['text-[10px] font-bold uppercase tracking-[0.25em] transition-colors', shakeReady ? 'text-red-400 shake-alert' : 'text-secondary/60']"
           >
-            Prêts requis: {{ readyCount }}/2
+            {{ t('lobby.ready_count', { count: readyCount }) }}
           </div>
         </div>
 
@@ -192,18 +194,18 @@ onBeforeRouteLeave(() => {
                     </div>
                     <div>
                       <div class="text-xl sm:text-3xl font-headline leading-none text-secondary-fixed">{{ p.name }}</div>
-                      <div class="mt-1 text-sm italic text-secondary/70">Commandant</div>
+                      <div class="mt-1 text-sm italic text-secondary/70">{{ t('lobby.commander_label') }}</div>
                     </div>
                   </div>
 
                   <div class="flex items-center gap-4 sm:gap-8 flex-wrap">
                     <div class="flex flex-col items-center">
-                      <span class="mb-1 text-[10px] font-bold uppercase tracking-widest text-secondary">Civilisation</span>
+                      <span class="mb-1 text-[10px] font-bold uppercase tracking-widest text-secondary">{{ t('lobby.civilization_title') }}</span>
                       <span class="text-2xl">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.icon ?? "🏔️" }}</span>
                       <span class="mt-0.5 text-[10px] text-secondary/70">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.name ?? "?" }}</span>
                     </div>
                     <div class="flex flex-col items-center">
-                      <span class="mb-1 text-[10px] font-bold uppercase tracking-widest text-secondary">Héraldique</span>
+                      <span class="mb-1 text-[10px] font-bold uppercase tracking-widest text-secondary">{{ t('lobby.heraldry_label') }}</span>
                       <div class="h-8 w-12 border-2 border-black/20 shadow-md" :style="{ background: p.color }"></div>
                     </div>
                     <div class="flex flex-col items-center gap-1">
@@ -213,7 +215,7 @@ onBeforeRouteLeave(() => {
                         </span>
                       </div>
                       <span class="text-[10px] font-bold uppercase tracking-widest" :class="p.isReady ? 'text-primary' : 'text-secondary-fixed-dim'">
-                        {{ p.isReady ? "PRÊT" : "ATTENTE" }}
+                        {{ p.isReady ? t('lobby.ready') : t('lobby.waiting') }}
                       </span>
                     </div>
                   </div>
@@ -226,8 +228,8 @@ onBeforeRouteLeave(() => {
                 >
                   <span class="material-symbols-outlined text-4xl">person_add</span>
                   <div class="text-center">
-                    <div class="text-xl font-headline">Emplacement vide</div>
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-primary/60">En attente d'un allié</div>
+                    <div class="text-xl font-headline">{{ t('lobby.empty_slot_title') }}</div>
+                    <div class="text-[10px] font-bold uppercase tracking-widest text-primary/60">{{ t('lobby.empty_slot_subtitle') }}</div>
                   </div>
                 </div>
               </div>
@@ -241,7 +243,7 @@ onBeforeRouteLeave(() => {
                 <div>
                   <h3 class="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-secondary">
                     <span class="material-symbols-outlined text-sm">castle</span>
-                    Civilisation
+                    {{ t('lobby.civilization_title') }}
                   </h3>
                   <div class="grid grid-cols-2 gap-2">
                     <button
@@ -266,7 +268,7 @@ onBeforeRouteLeave(() => {
                 <div>
                   <h3 class="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-secondary">
                     <span class="material-symbols-outlined text-sm">palette</span>
-                    Couleur d'héraldique
+                    {{ t('lobby.heraldry_title') }}
                   </h3>
                   <div class="flex flex-wrap gap-3">
                     <button
@@ -292,7 +294,7 @@ onBeforeRouteLeave(() => {
                       <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1">
                         {{ me.isReady ? "verified" : "hourglass_bottom" }}
                       </span>
-                      <span>{{ me.isReady ? "PRÊT" : "PAS PRÊT" }}</span>
+                      <span>{{ me.isReady ? t('lobby.ready') : t('lobby.not_ready') }}</span>
                     </span>
                   </button>
 
@@ -303,11 +305,11 @@ onBeforeRouteLeave(() => {
                   >
                     <span class="flex items-center justify-center gap-4 text-2xl font-headline">
                       <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1">swords</span>
-                      <span>Lancer la partie</span>
+                      <span>{{ t('lobby.start_btn') }}</span>
                     </span>
                   </button>
                   <p class="mt-3 text-center text-[10px] font-bold uppercase tracking-widest text-secondary-fixed-dim">
-                    Préparez vos troupes.
+                    {{ t('lobby.prepare_hint') }}
                   </p>
                 </div>
               </div>

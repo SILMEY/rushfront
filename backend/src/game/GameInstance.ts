@@ -48,6 +48,23 @@ export class GameInstance {
   // O(1) building presence cache — avoids O(n) tileBuildings.some() scans
   private _buildingCounts = new Map<string, Map<number, number>>();
 
+  // O(1) tile ownership lookup — avoids O(n) filter/some on tileOwners
+  private _tilesByPlayer = new Map<string, Set<number>>();
+
+  private _addTile(playerId: string, index: number) {
+    let s = this._tilesByPlayer.get(playerId);
+    if (!s) { s = new Set(); this._tilesByPlayer.set(playerId, s); }
+    s.add(index);
+  }
+
+  private _removeTile(playerId: string, index: number) {
+    this._tilesByPlayer.get(playerId)?.delete(index);
+  }
+
+  tileCount(playerId: string): number {
+    return this._tilesByPlayer.get(playerId)?.size ?? 0;
+  }
+
   private _addBuilding(playerId: string, b: number) {
     const m = this._buildingCounts.get(playerId) ?? new Map<number, number>();
     m.set(b, (m.get(b) ?? 0) + 1);
@@ -185,13 +202,13 @@ export class GameInstance {
     this._buildingCounts.delete(playerId);
 
     const changes: TileChange[] = [];
-    for (let i = 0; i < this.tileOwners.length; i++) {
-      if (this.tileOwners[i] === playerId) {
-        this.tileOwners[i] = null;
-        this.tileBuildings[i] = null;
-        changes.push({ x: i % this.width, y: Math.floor(i / this.width), owner: null, building: null });
-      }
+    const ownedTiles = this._tilesByPlayer.get(playerId) ?? new Set<number>();
+    for (const i of ownedTiles) {
+      this.tileOwners[i] = null;
+      this.tileBuildings[i] = null;
+      changes.push({ x: i % this.width, y: Math.floor(i / this.width), owner: null, building: null });
     }
+    this._tilesByPlayer.delete(playerId);
 
     this.onPlayerEliminated?.(playerId, changes);
     this.checkGameOver();
@@ -217,7 +234,7 @@ export class GameInstance {
   private checkEliminationOf(playerId: string) {
     const player = this.players.find((p) => p.id === playerId);
     if (!player || player.eliminated || !player.hasChosenStart) return;
-    if (!this.tileOwners.some((o) => o === playerId)) {
+    if (this.tileCount(playerId) === 0) {
       this.doEliminate(playerId);
     }
   }
@@ -287,6 +304,7 @@ export class GameInstance {
     player.resources = { villagers: 5, soldiers: 0, wood: 25, stone: 5 };
     this.tileOwners[index] = player.id;
     this.tileBuildings[index] = BuildingType.Base;
+    this._addTile(player.id, index);
     this._addBuilding(player.id, BuildingType.Base);
 
     void prisma.gamePlayer.update({
@@ -328,6 +346,7 @@ export class GameInstance {
     player.resources.villagers -= 1;
 
     this.tileOwners[index] = player.id;
+    this._addTile(player.id, index);
     return { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null };
   }
 
@@ -376,21 +395,35 @@ export class GameInstance {
     const atkTechs = new Set(player.techs ?? []);
     const defTechs = new Set(defender.techs ?? []);
 
-    // ── Pertes défenseur : ⌈(pop_totale / cases)⌉, réparti soldats + villageois ──
-    const defTiles = this.tileOwners.filter(o => o === defender.id).length;
-    const defTotalPop = defender.resources.soldiers + defender.resources.villagers;
-    const defRawLoss = defTiles > 0 ? Math.ceil(defTotalPop / defTiles) : 0;
-    const defTotalLoss = defTechs.has("cote_de_maille") ? Math.max(1, Math.floor(defRawLoss / 2)) : defRawLoss;
+    // ── Pertes lors de l'attaque ─────────────────────────────────────────────
+    // La résistance est basée sur les SOLDATS par case (les villageois ne se battent pas).
+    // Un attaquant nettement supérieur en nombre perd bien moins que le défenseur.
+    // Quand le défenseur n'a plus de soldats, ses cases coûtent 1 soldat à capturer (balayage).
 
-    // Split proportionnel soldats / villageois
-    const defSoldierLoss = defTotalPop > 0
-      ? Math.round(defTotalLoss * defender.resources.soldiers / defTotalPop)
-      : 0;
-    const defVillagerLoss = defTotalLoss - defSoldierLoss;
+    const COMBAT_SCALE = 3; // facteur ×3 par rapport à l'ancienne formule → combats plus décisifs
 
-    // ── Pertes attaquant : même total que le défenseur, soldats uniquement ──
-    const atkRawLoss = defTotalLoss;
-    const atkSoldierLoss = atkTechs.has("epee_longue") ? Math.max(1, Math.floor(atkRawLoss / 2)) : atkRawLoss;
+    const defTiles = this.tileCount(defender.id);
+    const defSoldiers = defender.resources.soldiers;
+
+    // Densité militaire du défenseur (soldats/case)
+    const defDensity = defTiles > 0 ? defSoldiers / defTiles : 0;
+
+    // Pertes brutes : proportionnelles à la densité × échelle combat
+    const defRawLoss = Math.max(1, Math.ceil(defDensity * COMBAT_SCALE));
+    const defTotalLoss = defTechs.has("cote_de_maille")
+      ? Math.max(1, Math.floor(defRawLoss / 2))
+      : defRawLoss;
+
+    // Les soldats absorbent les pertes en priorité — les villageois ne font pas bouclier
+    const defSoldierLoss = Math.min(defSoldiers, defTotalLoss);
+    const defVillagerLoss = Math.max(0, defTotalLoss - defSoldierLoss);
+
+    // Avantage numérique : l'attaquant 20× plus fort perd ~3× moins que le défenseur
+    const numericalAdvantage = Math.min(10, Math.max(1, player.resources.soldiers / Math.max(1, defSoldiers)));
+    const atkRawLoss = Math.max(1, Math.ceil(defTotalLoss / Math.sqrt(numericalAdvantage)));
+    const atkSoldierLoss = atkTechs.has("epee_longue")
+      ? Math.max(1, Math.floor(atkRawLoss / 2))
+      : atkRawLoss;
 
     if (player.resources.soldiers < atkSoldierLoss) throw new Error("not_enough_soldiers");
 
@@ -421,6 +454,8 @@ export class GameInstance {
         }
       }
     }
+    this._removeTile(defender.id, index);
+    this._addTile(player.id, index);
     this.tileOwners[index] = player.id;
 
     // Annuler la merveille si sa case est capturée
@@ -555,7 +590,7 @@ export class GameInstance {
     player.maritimeCharges = (player.maritimeCharges ?? 0) + 1;
   }
 
-  // Débarquement maritime : réclame une case de plaine adjacente à l'eau (hors adjacence territoire)
+  // Débarquement maritime : case côtière neutre (settler) ou ennemie (assaut)
   maritimeLand(userId: string, pos: Vec2): TileChange {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
@@ -571,7 +606,8 @@ export class GameInstance {
       throw new Error("tile_blocked");
 
     if ((this.tileTypes[index] as TileType) !== TileType.Plain) throw new Error("invalid_tile");
-    if (this.tileOwners[index]) throw new Error("already_owned");
+    const existingOwner = this.tileOwners[index];
+    if (existingOwner === player.id) throw new Error("already_own");
 
     const adjToWater = orthogonalNeighbors(pos).some(n => {
       if (!inBounds(n, this.width, this.height)) return false;
@@ -579,11 +615,62 @@ export class GameInstance {
     });
     if (!adjToWater) throw new Error("needs_adjacent_water");
 
-    if (player.resources.villagers < 1) throw new Error("not_enough_habitants");
-    player.resources.villagers -= 1;
+    if (existingOwner) {
+      // ── Assaut maritime sur territoire ennemi ─────────────────────────────
+      if (player.resources.soldiers < 1) throw new Error("not_enough_soldiers");
+
+      const defender = this.players.find(p => p.id === existingOwner)!;
+      const atkTechs = new Set(player.techs ?? []);
+      const defTechs = new Set(defender.techs ?? []);
+
+      const COMBAT_SCALE = 3;
+      const defTiles = this.tileCount(defender.id);
+      const defSoldiers = defender.resources.soldiers;
+      const defDensity = defTiles > 0 ? defSoldiers / defTiles : 0;
+      const defRawLoss  = Math.max(1, Math.ceil(defDensity * COMBAT_SCALE));
+      const defTotalLoss = defTechs.has("cote_de_maille")
+        ? Math.max(1, Math.floor(defRawLoss / 2)) : defRawLoss;
+
+      const defSoldierLoss  = Math.min(defSoldiers, defTotalLoss);
+      const defVillagerLoss = Math.max(0, defTotalLoss - defSoldierLoss);
+
+      const numericalAdvantage = Math.min(10, Math.max(1, player.resources.soldiers / Math.max(1, defSoldiers)));
+      const atkRawLoss    = Math.max(1, Math.ceil(defTotalLoss / Math.sqrt(numericalAdvantage)));
+      const atkSoldierLoss = atkTechs.has("epee_longue")
+        ? Math.max(1, Math.floor(atkRawLoss / 2)) : atkRawLoss;
+
+      if (player.resources.soldiers < atkSoldierLoss) throw new Error("not_enough_soldiers");
+
+      defender.resources.soldiers  = Math.max(0, defender.resources.soldiers  - defSoldierLoss);
+      defender.resources.villagers = Math.max(0, defender.resources.villagers - defVillagerLoss);
+      player.resources.soldiers    = Math.max(0, player.resources.soldiers    - atkSoldierLoss);
+
+      // Bâtiment capturé (mines/scieries détruites, autres transférés)
+      const capturedBuilding = this.tileBuildings[index];
+      if (capturedBuilding != null) {
+        this._removeBuilding(defender.id, capturedBuilding);
+        if (capturedBuilding === BuildingType.Mine || capturedBuilding === BuildingType.Sawmill) {
+          this.tileBuildings[index] = null;
+        } else {
+          this._addBuilding(player.id, capturedBuilding);
+        }
+      }
+
+      // Annuler merveille si applicable
+      const wi = this.wonders.findIndex(w => w.tileIndex === index && w.playerId === defender.id);
+      if (wi !== -1) this.wonders.splice(wi, 1);
+
+    } else {
+      // ── Débarquement sur case neutre (settlers) ───────────────────────────
+      if (player.resources.villagers < 1) throw new Error("not_enough_habitants");
+      player.resources.villagers -= 1;
+    }
+
+    if (existingOwner) this._removeTile(existingOwner, index);
+    this._addTile(player.id, index);
     player.maritimeCharges = charges - 1;
     this.tileOwners[index] = player.id;
-    return { x: pos.x, y: pos.y, owner: player.id, building: null };
+    return { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null };
   }
 
   // ── Brouillage ────────────────────────────────────────────────────────────

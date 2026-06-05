@@ -13,11 +13,11 @@ let _lastAttackEmit = 0;
 const _boatIntervals = new Map<string, number>();
 const BOAT_STEP_MS   = 350; // ms per water tile — intentionally slow
 
-// Hex neighbor offsets for even-r offset grid (matches backend orthogonalNeighbors)
-function hexNeighborOffsets(row: number): [number, number][] {
-  return row % 2 === 0
-    ? [[0,-1],[1,0],[0,1],[-1,1],[-1,0],[-1,-1]]
-    : [[1,-1],[1,0],[1,1],[0,1],[-1,0],[0,-1]];
+// Hex neighbor offsets — pre-allocated constants (no allocation per call)
+const HEX_OFFSETS_EVEN: readonly [number, number][] = [[0,-1],[1,0],[0,1],[-1,1],[-1,0],[-1,-1]];
+const HEX_OFFSETS_ODD:  readonly [number, number][] = [[1,-1],[1,0],[1,1],[0,1],[-1,0],[0,-1]];
+function hexNeighborOffsets(row: number): readonly [number, number][] {
+  return row % 2 === 0 ? HEX_OFFSETS_EVEN : HEX_OFFSETS_ODD;
 }
 
 function inBounds(pos: Vec2, state: GameStateSnapshot) {
@@ -382,8 +382,8 @@ export const useGameStore = defineStore("game", {
         return;
       }
 
-      // Case neutre plain + adjacent à l'eau + charges dispo → menu débarquement
-      if (!owner && (this.state.tiles.types[i] as TileType) === TileType.Plain) {
+      // Case neutre OU ennemie, plain + adjacent à l'eau + charges dispo → menu débarquement
+      if (owner !== meId && (this.state.tiles.types[i] as TileType) === TileType.Plain) {
         const charges = (this.mePlayer as any)?.maritimeCharges ?? 0;
         if (charges > 0) {
           const adjToWater = hexNeighborOffsets(pos.y).some(([dc, dr]) => {

@@ -4,6 +4,7 @@ import type { GameStateSnapshot } from "../../types/game";
 import { BuildingType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
 import SectionTitle from "./SectionTitle.vue";
+import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
   state: GameStateSnapshot | null;
@@ -14,6 +15,7 @@ const emit = defineEmits<{ (e: "select", building: BuildingType | null): void }>
 
 const auth = useAuthStore();
 const me = computed(() => props.state?.players.find(p => p.userId === auth.user?.id) ?? null);
+const { t } = useI18n();
 
 type BuildItem = {
   type: BuildingType | null;
@@ -22,27 +24,18 @@ type BuildItem = {
   wood: number;
   stone: number;
   villagers: number;
-  hint: string;
-  production?: string;  // short label shown inside the button
+  hint?: string;
+  production?: string;
 };
 
 const items: BuildItem[] = [
-  { type: BuildingType.Sawmill,    label: "Scierie",      icon: "forest",        wood: 5,   stone: 0,   villagers: 0,
-    hint: "Doit être adjacente à une forêt. Produit +30 bois/min par forêt adjacente (max 3 forêts = +90/min).",
-    production: "+30/min 🪵" },
-  { type: BuildingType.Mine,       label: "Mine",         icon: "construction",  wood: 10,  stone: 0,   villagers: 0,
-    hint: "Doit être adjacente à une carrière. Produit +30 pierre/min par carrière adjacente (max 3 = +90/min).",
-    production: "+30/min 🪨" },
-  { type: BuildingType.FishingHut, label: "Port",         icon: "sailing",       wood: 10,  stone: 10,  villagers: 0,
-    hint: "Adjacent à l'eau. Clic droit pour acheter des bateaux de pêche (+1 hab./s chacun, max 10 par port) et des transports maritimes (débarquement)." },
-  { type: BuildingType.Barracks,   label: "Caserne",      icon: "shield",        wood: 20,  stone: 10,  villagers: 0,
-    hint: "Débloque les militaires et les attaques" },
-  { type: BuildingType.University, label: "Université",   icon: "history_edu",   wood: 20,  stone: 20,  villagers: 0,
-    hint: "Débloque les recherches technologiques" },
-  { type: BuildingType.City,       label: "Cité",         icon: "location_city", wood: 40,  stone: 80,  villagers: 0,
-    hint: "+500 habitants maximum" },
-  { type: BuildingType.Wonder,     label: "Merveille",    icon: "temple_hindu",  wood: 150, stone: 300, villagers: 0,
-    hint: "Victoire si non prise en 10 minutes" },
+  { type: BuildingType.Sawmill,    label: "sawmill",    icon: "forest",        wood: 5,   stone: 0,   villagers: 0, production: "+30/min 🪵" },
+  { type: BuildingType.Mine,       label: "mine",       icon: "construction",  wood: 10,  stone: 0,   villagers: 0, production: "+30/min 🪨" },
+  { type: BuildingType.FishingHut, label: "fishing_hut",icon: "sailing",       wood: 10,  stone: 10,  villagers: 0 },
+  { type: BuildingType.Barracks,   label: "barracks",   icon: "shield",        wood: 20,  stone: 10,  villagers: 0 },
+  { type: BuildingType.University, label: "university", icon: "history_edu",   wood: 20,  stone: 20,  villagers: 0 },
+  { type: BuildingType.City,       label: "city",       icon: "location_city", wood: 40,  stone: 80,  villagers: 0 },
+  { type: BuildingType.Wonder,     label: "wonder",     icon: "temple_hindu",  wood: 150, stone: 300, villagers: 0 },
 ];
 
 const hoveredItem = ref<BuildItem | null>(null);
@@ -65,12 +58,15 @@ function canAfford(b: BuildItem): boolean {
 }
 
 function costLabel(b: BuildItem): string {
-  if (b.type === null) return "1 habitant";
+  if (b.type === null) return t("build_panel.cost_villager");
   const parts: string[] = [];
-  if (b.wood  > 0) parts.push(`${b.wood} bois`);
-  if (b.stone > 0) parts.push(`${b.stone} pierre`);
-  return parts.join(" + ") || "Gratuit";
+  if (b.wood  > 0) parts.push(t("build_panel.cost_wood",  { n: b.wood }));
+  if (b.stone > 0) parts.push(t("build_panel.cost_stone", { n: b.stone }));
+  return parts.join(" + ") || t("build_panel.cost_free");
 }
+
+function buildLabel(b: BuildItem): string { return t(`build_panel.${b.label}`); }
+function buildHint(b: BuildItem): string  { return t(`build_panel.${b.label}_hint`); }
 </script>
 
 <template>
@@ -90,18 +86,18 @@ function costLabel(b: BuildItem): string {
             : 'hover:brightness-110 active:scale-95 cursor-pointer'
         ]"
         :disabled="!canAfford(b)"
-        :aria-label="`${b.label} — ${costLabel(b)}`"
+        :aria-label="`${buildLabel(b)} — ${costLabel(b)}`"
         :aria-pressed="selected === b.type"
         type="button"
         @pointerenter="onPointerEnter($event, b)"
         @pointerleave="hoveredItem = null; tooltipStyle = null"
-        @click="canAfford(b) && emit('select', b.type)"
+        @click="selected === b.type ? emit('select', null) : canAfford(b) && emit('select', b.type)"
       >
         <span
           :class="(b.icon.codePointAt(0) ?? 0) > 127 ? 'rf-parchment-icon text-2xl' : 'material-symbols-outlined rf-parchment-icon text-xl'"
           aria-hidden="true"
         >{{ b.icon }}</span>
-        <span class="rf-parchment-title text-center text-[8px] font-bold uppercase leading-tight mt-0.5 px-0.5">{{ b.label }}</span>
+        <span class="rf-parchment-title text-center text-[8px] font-bold uppercase leading-tight mt-0.5 px-0.5">{{ buildLabel(b) }}</span>
         <span v-if="b.production" class="text-[7px] text-[#a8c090]/80 font-mono leading-none mt-0.5">{{ b.production }}</span>
       </button>
     </div>
@@ -115,12 +111,12 @@ function costLabel(b: BuildItem): string {
       :style="tooltipStyle"
     >
       <div class="rounded border border-[#8b7e66]/70 bg-[#1a1812] shadow-2xl px-3 py-2.5">
-        <div class="rf-parchment-title text-[11px] font-bold uppercase text-[#f2ca50] mb-1">{{ hoveredItem.label }}</div>
-        <div class="text-[10px] text-white/55 italic mb-2 leading-snug">{{ hoveredItem.hint }}</div>
+        <div class="rf-parchment-title text-[11px] font-bold uppercase text-[#f2ca50] mb-1">{{ buildLabel(hoveredItem) }}</div>
+        <div class="text-[10px] text-white/55 italic mb-2 leading-snug">{{ buildHint(hoveredItem) }}</div>
         <div class="text-[10px] font-bold" :class="canAfford(hoveredItem) ? 'text-[#a8c090]' : 'text-red-400/80'">
           {{ costLabel(hoveredItem) }}
         </div>
-        <div v-if="!canAfford(hoveredItem)" class="text-[9px] text-red-400/60 mt-0.5">Ressources insuffisantes</div>
+        <div v-if="!canAfford(hoveredItem)" class="text-[9px] text-red-400/60 mt-0.5">{{ t('build_panel.insufficient') }}</div>
       </div>
     </div>
   </Teleport>

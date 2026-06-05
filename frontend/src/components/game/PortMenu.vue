@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import type { GameStateSnapshot, Vec2 } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
+import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
   state: GameStateSnapshot;
@@ -18,12 +19,13 @@ const emit = defineEmits<{
 
 const auth = useAuthStore();
 const me   = computed(() => props.state.players.find(p => p.userId === auth.user?.id) ?? null);
+const { t } = useI18n();
 
-type PortEntry = { action: "fishing-boat" | "transport"; label: string; icon: string; cost: number; detail: string };
+type PortEntry = { action: "fishing-boat" | "transport"; labelKey: string; icon: string; cost: number; detailKey: string };
 
 const ALL: PortEntry[] = [
-  { action: "fishing-boat", label: "Pêche",     icon: "sailing",          cost: 1,  detail: "+1 hab./s" },
-  { action: "transport",    label: "Transport",  icon: "directions_boat",  cost: 10, detail: "1 débarquement" },
+  { action: "fishing-boat", labelKey: "port_menu.fishing_label",   icon: "sailing",         cost: 1,  detailKey: "port_menu.fishing_detail" },
+  { action: "transport",    labelKey: "port_menu.transport_label",  icon: "directions_boat", cost: 10, detailKey: "port_menu.transport_detail" },
 ];
 
 function canAfford(e: PortEntry): boolean {
@@ -104,11 +106,11 @@ function itemStyle(i: number, total: number) {
         <span
           class="text-[8px] font-bold uppercase tracking-wide whitespace-nowrap"
           :class="canAfford(entry) ? 'text-white/60' : 'text-white/20'"
-        >{{ entry.label }}</span>
+        >{{ t(entry.labelKey) }}</span>
         <span
           class="text-[7px] whitespace-nowrap"
           :class="canAfford(entry) ? 'text-[#a8c090]/70' : 'text-white/15'"
-        >{{ entry.detail }}</span>
+        >{{ t(entry.detailKey) }}</span>
       </button>
     </div>
   </div>

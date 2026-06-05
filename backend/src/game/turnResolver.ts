@@ -54,13 +54,26 @@ export function applyProduction(input: {
 
     const fishingBoats = (player as any).fishingBoats ?? 0;
 
-    // Count owned tiles and cities
-    let ownedTiles = 0;
-    let cityCount = 0;
+    // Passe unique : ownedTiles + cityCount + sawmills + mines en un seul parcours
+    let ownedTiles = 0, cityCount = 0;
+    let rawWood = 0, sawmills = 0;
+    let rawStone = 0, mines = 0;
     for (let i = 0; i < tileOwners.length; i++) {
       if (tileOwners[i] !== player.id) continue;
       ownedTiles++;
-      if (tileBuildings[i] === BuildingType.City) cityCount++;
+      const b = tileBuildings[i];
+      if (b === BuildingType.City)    { cityCount++; continue; }
+      if (b === BuildingType.Sawmill) {
+        sawmills++;
+        const { x, y } = tilePos(i, width);
+        rawWood += Math.min(15, adjacentForestCount(tileTypes, x, y, width, height) * 5);
+        continue;
+      }
+      if (b === BuildingType.Mine) {
+        mines++;
+        const { x, y } = tilePos(i, width);
+        rawStone += Math.min(15, adjacentQuarryCount(tileTypes, x, y, width, height) * 5);
+      }
     }
 
     // Habitants: max = 5 par case + 500 par Cité
@@ -68,8 +81,6 @@ export function applyProduction(input: {
     const currentPop = player.resources.villagers + player.resources.soldiers;
 
     if (currentPop < maxPop) {
-      // Chaque cité équivaut à 50 cases supplémentaires pour la croissance naturelle
-      // Chaque bateau de pêche ajoute +1 habitant/s (0.1 par tick à 10 ticks/s)
       const naturalRate = Math.sqrt(ownedTiles + cityCount * 50) * 0.10;
       const ratePerTick = naturalRate + fishingBoats * 0.1;
       const accumulated = ((player as any).habitantFraction ?? 0) + ratePerTick;
@@ -96,26 +107,12 @@ export function applyProduction(input: {
     player.resources.wood  += pGain(player.civilization === "sylvan_elves" ? passiveWood  * 2 : passiveWood);
     player.resources.stone += pGain(player.civilization === "iron_dwarves" ? passiveStone * 2 : passiveStone);
 
-    // Sawmills
-    let rawWood = 0, sawmills = 0;
-    for (let i = 0; i < tileBuildings.length; i++) {
-      if (tileOwners[i] !== player.id || tileBuildings[i] !== BuildingType.Sawmill) continue;
-      sawmills++;
-      const { x, y } = tilePos(i, width);
-      rawWood += Math.min(15, adjacentForestCount(tileTypes, x, y, width, height) * 5);
-    }
+    // Bois (scieries)
     if (techs.has("eco_tools")) rawWood += sawmills * 5;
     if (player.civilization === "sylvan_elves") rawWood *= 2;
     player.resources.wood += pGain(rawWood);
 
-    // Mines
-    let rawStone = 0, mines = 0;
-    for (let i = 0; i < tileBuildings.length; i++) {
-      if (tileOwners[i] !== player.id || tileBuildings[i] !== BuildingType.Mine) continue;
-      mines++;
-      const { x, y } = tilePos(i, width);
-      rawStone += Math.min(15, adjacentQuarryCount(tileTypes, x, y, width, height) * 5);
-    }
+    // Pierre (mines)
     if (techs.has("eco_tools")) rawStone += mines * 5;
     if (player.civilization === "iron_dwarves") rawStone *= 2;
     player.resources.stone += pGain(rawStone);

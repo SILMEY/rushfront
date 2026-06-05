@@ -75,6 +75,59 @@ function addHexToPath(path: Path2D, cx: number, cy: number, R: number): void {
   path.closePath();
 }
 
+// --- Terrain noise pre-computed once per map dimensions ---
+
+let _noiseCache: Float32Array | null = null;
+let _waterNoiseCache: Float32Array | null = null;
+let _noiseCacheW = 0;
+let _noiseCacheH = 0;
+
+function ensureNoiseCache(width: number, height: number) {
+  if (_noiseCache && _noiseCacheW === width && _noiseCacheH === height) return;
+  _noiseCache      = new Float32Array(width * height);
+  _waterNoiseCache = new Float32Array(width * height);
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      const i = r * width + c;
+      _noiseCache[i]      = terrainNoise(c, r);
+      _waterNoiseCache[i] = smoothNoise(c, r, 5);
+    }
+  }
+  _noiseCacheW = width;
+  _noiseCacheH = height;
+}
+
+// --- colorByPlayer cache — players & colors never change during a game ---
+
+let _colorByPlayer: Map<string, string> | null = null;
+let _colorCacheKey = "";
+
+function getColorByPlayer(state: { gameId: string; players: { id: string; color: string }[] }): Map<string, string> {
+  const key = state.gameId + ":" + state.players.length;
+  if (_colorByPlayer && _colorCacheKey === key) return _colorByPlayer;
+  _colorByPlayer = new Map(state.players.map(p => [p.id, p.color]));
+  _colorCacheKey = key;
+  return _colorByPlayer;
+}
+
+// --- Wonder tiles cache — updated only when wonder count changes ---
+
+let _wonderTiles: Array<{ col: number; row: number; ownerId: string | null }> | null = null;
+let _wonderCacheKey = "";
+
+function getWonderTiles(state: { gameId: string; tiles: { buildings: (number | null)[]; owners: (string | null)[] }; width: number; wonders?: unknown[] }): Array<{ col: number; row: number; ownerId: string | null }> {
+  const key = state.gameId + ":" + (state.wonders?.length ?? 0);
+  if (_wonderTiles && _wonderCacheKey === key) return _wonderTiles;
+  _wonderTiles = [];
+  for (let i = 0; i < state.tiles.buildings.length; i++) {
+    if ((state.tiles.buildings[i] as BuildingType) === BuildingType.Wonder) {
+      _wonderTiles.push({ col: i % state.width, row: Math.floor(i / state.width), ownerId: state.tiles.owners[i] });
+    }
+  }
+  _wonderCacheKey = key;
+  return _wonderTiles;
+}
+
 // --- Screen-space grain texture (generated once) ---
 
 let _grainPattern: CanvasPattern | null = null;
@@ -133,7 +186,8 @@ export function useGameRenderer() {
     const x0 = Math.max(0,              Math.floor( worldLeft        / W)  - 2);
     const x1 = Math.min(state.width  - 1, Math.ceil( worldRight      / W)  + 2);
 
-    const colorByPlayer = new Map(state.players.map((p) => [p.id, p.color] as const));
+    ensureNoiseCache(state.width, state.height);
+    const colorByPlayer = getColorByPlayer(state);
 
     ctx.save();
     ctx.translate(camera.x, camera.y);
@@ -193,7 +247,8 @@ export function useGameRenderer() {
           const ownerColor = owner ? (colorByPlayer.get(owner) ?? "#64748b") : null;
 
           const { x: cx, y: cy } = hexCenter(col, row, tileSize);
-          const noise = terrainNoise(col, row);
+          const ni    = row * state.width + col;
+          const noise = _noiseCache![ni];
 
           // 1a. Base fill
           hexPathAt(ctx, cx, cy, R);
@@ -209,7 +264,7 @@ export function useGameRenderer() {
 
           // 1c. Water — additional reflective highlight from secondary noise
           if (type === TileType.Water) {
-            const wn = smoothNoise(col, row, 5);
+            const wn = _waterNoiseCache![ni];
             hexPathAt(ctx, cx, cy, R);
             ctx.fillStyle = `rgba(96,165,250,${(wn * 0.09).toFixed(3)})`;
             ctx.fill();
@@ -311,12 +366,10 @@ export function useGameRenderer() {
     }
 
     // ── Pass 2: wonders (multi-hex bounding box overlay) ──────────────────
-    for (let row = y0; row <= y1; row++) {
-      for (let col = x0; col <= x1; col++) {
-        const i = row * state.width + col;
-        if ((state.tiles.buildings[i] as BuildingType) !== BuildingType.Wonder) continue;
-        const owner      = state.tiles.owners[i];
-        const ownerColor = owner ? (colorByPlayer.get(owner) ?? "#f2ca50") : "#f2ca50";
+    for (const { col, row, ownerId } of getWonderTiles(state)) {
+      if (col < x0 || col > x1 || row < y0 || row > y1) continue;
+      {
+        const ownerColor = ownerId ? (colorByPlayer.get(ownerId) ?? "#f2ca50") : "#f2ca50";
 
         const { x: cx, y: cy } = hexCenter(col, row, tileSize);
         const half = R * 4;

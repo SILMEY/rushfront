@@ -2,8 +2,10 @@
 import { computed, ref, watch } from "vue";
 import { useAuthStore } from "../stores/authStore";
 import AppFooter from "../components/AppFooter.vue";
+import { useI18n } from "vue-i18n";
 
 const auth = useAuthStore();
+const { t } = useI18n();
 
 // ── Pseudo ────────────────────────────────────────────────
 const pseudo = ref(auth.user?.pseudo ?? "");
@@ -15,17 +17,17 @@ const error = ref<string | null>(null);
 async function save() {
   error.value = null;
   const value = pseudo.value.trim();
-  if (!value) { error.value = "Ton pseudo est requis."; return; }
+  if (!value) { error.value = t("profile.error_required"); return; }
   saving.value = true;
   try {
     await auth.setPseudo(value);
   } catch (e: any) {
     const msg = String(e?.message ?? "");
-    if (msg.includes("pseudo_taken"))    error.value = "Pseudo déjà pris.";
-    else if (msg.includes("pseudo_too_short")) error.value = "Pseudo trop court (min 3).";
-    else if (msg.includes("pseudo_too_long"))  error.value = "Pseudo trop long (max 20).";
-    else if (msg.includes("pseudo_invalid"))   error.value = "Pseudo invalide (lettres/chiffres/_/-).";
-    else error.value = "Erreur lors de la sauvegarde.";
+    if (msg.includes("pseudo_taken"))         error.value = t("profile.error_taken");
+    else if (msg.includes("pseudo_too_short")) error.value = t("profile.error_too_short");
+    else if (msg.includes("pseudo_too_long"))  error.value = t("profile.error_too_long");
+    else if (msg.includes("pseudo_invalid"))   error.value = t("profile.error_invalid");
+    else                                        error.value = t("profile.error_save");
   } finally {
     saving.value = false;
   }
@@ -62,27 +64,23 @@ async function savePreferences() {
     savingPrefs.value = false;
   }
 }
-
 </script>
 
 <template>
   <div class="relative mx-auto grid max-w-5xl gap-8 px-6 py-10">
 
-    <!-- En-tête -->
     <div class="relative z-10 text-center">
-      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-amber-300/80">Commandant</div>
-      <h1 class="mt-2 text-4xl font-headline font-extrabold uppercase tracking-[0.12em] text-amber-300">
-        Mon Profil
-      </h1>
+      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-amber-300/80">{{ t('profile.commander_label') }}</div>
+      <h1 class="mt-2 text-4xl font-headline font-extrabold uppercase tracking-[0.12em] text-amber-300">{{ t('profile.title') }}</h1>
     </div>
 
     <div class="relative z-10 grid gap-6 md:grid-cols-2">
 
-      <!-- ── Carte Pseudo ── -->
+      <!-- Pseudo -->
       <section class="flex flex-col gap-5 rounded-2xl border border-white/10 bg-black/40 p-8 backdrop-blur">
         <div>
-          <div class="text-xs font-headline font-bold uppercase tracking-[0.3em] text-amber-300/70">Identité</div>
-          <h2 class="mt-1 text-2xl font-headline font-bold uppercase tracking-wide text-amber-300">Pseudo</h2>
+          <div class="text-xs font-headline font-bold uppercase tracking-[0.3em] text-amber-300/70">{{ t('profile.identity_label') }}</div>
+          <h2 class="mt-1 text-2xl font-headline font-bold uppercase tracking-wide text-amber-300">{{ t('profile.pseudo_title') }}</h2>
         </div>
 
         <div v-if="auth.user?.avatarUrl" class="flex items-center gap-4">
@@ -96,7 +94,7 @@ async function savePreferences() {
         <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
         <div class="grid gap-2">
-          <label class="text-xs font-bold uppercase tracking-widest text-slate-400">Pseudo en jeu</label>
+          <label class="text-xs font-bold uppercase tracking-widest text-slate-400">{{ t('profile.pseudo_label') }}</label>
           <input
             v-model="pseudo"
             class="w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5 text-slate-100 outline-none focus:border-amber-400/60"
@@ -105,38 +103,35 @@ async function savePreferences() {
             autocomplete="nickname"
             @keyup.enter="save()"
           />
-          <div class="text-xs text-slate-500">Aperçu : <span class="text-slate-300 font-semibold">{{ displayName }}</span></div>
+          <div class="text-xs text-slate-500">{{ t('profile.preview_label') }} <span class="text-slate-300 font-semibold">{{ displayName }}</span></div>
           <div v-if="error" class="text-sm text-red-400">{{ error }}</div>
         </div>
 
         <button
           class="mt-auto w-full rounded-lg border border-amber-400/40 bg-amber-500/20 py-2.5 text-sm font-bold uppercase tracking-widest text-amber-300 transition hover:bg-amber-500/30 disabled:opacity-50"
-          @click="save()"
           :disabled="saving"
-        >{{ saving ? "Sauvegarde…" : "Sauvegarder" }}</button>
+          @click="save()"
+        >{{ saving ? t('profile.saving_btn') : t('profile.save_btn') }}</button>
       </section>
 
-      <!-- ── Carte Préférences ── -->
+      <!-- Préférences -->
       <section class="flex flex-col gap-5 rounded-2xl border border-white/10 bg-black/40 p-8 backdrop-blur">
         <div>
-          <div class="text-xs font-headline font-bold uppercase tracking-[0.3em] text-amber-300/70">Défaut lobby</div>
-          <h2 class="mt-1 text-2xl font-headline font-bold uppercase tracking-wide text-amber-300">Préférences</h2>
+          <div class="text-xs font-headline font-bold uppercase tracking-[0.3em] text-amber-300/70">{{ t('profile.preferences_label') }}</div>
+          <h2 class="mt-1 text-2xl font-headline font-bold uppercase tracking-wide text-amber-300">{{ t('profile.preferences_title') }}</h2>
         </div>
-        <div class="text-xs italic text-slate-400">Appliquées automatiquement à chaque partie que tu rejoins.</div>
+        <div class="text-xs italic text-slate-400">{{ t('profile.preferences_subtitle') }}</div>
 
         <div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
-        <!-- Civilisation -->
         <div>
-          <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">Civilisation préférée</label>
+          <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">{{ t('profile.preferred_civ_label') }}</label>
           <div class="grid grid-cols-2 gap-2">
             <button
               v-for="civ in CIVILIZATIONS"
               :key="civ.id"
               class="flex items-center gap-2 rounded-lg border p-2.5 text-left transition-all hover:border-amber-400/50 hover:bg-white/5"
-              :class="prefCiv === civ.id
-                ? 'border-amber-400/70 bg-amber-500/10'
-                : 'border-white/10 bg-white/5'"
+              :class="prefCiv === civ.id ? 'border-amber-400/70 bg-amber-500/10' : 'border-white/10 bg-white/5'"
               @click="prefCiv = prefCiv === civ.id ? null : civ.id"
             >
               <span class="text-xl">{{ civ.icon }}</span>
@@ -146,34 +141,31 @@ async function savePreferences() {
               </div>
             </button>
           </div>
-          <div v-if="prefCiv" class="mt-1 text-[10px] text-slate-500 italic">Cliquer à nouveau pour annuler la sélection.</div>
+          <div v-if="prefCiv" class="mt-1 text-[10px] text-slate-500 italic">{{ t('profile.deselect_hint') }}</div>
         </div>
 
-        <!-- Couleur -->
         <div>
-          <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">Couleur préférée</label>
+          <label class="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">{{ t('profile.preferred_color_label') }}</label>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="c in COLORS"
               :key="c"
               class="h-9 w-9 rounded border-2 transition-all hover:scale-110"
               :style="{ background: c }"
-              :class="prefColor === c
-                ? 'border-amber-300 ring-2 ring-amber-300/50 ring-offset-1 ring-offset-black'
-                : 'border-black/30'"
+              :class="prefColor === c ? 'border-amber-300 ring-2 ring-amber-300/50 ring-offset-1 ring-offset-black' : 'border-black/30'"
               @click="prefColor = prefColor === c ? null : c"
             />
           </div>
-          <div v-if="prefColor" class="mt-1 text-[10px] text-slate-500 italic">Cliquer à nouveau pour annuler la sélection.</div>
+          <div v-if="prefColor" class="mt-1 text-[10px] text-slate-500 italic">{{ t('profile.deselect_hint') }}</div>
         </div>
 
         <div class="mt-auto flex flex-col gap-2">
           <button
             class="w-full rounded-lg border border-amber-400/40 bg-amber-500/20 py-2.5 text-sm font-bold uppercase tracking-widest text-amber-300 transition hover:bg-amber-500/30 disabled:opacity-50"
             :class="prefSaved ? '!border-green-400/50 !bg-green-500/20 !text-green-300' : ''"
-            @click="savePreferences()"
             :disabled="savingPrefs"
-          >{{ prefSaved ? "✓ Enregistré" : savingPrefs ? "Sauvegarde…" : "Sauvegarder" }}</button>
+            @click="savePreferences()"
+          >{{ prefSaved ? t('profile.preferences_saved_btn') : savingPrefs ? t('profile.preferences_saving_btn') : t('profile.preferences_save_btn') }}</button>
         </div>
       </section>
 
