@@ -65,6 +65,9 @@ export default {
     not_ready: "NOT READY",
     prepare_hint: "Prepare your troops.",
     start_btn: "Start game",
+    bot_label: "Artificial Intelligence",
+    bot_add: "Add a bot",
+    bot_remove: "Remove",
   },
   leaderboard: {
     glory_label: "Eternal glory",

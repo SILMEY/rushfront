@@ -20,6 +20,12 @@ const hostName = computed(() => current.value?.players.find((p) => p.userId === 
 
 const MAX_PLAYERS = 10;
 
+const botCount = computed(() => current.value?.players.filter((p) => p.isBot).length ?? 0);
+const canAddBot = computed(() =>
+  isHost.value &&
+  (current.value?.players.length ?? 0) < MAX_PLAYERS
+);
+
 const CIVILIZATIONS = [
   {
     id: "iron_dwarves" as const,
@@ -181,10 +187,16 @@ onBeforeRouteLeave(() => {
                   v-for="p in current?.players ?? []"
                   :key="p.id"
                   class="scroll-banner flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 p-4 sm:p-6"
+                  :class="p.isBot ? 'opacity-80' : ''"
                 >
                   <div class="flex items-center gap-4 sm:gap-6">
+                    <!-- Avatar bot -->
+                    <div v-if="p.isBot" class="iron-texture grid h-14 w-14 sm:h-20 sm:w-20 shrink-0 place-items-center" :style="{ borderColor: p.color }">
+                      <span class="material-symbols-outlined text-3xl sm:text-4xl" :style="{ color: p.color }">smart_toy</span>
+                    </div>
+                    <!-- Avatar humain -->
                     <img
-                      v-if="p.avatarUrl"
+                      v-else-if="p.avatarUrl"
                       :src="p.avatarUrl"
                       :alt="`Avatar de ${p.name}`"
                       class="h-14 w-14 sm:h-20 sm:w-20 border-4 border-outline/50 object-cover shadow-lg shrink-0"
@@ -194,7 +206,9 @@ onBeforeRouteLeave(() => {
                     </div>
                     <div>
                       <div class="text-xl sm:text-3xl font-headline leading-none text-secondary-fixed">{{ p.name }}</div>
-                      <div class="mt-1 text-sm italic text-secondary/70">{{ t('lobby.commander_label') }}</div>
+                      <div class="mt-1 text-sm italic text-secondary/70">
+                        {{ p.isBot ? t('lobby.bot_label') : t('lobby.commander_label') }}
+                      </div>
                     </div>
                   </div>
 
@@ -218,6 +232,16 @@ onBeforeRouteLeave(() => {
                         {{ p.isReady ? t('lobby.ready') : t('lobby.waiting') }}
                       </span>
                     </div>
+                    <!-- Bouton supprimer bot (hôte seulement) -->
+                    <button
+                      v-if="p.isBot && isHost"
+                      class="flex flex-col items-center gap-1 opacity-50 hover:opacity-100 transition-opacity"
+                      :title="t('lobby.bot_remove')"
+                      @click="lobby.removeBot(gameId, p.id)"
+                    >
+                      <span class="material-symbols-outlined text-red-400 text-2xl">delete</span>
+                      <span class="text-[9px] uppercase tracking-widest text-red-400">{{ t('lobby.bot_remove') }}</span>
+                    </button>
                   </div>
                 </div>
 
@@ -295,6 +319,19 @@ onBeforeRouteLeave(() => {
                         {{ me.isReady ? "verified" : "hourglass_bottom" }}
                       </span>
                       <span>{{ me.isReady ? t('lobby.ready') : t('lobby.not_ready') }}</span>
+                    </span>
+                  </button>
+
+                  <!-- Bouton ajouter un bot (hôte seulement) -->
+                  <button
+                    v-if="isHost && canAddBot"
+                    class="mt-3 h-12 w-full rounded-md border border-outline-variant/50 bg-black/40 text-secondary transition-all hover:border-primary/40 hover:text-primary active:scale-95"
+                    @click="lobby.addBot(gameId)"
+                  >
+                    <span class="flex items-center justify-center gap-3 text-sm font-headline uppercase tracking-widest">
+                      <span class="material-symbols-outlined text-xl">smart_toy</span>
+                      <span>{{ t('lobby.bot_add') }}</span>
+                      <span v-if="botCount > 0" class="text-xs opacity-60">({{ botCount }})</span>
                     </span>
                   </button>
 

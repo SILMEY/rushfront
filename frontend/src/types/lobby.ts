@@ -8,6 +8,7 @@ export type LobbyPlayer = {
   color: string;
   civilization: CivilizationId;
   isReady: boolean;
+  isBot?: boolean;
 };
 
 export type LobbySummary = {

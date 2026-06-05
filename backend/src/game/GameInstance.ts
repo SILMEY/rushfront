@@ -65,6 +65,10 @@ export class GameInstance {
     return this._tilesByPlayer.get(playerId)?.size ?? 0;
   }
 
+  getTilesOf(playerId: string): Set<number> {
+    return this._tilesByPlayer.get(playerId) ?? new Set();
+  }
+
   private _addBuilding(playerId: string, b: number) {
     const m = this._buildingCounts.get(playerId) ?? new Map<number, number>();
     m.set(b, (m.get(b) ?? 0) + 1);
@@ -88,6 +92,11 @@ export class GameInstance {
 
   private timer: NodeJS.Timeout | null = null;
   private placingTimer: NodeJS.Timeout | null = null;
+  private bots: { stop(): void }[] = [];
+
+  registerBot(bot: { stop(): void }) {
+    this.bots.push(bot);
+  }
 
   constructor(id: string) {
     this.id = id;
@@ -158,6 +167,8 @@ export class GameInstance {
     for (const t of this.wonderTimers.values()) clearTimeout(t);
     this.wonderTimers.clear();
     this.wonders = [];
+    for (const bot of this.bots) bot.stop();
+    this.bots = [];
   }
 
   private async handlePlacingTimeout() {
@@ -188,7 +199,9 @@ export class GameInstance {
       const winner = chosen[0]!;
       this.stop();
       void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
-      void prisma.user.update({ where: { id: winner.userId }, data: { quickGameWins: { increment: 1 } } });
+      if (!winner.isBot) {
+        void prisma.user.update({ where: { id: winner.userId }, data: { quickGameWins: { increment: 1 } } });
+      }
       this.onGameOver?.(winner);
     }
   }
@@ -222,7 +235,7 @@ export class GameInstance {
     const winner = alive[0] ?? null;
     this.stop();
     void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
-    if (winner) {
+    if (winner && !winner.isBot) {
       void prisma.user.update({
         where: { id: winner.userId },
         data: { quickGameWins: { increment: 1 } }
@@ -272,6 +285,24 @@ export class GameInstance {
     };
   }
 
+  injectBotPlayer(config: { id: string; userId: string; name: string; color: string; civilization: CivilizationId }) {
+    const player: RuntimePlayer = {
+      id: config.id,
+      userId: config.userId,
+      name: config.name,
+      color: config.color,
+      civilization: config.civilization,
+      isReady: true,
+      hasChosenStart: false,
+      basePosition: null,
+      resources: { villagers: 0, soldiers: 0, wood: 0, stone: 0 },
+      techs: [],
+      desiredSoldierPct: 30,
+      isBot: true
+    };
+    this.players.push(player);
+  }
+
   getPlayerByUserId(userId: string) {
     return this.players.find((p) => p.userId === userId) ?? null;
   }
@@ -307,10 +338,12 @@ export class GameInstance {
     this._addTile(player.id, index);
     this._addBuilding(player.id, BuildingType.Base);
 
-    void prisma.gamePlayer.update({
-      where: { id: player.id },
-      data: { hasChosenStart: true, baseX: pos.x, baseY: pos.y }
-    });
+    if (!player.isBot) {
+      void prisma.gamePlayer.update({
+        where: { id: player.id },
+        data: { hasChosenStart: true, baseX: pos.x, baseY: pos.y }
+      });
+    }
 
     if (this.players.every((p) => p.hasChosenStart)) {
       this.start();

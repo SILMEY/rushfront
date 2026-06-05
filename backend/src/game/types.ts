@@ -61,6 +61,15 @@ export type GamePlayerState = {
   bridgeCharges?: number;
   fishingBoats?: number;
   maritimeCharges?: number;
+  isBot?: boolean;
+};
+
+export type BotConfig = {
+  id: string;
+  userId: string;
+  name: string;
+  color: string;
+  civilization: CivilizationId;
 };
 
 export type BuildIntent = {

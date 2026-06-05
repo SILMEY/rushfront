@@ -19,10 +19,13 @@ const currentLocale = ref<Locale>(getLocale());
 const LOCALES: { code: Locale; flag: string; label: string }[] = [
   { code: "fr", flag: "🇫🇷", label: "Français" },
   { code: "en", flag: "🇬🇧", label: "English" },
+  { code: "es", flag: "🇪🇸", label: "Español" },
+  { code: "de", flag: "🇩🇪", label: "Deutsch" },
 ];
 
 function switchLocale() {
-  const next: Locale = currentLocale.value === "fr" ? "en" : "fr";
+  const idx = LOCALES.findIndex(l => l.code === currentLocale.value);
+  const next = LOCALES[(idx + 1) % LOCALES.length].code;
   setLocale(next);
   currentLocale.value = next;
 }

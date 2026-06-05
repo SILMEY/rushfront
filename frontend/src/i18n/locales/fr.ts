@@ -65,6 +65,9 @@ export default {
     not_ready: "PAS PRÊT",
     prepare_hint: "Préparez vos troupes.",
     start_btn: "Lancer la partie",
+    bot_label: "Intelligence Artificielle",
+    bot_add: "Ajouter un bot",
+    bot_remove: "Retirer",
   },
   leaderboard: {
     glory_label: "Gloire éternelle",

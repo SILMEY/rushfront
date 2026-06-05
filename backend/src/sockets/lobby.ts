@@ -3,6 +3,8 @@ import type { Server, Socket } from "socket.io";
 import { GameManager } from "../game/GameManager.js";
 import type { CivilizationId } from "../game/types.js";
 
+const VALID_CIVS: CivilizationId[] = ["iron_dwarves", "sylvan_elves", "steppe_horde", "aurelian_empire"];
+
 function userIdOf(socket: Socket) {
   const uid = (socket as any).userId as string | undefined;
   if (!uid) throw new Error("unauthorized");
@@ -91,6 +93,29 @@ export function registerLobbyHandlers(_app: FastifyInstance, io: Server, socket:
       text,
       timestamp: Date.now()
     });
+  });
+
+  socket.on("lobby:add_bot", async (payload: { gameId: string; civilization?: string }) => {
+    try {
+      const userId = userIdOf(socket);
+      const civ = VALID_CIVS.includes(payload.civilization as CivilizationId)
+        ? (payload.civilization as CivilizationId)
+        : undefined;
+      await gameManager.addBot(payload.gameId, userId, civ);
+      io.to("lobby").emit("lobby:updated", await gameManager.listLobbies());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  socket.on("lobby:remove_bot", async (payload: { gameId: string; botId: string }) => {
+    try {
+      const userId = userIdOf(socket);
+      await gameManager.removeBot(payload.gameId, userId, payload.botId);
+      io.to("lobby").emit("lobby:updated", await gameManager.listLobbies());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
   });
 
   socket.on("lobby:start", async (payload: { gameId: string }) => {

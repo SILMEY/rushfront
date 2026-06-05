@@ -73,6 +73,16 @@ export const useLobbyStore = defineStore("lobby", {
       await this.ensureConnected();
       const socket = await getSocket();
       socket.emit("lobby:set_civilization", { gameId, civilization });
+    },
+    async addBot(gameId: string, civilization?: CivilizationId) {
+      await this.ensureConnected();
+      const socket = await getSocket();
+      socket.emit("lobby:add_bot", { gameId, civilization });
+    },
+    async removeBot(gameId: string, botId: string) {
+      await this.ensureConnected();
+      const socket = await getSocket();
+      socket.emit("lobby:remove_bot", { gameId, botId });
     }
   }
 });
