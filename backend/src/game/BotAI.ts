@@ -25,40 +25,68 @@ export class BotAI {
     if (this.timer) { clearTimeout(this.timer); this.timer = null; }
   }
 
+  // ── Placement ─────────────────────────────────────────────────────────────
+
   place() {
     const { instance, userId } = this;
     if (instance.status !== "PLACING") return;
     const player = instance.getPlayerByUserId(userId);
     if (!player || player.hasChosenStart) return;
 
-    const { tileTypes, tileOwners, width, height, players } = instance;
-    const MAX_ATTEMPTS = 300;
+    // 1. Tentatives aléatoires (rapide, bonne distribution)
+    if (this.placeRandom(400)) return;
 
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    // 2. Scan systématique — garantit de trouver si une case existe
+    if (this.placeScan(12)) return;
+
+    // 3. Distance réduite en dernier recours (carte très peuplée)
+    this.placeScan(6);
+  }
+
+  private placeRandom(attempts: number): boolean {
+    const { instance, userId } = this;
+    const { tileTypes, tileOwners, width, height } = instance;
+
+    for (let i = 0; i < attempts; i++) {
       const x = Math.floor(Math.random() * width);
       const y = Math.floor(Math.random() * height);
 
       if ((tileTypes[y * width + x] as TileType) !== TileType.Plain) continue;
       if (tileOwners[y * width + x]) continue;
+      if (this.tooClose(x, y, 12)) continue;
 
-      let tooClose = false;
-      for (const p of players) {
-        if (!p.basePosition) continue;
-        if (Math.abs(p.basePosition.x - x) + Math.abs(p.basePosition.y - y) < 12) {
-          tooClose = true;
-          break;
-        }
-      }
-      if (tooClose) continue;
+      try { instance.chooseStart(userId, { x, y }); return true; }
+      catch { continue; }
+    }
+    return false;
+  }
 
-      try {
-        instance.chooseStart(userId, { x, y });
-        return;
-      } catch {
-        continue;
+  private placeScan(minDist: number): boolean {
+    const { instance, userId } = this;
+    const { tileTypes, tileOwners, width, height } = instance;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if ((tileTypes[y * width + x] as TileType) !== TileType.Plain) continue;
+        if (tileOwners[y * width + x]) continue;
+        if (this.tooClose(x, y, minDist)) continue;
+
+        try { instance.chooseStart(userId, { x, y }); return true; }
+        catch { continue; }
       }
     }
+    return false;
   }
+
+  private tooClose(x: number, y: number, minDist: number): boolean {
+    for (const p of this.instance.players) {
+      if (!p.basePosition) continue;
+      if (Math.abs(p.basePosition.x - x) + Math.abs(p.basePosition.y - y) < minDist) return true;
+    }
+    return false;
+  }
+
+  // ── Boucle ────────────────────────────────────────────────────────────────
 
   private scheduleTick() {
     if (this.stopped) return;
@@ -83,13 +111,17 @@ export class BotAI {
 
     const civ = player.civilization as CivilizationId;
 
-    // ── 1. EXPANSION (toujours, avec tous les villageois disponibles) ───────
-    if (player.resources.villagers > 0) {
-      this.expand(myTiles, player.resources.villagers);
-      myTiles = instance.getTilesOf(player.id); // rafraîchir après expansion
+    // ── 1. EXPANSION ─────────────────────────────────────────────────────────
+    // Garde une réserve de 2 villageois en début de partie pour que la
+    // population ne tombe pas à 0 (ce qui bloque la croissance naturelle).
+    const reserve = myTiles.size < 20 ? 2 : 1;
+    const toExpand = Math.max(0, player.resources.villagers - reserve);
+    if (toExpand > 0) {
+      this.expand(myTiles, toExpand);
+      myTiles = instance.getTilesOf(player.id);
     }
 
-    // ── 2. CONSTRUCTION (en plus de l'expansion, pas à la place) ────────────
+    // ── 2. CONSTRUCTION ──────────────────────────────────────────────────────
     const hasBarracks = instance.hasBuilding(player.id, BuildingType.Barracks);
     const sawmills    = instance.buildingCount(player.id, BuildingType.Sawmill);
     const mines       = instance.buildingCount(player.id, BuildingType.Mine);
@@ -100,41 +132,40 @@ export class BotAI {
       this.tryBuild(BuildingType.Barracks, myTiles);
     }
 
-    // Scieries (1 par tranche de 12 cases)
     const maxSawmills = Math.floor(myTiles.size / 12) + 1;
     if (player.resources.wood >= 5 && sawmills < maxSawmills) {
       this.tryBuild(BuildingType.Sawmill, myTiles);
     }
 
-    // Mines (1 par tranche de 15 cases)
     const maxMines = Math.floor(myTiles.size / 15) + 1;
     if (player.resources.wood >= 10 && mines < maxMines) {
       this.tryBuild(BuildingType.Mine, myTiles);
     }
 
-    // Caserne (dès qu'on a 4+ cases et les ressources)
     if (!hasBarracks && myTiles.size >= 4
         && player.resources.wood >= 20 && player.resources.stone >= 10) {
       this.tryBuild(BuildingType.Barracks, myTiles);
     }
 
-    // ── 3. POURCENTAGE DE SOLDATS ───────────────────────────────────────────
+    // ── 3. POURCENTAGE DE SOLDATS ────────────────────────────────────────────
     player.desiredSoldierPct = this.targetSoldierPct(civ, myTiles.size);
 
-    // ── 4. ATTAQUE (plusieurs fois pour la Horde, une fois pour les autres) ──
+    // ── 4. ATTAQUE ───────────────────────────────────────────────────────────
     const hasBarracksNow = instance.hasBuilding(player.id, BuildingType.Barracks);
     if (hasBarracksNow) {
-      const threshold = civ === "steppe_horde" ? 3 : civ === "iron_dwarves" ? 12 : 6;
+      const threshold  = civ === "steppe_horde" ? 3 : civ === "iron_dwarves" ? 12 : 6;
       const maxAttacks = civ === "steppe_horde" ? 3 : 1;
       for (let i = 0; i < maxAttacks; i++) {
         if (player.resources.soldiers < threshold) break;
-        const freshTiles = instance.getTilesOf(player.id);
-        if (!this.tryAttack(player.id, freshTiles)) break;
+        if (!this.tryAttack(player.id, instance.getTilesOf(player.id))) break;
       }
     }
   }
 
   private targetSoldierPct(civ: CivilizationId, tileCount: number): number {
+    // Pas de soldats en tout début de partie — priorité à l'expansion
+    if (tileCount < 10) return 0;
+
     let base = 25;
     if (tileCount > 60)  base = 40;
     if (tileCount > 150) base = 55;
@@ -147,10 +178,8 @@ export class BotAI {
     }
   }
 
-  // ── Expansion ─────────────────────────────────────────────────────────────
-  // Utilise tous les villageois disponibles et priorise les cases
-  // adjacentes aux forêts et carrières (pour les futurs bâtiments).
-  private expand(myTiles: Set<number>, villagers: number): void {
+  // ── Expansion priorisée vers les ressources ───────────────────────────────
+  private expand(myTiles: Set<number>, maxToUse: number): void {
     const { instance, userId } = this;
     const { tileOwners, tileTypes, width, height } = instance;
 
@@ -168,7 +197,6 @@ export class BotAI {
         if (tileOwners[ni] != null) continue;
         if ((tileTypes[ni] as TileType) !== TileType.Plain) continue;
 
-        // Scorer : +2 par forêt/carrière adjacente (pour bâtiments de prod)
         let score = 0;
         for (const nn of orthogonalNeighbors(n)) {
           if (!inBounds(nn, width, height)) continue;
@@ -180,10 +208,8 @@ export class BotAI {
     }
 
     if (candidates.length === 0) return;
-
-    // Meilleures cases en premier, limité par les villageois disponibles
     candidates.sort((a, b) => b.score - a.score);
-    const positions = candidates.slice(0, Math.min(villagers, candidates.length)).map(c => c.pos);
+    const positions = candidates.slice(0, maxToUse).map(c => c.pos);
     instance.claimTiles(userId, positions);
   }
 
@@ -206,12 +232,8 @@ export class BotAI {
         if (building === BuildingType.FishingHut && !adjTypes.some(t => t === TileType.Water))  continue;
       }
 
-      try {
-        instance.build(userId, { x, y, building });
-        return true;
-      } catch {
-        continue;
-      }
+      try { instance.build(userId, { x, y, building }); return true; }
+      catch { continue; }
     }
     return false;
   }
@@ -237,11 +259,7 @@ export class BotAI {
 
     if (attackable.length === 0) return false;
     const target = attackable[Math.floor(Math.random() * attackable.length)]!;
-    try {
-      instance.attackTile(userId, target);
-      return true;
-    } catch {
-      return false;
-    }
+    try { instance.attackTile(userId, target); return true; }
+    catch { return false; }
   }
 }
