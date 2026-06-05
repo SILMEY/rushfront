@@ -55,7 +55,7 @@ function fmt(s: number) {
 </script>
 
 <template>
-  <aside class="stone-texture fixed left-0 top-16 z-40 flex h-[calc(100vh-64px)] w-72 flex-col border-r-4 border-outline-variant" role="complementary" :aria-label="t('left_panel.title')">
+  <aside class="stone-texture fixed left-0 top-16 z-40 flex h-[calc(100vh-4rem)] w-72 flex-col border-r-4 border-outline-variant" role="complementary" :aria-label="t('left_panel.title')">
 
     <!-- Bouton fermeture mobile -->
     <button

@@ -486,17 +486,24 @@ export const useGameStore = defineStore("game", {
         return da - db;
       });
 
-      // Attaquer en bloc : toutes les tuiles dans un rayon de 6 cases autour de la plus proche
+      // Rayon et nombre d'attaques scalent avec les soldats disponibles
+      const radius = Math.min(18, 5 + Math.floor(mySoldiers / 20));
       const closest = frontier[0]!;
       const closestDist = Math.sqrt((closest.x - target.x) ** 2 + (closest.y - target.y) ** 2);
-      const bandMax = (closestDist + 6) ** 2;
+      const bandMax = (closestDist + radius) ** 2;
       const band = frontier.filter(t => (t.x - target.x) ** 2 + (t.y - target.y) ** 2 <= bandMax);
       band.sort(() => Math.random() - 0.5);
-      // Limiter par soldats disponibles (prudent)
-      const attackCount = Math.min(3, band.length, Math.max(1, Math.floor(mySoldiers / 10)));
-      for (const pos of band.slice(0, attackCount)) {
-        void this.attackTile(state.gameId, pos);
-      }
+
+      // Nombre d'attaques par tick : 3 minimum, ~1 par 5 soldats, cap à 30
+      const attackCount = Math.min(band.length, Math.max(3, Math.floor(mySoldiers / 5)), 30);
+
+      // Émettre directement sans rate-limit (le serveur rejette les attaques invalides)
+      void (async () => {
+        const socket = await getSocket();
+        for (const pos of band.slice(0, attackCount)) {
+          socket.emit("game:attack_tile", { gameId: state.gameId, x: pos.x, y: pos.y });
+        }
+      })();
     },
 
     onTileDblClick(pos: Vec2) {

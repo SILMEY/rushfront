@@ -175,17 +175,17 @@ watch(
       @close="showLeft = false"
     />
 
-    <main class="tactical-overlay flex h-[calc(100vh-64px)] flex-col overflow-hidden md:pr-80 md:pl-72">
+    <main class="tactical-overlay flex h-[calc(100vh-4rem)] flex-col overflow-hidden md:pr-80 md:pl-72">
       <!-- Barre de ressources -->
-      <div class="z-10">
+      <div class="z-10 shrink-0">
         <TopResourceBar :state="game.state" />
       </div>
 
-      <!-- Zone de jeu -->
-      <div class="relative flex-1 overflow-auto bg-stone-950 p-2 md:p-4">
-        <div class="min-h-full min-w-max border-4 border-outline-variant bg-stone-900/40 shadow-2xl">
+      <!-- Zone de jeu — flex-1 pour occuper toute la hauteur restante -->
+      <div class="relative flex-1 overflow-auto bg-stone-950 p-2 md:p-4 min-h-0">
+        <div class="h-full min-w-max border-4 border-outline-variant bg-stone-900/40 shadow-2xl">
           <GameCanvas
-            class="h-[calc(100vh-140px)] min-h-[400px] md:h-[calc(100vh-170px)] md:min-h-[720px] w-full"
+            class="h-full min-h-[24rem] w-full"
             :state="game.state"
             @tile-click="game.onTileClick"
             @tile-dblclick="game.onTileDblClick"
@@ -197,7 +197,7 @@ watch(
 
     <!-- Panneau droit — drawer sur mobile, fixe sur desktop -->
     <aside
-      class="stone-texture fixed right-0 top-16 z-40 flex h-[calc(100vh-64px)] w-[min(320px,100vw)] flex-col border-l-4 border-outline-variant transition-transform duration-300 ease-in-out"
+      class="stone-texture fixed right-0 top-16 z-40 flex h-[calc(100vh-4rem)] w-80 max-w-full flex-col border-l-4 border-outline-variant transition-transform duration-300 ease-in-out"
       :class="showRight ? 'translate-x-0' : 'translate-x-full md:translate-x-0'"
       role="complementary"
       :aria-label="t('game.control_panel_title')"
