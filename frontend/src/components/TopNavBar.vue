@@ -13,6 +13,7 @@ const displayName = computed(() => auth.displayName);
 const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase());
 
 const mobileMenuOpen = ref(false);
+const langMenuOpen = ref(false);
 
 const currentLocale = ref<Locale>(getLocale());
 
@@ -23,11 +24,10 @@ const LOCALES: { code: Locale; flag: string; label: string }[] = [
   { code: "de", flag: "🇩🇪", label: "Deutsch" },
 ];
 
-function switchLocale() {
-  const idx = LOCALES.findIndex(l => l.code === currentLocale.value);
-  const next = LOCALES[(idx + 1) % LOCALES.length].code;
-  setLocale(next);
-  currentLocale.value = next;
+function selectLocale(code: Locale) {
+  setLocale(code);
+  currentLocale.value = code;
+  langMenuOpen.value = false;
 }
 
 function navigate(path: string) {
@@ -68,14 +68,50 @@ function navigate(path: string) {
 
     <div class="flex items-center gap-2 md:gap-3">
       <!-- Sélecteur de langue -->
-      <button
-        class="flex h-8 w-8 items-center justify-center rounded-full text-lg transition hover:scale-110 active:scale-95"
-        :aria-label="`Langue : ${LOCALES.find(l => l.code !== currentLocale)?.label}`"
-        :title="`Switch to ${LOCALES.find(l => l.code !== currentLocale)?.label}`"
-        @click="switchLocale"
-      >
-        {{ LOCALES.find(l => l.code === currentLocale)?.flag }}
-      </button>
+      <div class="relative">
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-full text-lg transition hover:scale-110 active:scale-95"
+          :aria-label="`Langue : ${LOCALES.find(l => l.code === currentLocale)?.label}`"
+          :aria-expanded="langMenuOpen"
+          @click.stop="langMenuOpen = !langMenuOpen"
+        >
+          {{ LOCALES.find(l => l.code === currentLocale)?.flag }}
+        </button>
+
+        <!-- Overlay transparent pour fermer en cliquant dehors -->
+        <div
+          v-if="langMenuOpen"
+          class="fixed inset-0 z-[60]"
+          @click="langMenuOpen = false"
+        />
+
+        <!-- Menu déroulant -->
+        <Transition name="lang-menu">
+          <div
+            v-if="langMenuOpen"
+            class="absolute right-0 top-full z-[61] mt-2 w-40 overflow-hidden rounded-md border border-[#4d4635] bg-stone-900 shadow-2xl"
+            role="listbox"
+          >
+            <button
+              v-for="locale in LOCALES"
+              :key="locale.code"
+              class="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-white/5"
+              :class="locale.code === currentLocale ? 'text-[#d4af37]' : 'text-[#d4c59f] hover:text-[#d4af37]'"
+              role="option"
+              :aria-selected="locale.code === currentLocale"
+              @click.stop="selectLocale(locale.code)"
+            >
+              <span class="text-base leading-none">{{ locale.flag }}</span>
+              <span class="font-headline text-xs font-medium uppercase tracking-widest">{{ locale.label }}</span>
+              <span
+                v-if="locale.code === currentLocale"
+                class="material-symbols-outlined ml-auto text-sm"
+                aria-hidden="true"
+              >check</span>
+            </button>
+          </div>
+        </Transition>
+      </div>
 
       <!-- Profil -->
       <button
@@ -168,5 +204,15 @@ function navigate(path: string) {
 .slide-down-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+
+.lang-menu-enter-active,
+.lang-menu-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.lang-menu-enter-from,
+.lang-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
 }
 </style>
