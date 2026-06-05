@@ -3,13 +3,15 @@ import { useAuthStore } from "../stores/authStore";
 const API_URL = import.meta.env.VITE_API_URL as string;
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const auth = useAuthStore();
+  // Lire le token synchronement avant tout await pour rester dans le contexte Pinia
+  let token: string | null = null;
+  try { token = useAuthStore().accessToken; } catch { /* hors contexte, ignoré */ }
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     credentials: "include",
     headers: {
       "content-type": "application/json",
-      ...(auth.accessToken ? { authorization: `Bearer ${auth.accessToken}` } : {}),
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {})
     }
   });
