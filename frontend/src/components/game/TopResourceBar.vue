@@ -174,54 +174,54 @@ function rateHab(v: number): string {
 </script>
 
 <template>
-  <div
-    v-if="me"
-    class="wood-texture etched-line flex w-full items-center gap-10 border-b-2 border-outline-variant px-8 py-2 shadow-xl"
-  >
-    <div class="flex items-center gap-3 cursor-default">
+  <div v-if="me" class="wood-texture etched-line w-full border-b-2 border-outline-variant shadow-xl overflow-x-auto">
+  <div class="flex items-center gap-5 md:gap-10 px-4 md:px-8 py-2 min-w-max">
+    <div class="flex items-center gap-2 md:gap-3 cursor-default" title="Couleur de votre empire">
       <div class="h-4 w-4 rounded-full border border-black/40 shadow-[0_0_10px_rgba(242,202,80,0.15)]" :style="{ backgroundColor: me.color }"></div>
       <span class="font-label-sm italic font-bold text-primary-fixed">COULEUR</span>
     </div>
 
-    <div class="flex items-center gap-3 cursor-default">
-      <span class="material-symbols-outlined text-[#ffd700]" style="font-variation-settings: 'FILL' 1">forest</span>
+    <div class="flex items-center gap-2 md:gap-3 cursor-default" title="Bois">
+      <span class="material-symbols-outlined text-[#ffd700]" style="font-variation-settings: 'FILL' 1" aria-hidden="true">forest</span>
       <span class="font-label-sm italic font-bold text-primary-fixed">
-        BOIS: {{ me.resources.wood }}
+        <span class="hidden sm:inline">BOIS: </span>{{ me.resources.wood }}
         <span v-if="production.wood" class="opacity-60">{{ rate(production.wood) }}</span>
       </span>
     </div>
 
-    <div class="flex items-center gap-3 cursor-default">
-      <span class="material-symbols-outlined text-[#a0a0a0]" style="font-variation-settings: 'FILL' 1">foundation</span>
+    <div class="flex items-center gap-2 md:gap-3 cursor-default" title="Pierre">
+      <span class="material-symbols-outlined text-[#a0a0a0]" style="font-variation-settings: 'FILL' 1" aria-hidden="true">foundation</span>
       <span class="font-label-sm italic font-bold text-primary-fixed">
-        PIERRE: {{ me.resources.stone }}
+        <span class="hidden sm:inline">PIERRE: </span>{{ me.resources.stone }}
         <span v-if="production.stone" class="opacity-60">{{ rate(production.stone) }}</span>
       </span>
     </div>
 
-    <div class="flex items-center gap-3 cursor-default">
-      <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">groups</span>
+    <div class="flex items-center gap-2 md:gap-3 cursor-default" title="Habitants">
+      <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1" aria-hidden="true">groups</span>
       <span class="font-label-sm italic font-bold text-primary-fixed">
-        HABITANTS: {{ habitants }}/{{ maxHabitants }}
+        <span class="hidden sm:inline">HAB: </span>{{ habitants }}/{{ maxHabitants }}
         <span v-if="habitantGrowthRate > 0" class="opacity-60">{{ rateHab(habitantGrowthRate) }}</span>
       </span>
     </div>
 
-<div v-if="placingSecondsLeft !== null" class="flex items-center gap-2 cursor-default placing-timer" :class="{ urgent: placingSecondsLeft <= 3 }">
-      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">timer</span>
+    <div v-if="placingSecondsLeft !== null" class="flex items-center gap-2 cursor-default placing-timer" :class="{ urgent: placingSecondsLeft <= 3 }">
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1" aria-hidden="true">timer</span>
       <span class="font-label-sm italic font-bold">
-        POSEZ VOTRE BASE — {{ placingSecondsLeft }}s
+        <span class="hidden xs:inline">POSEZ VOTRE BASE — </span>{{ placingSecondsLeft }}s
       </span>
     </div>
 
     <button
       v-if="props.state?.status === 'ACTIVE' && !me.eliminated && !game.gameOver"
       class="ml-auto flex items-center gap-1 rounded border border-red-900/50 px-3 py-1 font-label-sm text-red-400/70 transition hover:border-red-500/60 hover:text-red-400"
+      aria-label="Se rendre — quitter la partie"
       @click="surrender"
     >
-      <span class="material-symbols-outlined text-[14px]">flag</span>
-      SE RENDRE
+      <span class="material-symbols-outlined text-[14px]" aria-hidden="true">flag</span>
+      <span class="hidden sm:inline">SE RENDRE</span>
     </button>
+  </div>
   </div>
 </template>
 

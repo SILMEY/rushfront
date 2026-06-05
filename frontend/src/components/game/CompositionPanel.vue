@@ -109,6 +109,10 @@ function scheduleCommit() {
         max="100"
         step="1"
         class="w-full accent-[#f2ca50]"
+        :aria-label="`Répartition militaires : ${compositionPct}%`"
+        :aria-valuenow="compositionPct"
+        aria-valuemin="0"
+        aria-valuemax="100"
         @input="scheduleCommit()"
         @change="commit()"
       />

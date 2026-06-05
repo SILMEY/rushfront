@@ -129,11 +129,11 @@ onBeforeRouteLeave(() => {
         </div>
       </div>
 
-      <!-- Contenu : chat à gauche + card à droite, alignés -->
-      <div class="flex gap-6 items-start">
+      <!-- Contenu : chat + card -->
+      <div class="flex flex-col lg:flex-row gap-6 items-start">
 
-        <!-- Chat panel — même hauteur que la card -->
-        <div class="w-72 shrink-0 sticky top-20 overflow-hidden rounded-2xl border border-outline-variant/30 bg-black/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex flex-col" style="height: 560px">
+        <!-- Chat panel -->
+        <div class="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-20 overflow-hidden rounded-2xl border border-outline-variant/30 bg-black/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex flex-col h-64 lg:h-[560px]">
           <div class="scroll-banner flex items-center gap-4 px-6 py-4 shrink-0">
             <div>
               <div class="text-[10px] font-headline font-bold uppercase tracking-[0.25em] text-primary/80">Salon</div>
@@ -178,26 +178,25 @@ onBeforeRouteLeave(() => {
                 <div
                   v-for="p in current?.players ?? []"
                   :key="p.id"
-                  class="scroll-banner flex items-center justify-between gap-6 p-6"
+                  class="scroll-banner flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 p-4 sm:p-6"
                 >
-                  <div class="flex items-center gap-6">
+                  <div class="flex items-center gap-4 sm:gap-6">
                     <img
                       v-if="p.avatarUrl"
                       :src="p.avatarUrl"
-                      alt="Avatar"
-                      class="h-20 w-20 border-4 border-outline/50 object-cover shadow-lg"
+                      :alt="`Avatar de ${p.name}`"
+                      class="h-14 w-14 sm:h-20 sm:w-20 border-4 border-outline/50 object-cover shadow-lg shrink-0"
                     />
-                    <div v-else class="iron-texture grid h-20 w-20 place-items-center text-xl font-headline text-secondary">
+                    <div v-else class="iron-texture grid h-14 w-14 sm:h-20 sm:w-20 shrink-0 place-items-center text-lg sm:text-xl font-headline text-secondary">
                       {{ p.name.slice(0, 2).toUpperCase() }}
                     </div>
-
                     <div>
-                      <div class="text-3xl font-headline leading-none text-secondary-fixed">{{ p.name }}</div>
+                      <div class="text-xl sm:text-3xl font-headline leading-none text-secondary-fixed">{{ p.name }}</div>
                       <div class="mt-1 text-sm italic text-secondary/70">Commandant</div>
                     </div>
                   </div>
 
-                  <div class="flex items-center gap-8">
+                  <div class="flex items-center gap-4 sm:gap-8 flex-wrap">
                     <div class="flex flex-col items-center">
                       <span class="mb-1 text-[10px] font-bold uppercase tracking-widest text-secondary">Civilisation</span>
                       <span class="text-2xl">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.icon ?? "🏔️" }}</span>
@@ -208,8 +207,8 @@ onBeforeRouteLeave(() => {
                       <div class="h-8 w-12 border-2 border-black/20 shadow-md" :style="{ background: p.color }"></div>
                     </div>
                     <div class="flex flex-col items-center gap-1">
-                      <div class="wax-seal" :class="p.isReady ? '' : 'opacity-40 bg-zinc-700 grayscale border-zinc-900'">
-                        <span class="material-symbols-outlined text-white text-3xl">
+                      <div class="wax-seal" :class="p.isReady ? '' : 'opacity-40 bg-zinc-700 grayscale border-zinc-900'" :aria-label="p.isReady ? 'Prêt' : 'En attente'">
+                        <span class="material-symbols-outlined text-white text-3xl" aria-hidden="true">
                           {{ p.isReady ? "check_circle" : "hourglass_empty" }}
                         </span>
                       </div>

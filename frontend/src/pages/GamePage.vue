@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
 import { getSocket } from "../composables/useSocket";
@@ -26,6 +26,14 @@ const gameId = computed(() => String(route.params.id));
 const mePlayer   = computed(() => game.mePlayer);
 const isWinner   = computed(() => game.gameOver?.winnerId === mePlayer.value?.id);
 const isEliminated = computed(() => mePlayer.value?.eliminated === true);
+
+// Mobile panel toggles
+const showLeft  = ref(false);
+const showRight = ref(false);
+
+function toggleLeft()  { showLeft.value  = !showLeft.value;  showRight.value = false; }
+function toggleRight() { showRight.value = !showRight.value; showLeft.value  = false; }
+function closeAll()    { showLeft.value  = false; showRight.value = false; }
 
 async function surrender() {
   const socket = await getSocket();
@@ -54,7 +62,6 @@ watch(
              ? 'border-[#d4af37]/60 bg-gradient-to-b from-[#1c1a0e] to-[#131312]'
              : 'border-white/10 bg-gradient-to-b from-[#1a1212] to-[#131312]'">
 
-        <!-- Victoire -->
         <template v-if="isWinner">
           <div class="mb-2 text-6xl">🏆</div>
           <div class="text-xs font-headline font-bold uppercase tracking-[0.4em] text-[#d4af37]/70">Gloire à l'Empire</div>
@@ -66,7 +73,6 @@ watch(
           </p>
         </template>
 
-        <!-- Défaite -->
         <template v-else-if="isEliminated">
           <div class="mb-2 text-6xl">⚔️</div>
           <div class="text-xs font-headline font-bold uppercase tracking-[0.4em] text-slate-400/70">Tombé au combat</div>
@@ -78,7 +84,6 @@ watch(
           </p>
         </template>
 
-        <!-- Spectateur — quelqu'un a gagné -->
         <template v-else>
           <div class="mb-2 text-6xl">🏆</div>
           <h1 class="font-headline text-4xl font-extrabold uppercase text-[#d4af37]">Partie terminée</h1>
@@ -97,7 +102,7 @@ watch(
     </div>
   </Transition>
 
-<!-- Menu radial de construction -->
+  <!-- Menu radial de construction -->
   <RadialMenu
     v-if="game.radialMenu && game.state"
     :state="game.state"
@@ -108,7 +113,7 @@ watch(
     @close="game.radialMenu = null"
   />
 
-<!-- Menu débarquement (clic droit sur case côtière non possédée) -->
+  <!-- Menu débarquement -->
   <MaritimeMenu
     v-if="game.maritimeMenu"
     :client-x="game.maritimeMenu.clientX"
@@ -117,7 +122,7 @@ watch(
     @close="game.maritimeMenu = null"
   />
 
-<!-- Menu port (clic droit sur un port) -->
+  <!-- Menu port -->
   <PortMenu
     v-if="game.portMenu && game.state"
     :state="game.state"
@@ -129,20 +134,60 @@ watch(
     @close="game.portMenu = null"
   />
 
-<!-- MAIN GAMEPLAY CANVAS (layout inspired by `public/codejeu.html`) -->
+  <!-- ── Backdrop mobile (ferme les panneaux) ────────── -->
+  <Transition name="fade">
+    <div
+      v-if="showLeft || showRight"
+      class="fixed inset-0 z-[39] bg-black/60 md:hidden"
+      aria-hidden="true"
+      @click="closeAll"
+    />
+  </Transition>
+
+  <!-- ── Boutons flottants mobile ─────────────────────── -->
+  <div class="fixed bottom-6 left-4 z-[45] md:hidden">
+    <button
+      class="flex h-12 w-12 items-center justify-center rounded-full bg-stone-900/95 border-2 border-[#4d4635] text-[#d4af37] shadow-xl transition-transform active:scale-90"
+      :aria-expanded="showLeft"
+      :aria-label="showLeft ? 'Fermer le panneau Informations' : 'Ouvrir le panneau Informations'"
+      @click="toggleLeft"
+    >
+      <span class="material-symbols-outlined text-[22px]">{{ showLeft ? 'close' : 'leaderboard' }}</span>
+    </button>
+  </div>
+  <div class="fixed bottom-6 right-4 z-[45] md:hidden">
+    <button
+      class="flex h-12 w-12 items-center justify-center rounded-full bg-stone-900/95 border-2 border-[#4d4635] text-[#d4af37] shadow-xl transition-transform active:scale-90"
+      :aria-expanded="showRight"
+      :aria-label="showRight ? 'Fermer le Poste de Contrôle' : 'Ouvrir le Poste de Contrôle'"
+      @click="toggleRight"
+    >
+      <span class="material-symbols-outlined text-[22px]">{{ showRight ? 'close' : 'radar' }}</span>
+    </button>
+  </div>
+
+  <!-- ── Layout principal ─────────────────────────────── -->
   <div class="rf-game">
-    <GameLeftPanel :state="game.state" />
-    <main class="tactical-overlay flex h-[calc(100vh-64px)] flex-col overflow-hidden pr-80 pl-72">
-      <!-- Resource Bar (Wooden Beam) -->
+
+    <!-- Panneau gauche — drawer sur mobile, fixe sur desktop -->
+    <GameLeftPanel
+      :state="game.state"
+      class="transition-transform duration-300 ease-in-out"
+      :class="showLeft ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+      @close="showLeft = false"
+    />
+
+    <main class="tactical-overlay flex h-[calc(100vh-64px)] flex-col overflow-hidden md:pr-80 md:pl-72">
+      <!-- Barre de ressources -->
       <div class="z-10">
         <TopResourceBar :state="game.state" />
       </div>
 
-      <!-- Grid Area -->
-      <div class="relative flex-1 overflow-auto bg-stone-950 p-4">
+      <!-- Zone de jeu -->
+      <div class="relative flex-1 overflow-auto bg-stone-950 p-2 md:p-4">
         <div class="min-h-full min-w-max border-4 border-outline-variant bg-stone-900/40 shadow-2xl">
           <GameCanvas
-            class="h-[calc(100vh-170px)] min-h-[720px] w-full"
+            class="h-[calc(100vh-140px)] min-h-[400px] md:h-[calc(100vh-170px)] md:min-h-[720px] w-full"
             :state="game.state"
             @tile-click="game.onTileClick"
             @tile-dblclick="game.onTileDblClick"
@@ -152,27 +197,42 @@ watch(
       </div>
     </main>
 
-    <!-- RIGHT PANEL -->
-    <aside class="stone-texture fixed right-0 top-16 z-40 flex h-[calc(100vh-64px)] w-80 flex-col border-l-4 border-outline-variant">
-      <div class="border-b-2 border-outline-variant bg-black/20 p-6">
+    <!-- Panneau droit — drawer sur mobile, fixe sur desktop -->
+    <aside
+      class="stone-texture fixed right-0 top-16 z-40 flex h-[calc(100vh-64px)] w-[min(320px,100vw)] flex-col border-l-4 border-outline-variant transition-transform duration-300 ease-in-out"
+      :class="showRight ? 'translate-x-0' : 'translate-x-full md:translate-x-0'"
+      role="complementary"
+      aria-label="Poste de Contrôle"
+    >
+      <div class="border-b-2 border-outline-variant bg-black/20 p-4 md:p-6">
         <div class="flex items-center justify-between">
           <div>
             <h2 class="font-headline text-lg font-bold uppercase text-primary carved-text leading-tight">Poste de Contrôle</h2>
             <p class="text-[9px] font-bold uppercase tracking-widest text-on-surface/40 italic mt-0.5">Imperial Management Console</p>
           </div>
-          <span class="material-symbols-outlined text-primary/70" aria-hidden="true">radar</span>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary/70" aria-hidden="true">radar</span>
+            <!-- Bouton fermeture mobile -->
+            <button
+              class="md:hidden flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/60 hover:text-white transition"
+              aria-label="Fermer le Poste de Contrôle"
+              @click="showRight = false"
+            >
+              <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </div>
         </div>
       </div>
 
       <div class="flex-1 overflow-y-auto bg-black/10">
 
         <!-- Répartition -->
-        <div class="px-6 py-5 border-b-2 border-outline-variant">
+        <div class="px-4 md:px-6 py-5 border-b-2 border-outline-variant">
           <CompositionPanel :state="game.state" />
         </div>
 
         <!-- Construction -->
-        <div class="px-6 py-5 border-b-2 border-outline-variant">
+        <div class="px-4 md:px-6 py-5 border-b-2 border-outline-variant">
           <SectionTitle>Construction</SectionTitle>
           <BuildPanel :state="game.state" :selected="game.selectedBuilding" @select="game.selectBuilding($event)" />
         </div>
@@ -185,7 +245,7 @@ watch(
 
       </div>
 
-      <div class="border-t-2 border-outline-variant bg-black/40 p-6">
+      <div class="border-t-2 border-outline-variant bg-black/40 p-4 md:p-6">
         <div class="flex items-center gap-3">
           <div class="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_#f2ca50]"></div>
           <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface/40">Connection Established</span>
@@ -261,19 +321,11 @@ watch(
   flex-shrink: 0;
 }
 
-.fade-enter-active, .fade-leave-active { transition: opacity 0.4s; }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.25s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-.text-primary {
-  color: var(--primary);
-}
-.text-secondary {
-  color: var(--secondary);
-}
-.text-on-primary {
-  color: var(--on-primary);
-}
-.border-outline-variant {
-  border-color: var(--outline-variant);
-}
+.text-primary { color: var(--primary); }
+.text-secondary { color: var(--secondary); }
+.text-on-primary { color: var(--on-primary); }
+.border-outline-variant { border-color: var(--outline-variant); }
 </style>

@@ -7,6 +7,7 @@ import ChatPanel from "./ChatPanel.vue";
 import SectionTitle from "./SectionTitle.vue";
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
+const emit = defineEmits<{ (e: "close"): void }>();
 const auth = useAuthStore();
 
 const me = computed(() => props.state?.players.find((p) => p.userId === auth.user?.id) ?? null);
@@ -52,7 +53,16 @@ function fmt(s: number) {
 </script>
 
 <template>
-  <aside class="stone-texture fixed left-0 top-16 z-40 flex h-[calc(100vh-64px)] w-72 flex-col border-r-4 border-outline-variant">
+  <aside class="stone-texture fixed left-0 top-16 z-40 flex h-[calc(100vh-64px)] w-72 flex-col border-r-4 border-outline-variant" role="complementary" aria-label="Informations">
+
+    <!-- Bouton fermeture mobile -->
+    <button
+      class="md:hidden absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/60 hover:text-white transition"
+      aria-label="Fermer le panneau"
+      @click="emit('close')"
+    >
+      <span class="material-symbols-outlined text-[18px]">close</span>
+    </button>
 
     <!-- En-tête "Informations" -->
     <div class="border-b-2 border-outline-variant bg-black/20 px-5 py-4 flex items-center justify-between shrink-0">

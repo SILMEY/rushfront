@@ -25,7 +25,6 @@ const { render } = useGameRenderer();
 const game = useGameStore();
 
 const hovered = ref<Vec2 | null>(null);
-
 const hasState = computed(() => !!props.state);
 
 let raf: number | null = null;
@@ -63,14 +62,12 @@ function draw() {
     hovered: hovered.value
   });
 
-  // Marqueur de cible d'expansion (or)
   const target = game.expandTarget;
   if (target) {
     const { x: wx, y: wy } = hexCenter(target.x, target.y, tileSize);
     const { x: sx, y: sy } = worldToScreen(wx, wy);
     const pulse = 0.7 + 0.3 * Math.sin(Date.now() / 250);
     const r = tileSize * camera.zoom * 0.45 * pulse;
-
     ctx.save();
     ctx.strokeStyle = `rgba(212,175,55,${0.9 * pulse})`;
     ctx.lineWidth = 2;
@@ -87,21 +84,18 @@ function draw() {
     scheduleDraw();
   }
 
-  // Marqueur de cible d'attaque (rouge)
   const atkTarget = game.attackTarget;
   if (atkTarget) {
     const { x: wx, y: wy } = hexCenter(atkTarget.x, atkTarget.y, tileSize);
     const { x: sx, y: sy } = worldToScreen(wx, wy);
     const pulse = 0.6 + 0.4 * Math.abs(Math.sin(Date.now() / 180));
     const r = tileSize * camera.zoom * 0.42 * pulse;
-
     ctx.save();
     ctx.strokeStyle = `rgba(239,68,68,${0.9 * pulse})`;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(sx, sy, r, 0, Math.PI * 2);
     ctx.stroke();
-    // X au centre
     const arm = r * 0.5;
     ctx.beginPath();
     ctx.moveTo(sx - arm, sy - arm); ctx.lineTo(sx + arm, sy + arm);
@@ -111,18 +105,15 @@ function draw() {
     scheduleDraw();
   }
 
-  // Redraw continu tant que des warnings actifs existent (pulse)
   if (game.attackWarnings.some(w => w.expiresAt > Date.now())) scheduleDraw();
 }
 
-// Redraw continu quand des warnings actifs existent (pulse)
 watch(
   () => game.attackWarnings.length,
   (n) => { if (n > 0) scheduleDraw(); }
 );
 
 let cameraReady = false;
-// Init caméra une seule fois quand le state arrive (shallow — juste la référence)
 watch(
   () => props.state,
   (state) => {
@@ -138,17 +129,11 @@ watch(
     }
   }
 );
-// Redraw déclenché par le compteur de révisions — pas de deep watch sur 9800 tuiles
 watch(() => game.stateRevision, () => scheduleDraw());
-watch(
-  () => [camera.x, camera.y, camera.zoom],
-  () => scheduleDraw()
-);
-watch(
-  () => Object.keys(game.optimisticClaims).length,
-  () => scheduleDraw()
-);
+watch(() => [camera.x, camera.y, camera.zoom], () => scheduleDraw());
+watch(() => Object.keys(game.optimisticClaims).length, () => scheduleDraw());
 
+// ── Pointer / touch state ──────────────────────────────────────────────────
 let dragging = false;
 let selecting = false;
 let dragStart: { x: number; y: number } | null = null;
@@ -156,6 +141,28 @@ let dragMoved = 0;
 let lastSelectedKey: string | null = null;
 let lastClickTime = 0;
 let lastClickTile: Vec2 | null = null;
+
+// Pinch zoom
+const activePointers = new Map<number, { x: number; y: number }>();
+let lastPinchDist = 0;
+
+function getPinchDist(): number {
+  const pts = [...activePointers.values()];
+  if (pts.length < 2) return 0;
+  return Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+}
+function getPinchCenter(): { x: number; y: number } {
+  const pts = [...activePointers.values()];
+  if (pts.length < 2) return { x: 0, y: 0 };
+  return { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+}
+
+// Long-press (context menu on touch)
+let longPressTimer: number | null = null;
+
+function clearLongPress() {
+  if (longPressTimer !== null) { window.clearTimeout(longPressTimer); longPressTimer = null; }
+}
 
 function toTile(clientX: number, clientY: number): Vec2 | null {
   const canvas = canvasRef.value;
@@ -172,29 +179,66 @@ function onPointerDown(e: PointerEvent) {
   if (!hasState.value) return;
   if (e.button !== 0 && e.button !== 2) return;
   (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
   if (e.button === 2) {
-    // Clic droit : menu radial contextuel (immédiat, pas de drag)
     const tile = toTile(e.clientX, e.clientY);
     if (tile) emit("tile-context", tile, e.clientX, e.clientY);
     return;
   }
 
-  // Clic gauche : pan + clic simple → actions (claim/attaque/build)
+  if (activePointers.size >= 2) {
+    // Entering pinch — cancel any in-progress drag or long-press
+    dragging = false;
+    dragStart = null;
+    clearLongPress();
+    lastPinchDist = getPinchDist();
+    return;
+  }
+
   dragging = true;
   selecting = false;
   dragStart = { x: e.clientX, y: e.clientY };
   dragMoved = 0;
+
+  // Long-press to open context menu on touch devices
+  if (e.pointerType === "touch") {
+    const cx = e.clientX;
+    const cy = e.clientY;
+    longPressTimer = window.setTimeout(() => {
+      longPressTimer = null;
+      if (dragMoved < 8) {
+        dragging = false;
+        dragMoved = Infinity; // prevent click after long-press
+        const tile = toTile(cx, cy);
+        if (tile) emit("tile-context", tile, cx, cy);
+      }
+    }, 500);
+  }
 }
 
 function onPointerMove(e: PointerEvent) {
   if (!hasState.value) return;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  // Pinch zoom when 2 fingers active
+  if (activePointers.size >= 2) {
+    const dist = getPinchDist();
+    if (lastPinchDist > 0 && dist > 0) {
+      const factor = dist / lastPinchDist;
+      const center = getPinchCenter();
+      const canvas = canvasRef.value!;
+      const rect = canvas.getBoundingClientRect();
+      zoomAt(factor, center.x - rect.left, center.y - rect.top);
+    }
+    lastPinchDist = dist;
+    return;
+  }
+
   const tile = toTile(e.clientX, e.clientY);
   const prev = hovered.value;
   hovered.value = tile;
   emit("tile-hover", tile);
-
-  // Redraw immediately when hovered tile changes (purely client-side, no server round-trip)
   if (tile?.x !== prev?.x || tile?.y !== prev?.y) scheduleDraw();
 
   if (!dragStart) return;
@@ -204,20 +248,35 @@ function onPointerMove(e: PointerEvent) {
     const dy = e.clientY - dragStart.y;
     dragMoved += Math.abs(dx) + Math.abs(dy);
     dragStart = { x: e.clientX, y: e.clientY };
+    if (dragMoved > 8) clearLongPress();
     pan(dx, dy);
-    return;
   }
-
-  // Plus de painting au clic droit — le droit clic est pour le menu contextuel
 }
 
 function onPointerUp(e: PointerEvent) {
   if (!hasState.value) return;
+
+  clearLongPress();
+
+  const wasPinching = activePointers.size >= 2;
+  activePointers.delete(e.pointerId);
+  if (activePointers.size < 2) lastPinchDist = 0;
+
+  // After releasing a pinch finger, don't register a click
+  if (wasPinching) {
+    dragging = false;
+    dragStart = null;
+    dragMoved = Infinity;
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    return;
+  }
+
   const wasDragging = dragging;
   dragging = false;
   selecting = false;
   lastSelectedKey = null;
   (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+
   if (wasDragging && dragMoved < 6) {
     const tile = toTile(e.clientX, e.clientY);
     if (tile) {
@@ -230,13 +289,21 @@ function onPointerUp(e: PointerEvent) {
         lastClickTime = 0;
         lastClickTile = null;
       } else {
-        // Clic gauche simple → actions (claim, attaque, build, choisir base)
         emit("tile-click", tile);
         lastClickTime = now;
         lastClickTile = tile;
       }
     }
   }
+}
+
+function onPointerCancel(e: PointerEvent) {
+  clearLongPress();
+  activePointers.delete(e.pointerId);
+  lastPinchDist = 0;
+  dragging = false;
+  dragStart = null;
+  try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* ignore */ }
 }
 
 function onWheel(e: WheelEvent) {
@@ -251,6 +318,7 @@ function onWheel(e: WheelEvent) {
 onMounted(() => scheduleDraw());
 onBeforeUnmount(() => {
   if (raf != null) cancelAnimationFrame(raf);
+  clearLongPress();
 });
 </script>
 
@@ -258,9 +326,12 @@ onBeforeUnmount(() => {
   <canvas
     ref="canvasRef"
     class="block h-full w-full touch-none rounded-xl"
+    role="application"
+    aria-label="Carte du jeu — appui long pour ouvrir le menu"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
+    @pointercancel="onPointerCancel"
     @contextmenu.prevent
     @wheel="onWheel"
   />

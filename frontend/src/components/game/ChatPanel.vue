@@ -104,7 +104,9 @@ async function send() {
       class="chat-input-bar px-3 py-2 flex gap-2 border-t border-white/8"
       @submit.prevent="send"
     >
+      <label for="chat-message-input" class="sr-only">Message du chat</label>
       <input
+        id="chat-message-input"
         v-model="input"
         maxlength="300"
         placeholder="Envoyer un message"
@@ -115,6 +117,7 @@ async function send() {
       <button
         type="submit"
         class="shrink-0 rounded bg-primary/10 border border-primary/25 px-2.5 text-[11px] font-bold text-primary/80 hover:bg-primary/20 transition"
+        aria-label="Envoyer le message"
       >
         Envoyer
       </button>

@@ -48,7 +48,7 @@ const items: BuildItem[] = [
 const hoveredItem = ref<BuildItem | null>(null);
 const tooltipStyle = ref<{ top: string; right: string } | null>(null);
 
-function onMouseEnter(e: MouseEvent, b: BuildItem) {
+function onPointerEnter(e: PointerEvent, b: BuildItem) {
   hoveredItem.value = b;
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
   tooltipStyle.value = {
@@ -90,9 +90,11 @@ function costLabel(b: BuildItem): string {
             : 'hover:brightness-110 active:scale-95 cursor-pointer'
         ]"
         :disabled="!canAfford(b)"
+        :aria-label="`${b.label} — ${costLabel(b)}`"
+        :aria-pressed="selected === b.type"
         type="button"
-        @mouseenter="onMouseEnter($event, b)"
-        @mouseleave="hoveredItem = null; tooltipStyle = null"
+        @pointerenter="onPointerEnter($event, b)"
+        @pointerleave="hoveredItem = null; tooltipStyle = null"
         @click="canAfford(b) && emit('select', b.type)"
       >
         <span

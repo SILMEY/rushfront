@@ -12,6 +12,28 @@ html {
 
 body {
   font-family: "Literata", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  /* Prevent horizontal scroll from off-screen panels sliding */
+  overflow-x: hidden;
+}
+
+/* Global focus ring for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Suppress tap highlight on touch devices */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Readable minimum tap target on mobile */
+@media (pointer: coarse) {
+  button, [role="button"] {
+    min-height: 40px;
+    min-width: 40px;
+  }
 }
 h1,
 h2,
