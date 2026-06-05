@@ -38,6 +38,7 @@ export class GameInstance {
   onPlayerEliminated:  ((playerId: string, changes: TileChange[]) => void) | null = null;
   onGameOver:          ((winner: RuntimePlayer | null) => void) | null = null;
   onPlacingTimeout:    (() => void) | null = null;
+  onBotAction:         ((changes: TileChange[], players: ResourcePatch[], wonders: Array<{ playerId: string; endsAt: number }>) => void) | null = null;
 
   placingEndsAt = 0;
 

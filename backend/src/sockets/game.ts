@@ -57,6 +57,9 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
         instance.onPlacingTimeout = () => {
           io.to(room).emit("game:state", instance.snapshot());
         };
+        instance.onBotAction = (changes, players, wonders) => {
+          io.to(room).emit("game:tile_update", { changes, players, wonders });
+        };
       }
       // Wonder victory already fires through onGameOver
 

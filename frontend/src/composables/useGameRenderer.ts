@@ -24,8 +24,8 @@ type RenderParams = {
 const TILE_COLORS: Record<number, string> = {
   [TileType.Plain]:  "#c8af78",
   [TileType.Water]:  "rgba(30, 58, 138, 0.40)",
-  [TileType.Forest]: "rgba(20, 83, 45, 0.45)",
-  [TileType.Quarry]: "rgba(68, 64, 60, 0.35)",
+  [TileType.Forest]: "rgba(55, 145, 75, 0.58)",
+  [TileType.Quarry]: "rgba(175, 160, 140, 0.65)",
 };
 
 const OUTLINE = "rgba(77, 70, 53, 0.85)";

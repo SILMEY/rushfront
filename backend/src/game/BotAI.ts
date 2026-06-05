@@ -1,5 +1,5 @@
 import type { GameInstance } from "./GameInstance.js";
-import { BuildingType, TileType, type CivilizationId, type Vec2 } from "./types.js";
+import { BuildingType, TileType, type CivilizationId, type TileChange, type Vec2 } from "./types.js";
 import { idx, inBounds, orthogonalNeighbors } from "./rules.js";
 
 const TICK_BASE_MS = 800;
@@ -33,13 +33,8 @@ export class BotAI {
     const player = instance.getPlayerByUserId(userId);
     if (!player || player.hasChosenStart) return;
 
-    // 1. Tentatives aléatoires (rapide, bonne distribution)
     if (this.placeRandom(400)) return;
-
-    // 2. Scan systématique — garantit de trouver si une case existe
     if (this.placeScan(12)) return;
-
-    // 3. Distance réduite en dernier recours (carte très peuplée)
     this.placeScan(6);
   }
 
@@ -111,14 +106,18 @@ export class BotAI {
 
     const civ = player.civilization as CivilizationId;
 
+    // Changements accumulés pendant ce tick — émis en une seule fois à la fin
+    const tickChanges: TileChange[] = [];
+    const affectedIds = new Set<string>([player.id]);
+    let latestWonders = instance.wonders.map(w => ({ playerId: w.playerId, endsAt: w.endsAt }));
+
     // ── 1. EXPANSION ─────────────────────────────────────────────────────────
-    // Garde une réserve de 2 villageois en début de partie pour que la
-    // population ne tombe pas à 0 (ce qui bloque la croissance naturelle).
     const reserve = myTiles.size < 20 ? 2 : 1;
     const toExpand = Math.max(0, player.resources.villagers - reserve);
     if (toExpand > 0) {
-      this.expand(myTiles, toExpand);
-      myTiles = instance.getTilesOf(player.id);
+      const changes = this.expand(myTiles, toExpand);
+      tickChanges.push(...changes);
+      if (changes.length > 0) myTiles = instance.getTilesOf(player.id);
     }
 
     // ── 2. CONSTRUCTION ──────────────────────────────────────────────────────
@@ -126,25 +125,28 @@ export class BotAI {
     const sawmills    = instance.buildingCount(player.id, BuildingType.Sawmill);
     const mines       = instance.buildingCount(player.id, BuildingType.Mine);
 
-    // Steppe Horde : caserne avant tout
     if (civ === "steppe_horde" && !hasBarracks
         && player.resources.wood >= 20 && player.resources.stone >= 10) {
-      this.tryBuild(BuildingType.Barracks, myTiles);
+      const c = this.tryBuild(BuildingType.Barracks, myTiles);
+      if (c) tickChanges.push(c);
     }
 
     const maxSawmills = Math.floor(myTiles.size / 12) + 1;
     if (player.resources.wood >= 5 && sawmills < maxSawmills) {
-      this.tryBuild(BuildingType.Sawmill, myTiles);
+      const c = this.tryBuild(BuildingType.Sawmill, myTiles);
+      if (c) tickChanges.push(c);
     }
 
     const maxMines = Math.floor(myTiles.size / 15) + 1;
     if (player.resources.wood >= 10 && mines < maxMines) {
-      this.tryBuild(BuildingType.Mine, myTiles);
+      const c = this.tryBuild(BuildingType.Mine, myTiles);
+      if (c) tickChanges.push(c);
     }
 
     if (!hasBarracks && myTiles.size >= 4
         && player.resources.wood >= 20 && player.resources.stone >= 10) {
-      this.tryBuild(BuildingType.Barracks, myTiles);
+      const c = this.tryBuild(BuildingType.Barracks, myTiles);
+      if (c) tickChanges.push(c);
     }
 
     // ── 3. POURCENTAGE DE SOLDATS ────────────────────────────────────────────
@@ -157,13 +159,25 @@ export class BotAI {
       const maxAttacks = civ === "steppe_horde" ? 3 : 1;
       for (let i = 0; i < maxAttacks; i++) {
         if (player.resources.soldiers < threshold) break;
-        if (!this.tryAttack(player.id, instance.getTilesOf(player.id))) break;
+        const result = this.tryAttack(player.id, instance.getTilesOf(player.id));
+        if (!result) break;
+        tickChanges.push(result.change);
+        affectedIds.add(result.defenderId);
+        latestWonders = result.wonders;
       }
+    }
+
+    // ── 5. ÉMETTRE TOUS LES CHANGEMENTS EN UNE FOIS ──────────────────────────
+    if (tickChanges.length > 0) {
+      const playerPatches = Array.from(affectedIds)
+        .map(pid => instance.players.find(p => p.id === pid))
+        .filter((p): p is NonNullable<typeof p> => p != null)
+        .map(p => ({ id: p.id, resources: p.resources }));
+      instance.onBotAction?.(tickChanges, playerPatches, latestWonders);
     }
   }
 
   private targetSoldierPct(civ: CivilizationId, tileCount: number): number {
-    // Pas de soldats en tout début de partie — priorité à l'expansion
     if (tileCount < 10) return 0;
 
     let base = 25;
@@ -178,8 +192,8 @@ export class BotAI {
     }
   }
 
-  // ── Expansion priorisée vers les ressources ───────────────────────────────
-  private expand(myTiles: Set<number>, maxToUse: number): void {
+  // ── Expansion (retourne les TileChange) ───────────────────────────────────
+  private expand(myTiles: Set<number>, maxToUse: number): TileChange[] {
     const { instance, userId } = this;
     const { tileOwners, tileTypes, width, height } = instance;
 
@@ -207,14 +221,14 @@ export class BotAI {
       }
     }
 
-    if (candidates.length === 0) return;
+    if (candidates.length === 0) return [];
     candidates.sort((a, b) => b.score - a.score);
     const positions = candidates.slice(0, maxToUse).map(c => c.pos);
-    instance.claimTiles(userId, positions);
+    return instance.claimTiles(userId, positions);
   }
 
-  // ── Construction ──────────────────────────────────────────────────────────
-  private tryBuild(building: BuildingType, myTiles: Set<number>): boolean {
+  // ── Construction (retourne le TileChange ou null) ─────────────────────────
+  private tryBuild(building: BuildingType, myTiles: Set<number>): TileChange | null {
     const { instance, userId } = this;
     const { tileBuildings, tileTypes, width, height } = instance;
 
@@ -232,14 +246,14 @@ export class BotAI {
         if (building === BuildingType.FishingHut && !adjTypes.some(t => t === TileType.Water))  continue;
       }
 
-      try { instance.build(userId, { x, y, building }); return true; }
+      try { return instance.build(userId, { x, y, building }); }
       catch { continue; }
     }
-    return false;
+    return null;
   }
 
-  // ── Attaque ───────────────────────────────────────────────────────────────
-  private tryAttack(playerId: string, myTiles: Set<number>): boolean {
+  // ── Attaque (retourne le résultat ou null) ────────────────────────────────
+  private tryAttack(playerId: string, myTiles: Set<number>): { change: TileChange; defenderId: string; wonders: Array<{ playerId: string; endsAt: number }> } | null {
     const { instance, userId } = this;
     const { tileOwners, tileTypes, width, height } = instance;
 
@@ -257,9 +271,9 @@ export class BotAI {
       }
     }
 
-    if (attackable.length === 0) return false;
+    if (attackable.length === 0) return null;
     const target = attackable[Math.floor(Math.random() * attackable.length)]!;
-    try { instance.attackTile(userId, target); return true; }
-    catch { return false; }
+    try { return instance.attackTile(userId, target); }
+    catch { return null; }
   }
 }
