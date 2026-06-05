@@ -18,6 +18,7 @@ interface DayStat {
 interface AdminStats {
   totalUsers: number;
   totalHumanGames: number;
+  gamesLast30Days: number;
   topPlayers: TopPlayer[];
   playersPerDay: DayStat[];
 }
@@ -78,14 +79,18 @@ function initials(p: TopPlayer) {
 
       <template v-else-if="stats">
         <!-- Stat cards -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-8">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-8">
           <div class="rounded-xl border border-[#4d4635] bg-stone-900/60 p-6">
             <p class="text-xs font-bold uppercase tracking-widest text-[#d4c59f]/50 mb-2">Joueurs inscrits</p>
             <p class="font-headline text-5xl font-bold text-[#d4af37]">{{ stats.totalUsers.toLocaleString("fr-FR") }}</p>
           </div>
           <div class="rounded-xl border border-[#4d4635] bg-stone-900/60 p-6">
-            <p class="text-xs font-bold uppercase tracking-widest text-[#d4c59f]/50 mb-2">Parties jouées</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-[#d4c59f]/50 mb-2">Parties jouées (total)</p>
             <p class="font-headline text-5xl font-bold text-[#d4af37]">{{ stats.totalHumanGames.toLocaleString("fr-FR") }}</p>
+          </div>
+          <div class="rounded-xl border border-[#4d4635] bg-stone-900/60 p-6">
+            <p class="text-xs font-bold uppercase tracking-widest text-[#d4c59f]/50 mb-2">Parties — 30 derniers jours</p>
+            <p class="font-headline text-5xl font-bold text-[#d4af37]">{{ stats.gamesLast30Days.toLocaleString("fr-FR") }}</p>
           </div>
         </div>
 

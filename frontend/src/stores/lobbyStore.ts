@@ -8,7 +8,10 @@ export const useLobbyStore = defineStore("lobby", {
     lobbies: [] as LobbySummary[],
     lastError: "" as string | null,
     lastStartedGameId: null as string | null,
-    connected: false
+    connected: false,
+    inQuickQueue: false,
+    quickQueueSize: 0,
+    quickCountdownSeconds: 0
   }),
   actions: {
     async ensureConnected() {
@@ -30,12 +33,36 @@ export const useLobbyStore = defineStore("lobby", {
       socket.on("game:error", ({ error }: { error: string }) => {
         this.lastError = error;
       });
+      socket.on("quick:update", ({ queueSize, secondsRemaining }: { queueSize: number; secondsRemaining: number }) => {
+        this.inQuickQueue = true;
+        this.quickQueueSize = queueSize;
+        this.quickCountdownSeconds = secondsRemaining;
+      });
+      socket.on("quick:matched", ({ gameId }: { gameId: string }) => {
+        this.inQuickQueue = false;
+        this.quickQueueSize = 0;
+        this.quickCountdownSeconds = 0;
+        router.push(`/game/${gameId}`);
+      });
       this.connected = true;
     },
     async refresh() {
       await this.ensureConnected();
       const socket = await getSocket();
       socket.emit("lobby:list");
+    },
+    async joinQuickGame() {
+      await this.ensureConnected();
+      const socket = await getSocket();
+      socket.emit("quick:join");
+    },
+    async leaveQuickGame() {
+      await this.ensureConnected();
+      const socket = await getSocket();
+      socket.emit("quick:leave");
+      this.inQuickQueue = false;
+      this.quickQueueSize = 0;
+      this.quickCountdownSeconds = 0;
     },
     async createLobby() {
       await this.ensureConnected();

@@ -1,10 +1,11 @@
 import type { FastifyInstance } from "fastify";
 import { Server } from "socket.io";
 import { GameManager } from "../game/GameManager.js";
+import { QuickMatchmaker } from "../game/QuickMatchmaker.js";
 import { registerLobbyHandlers } from "./lobby.js";
 import { registerGameHandlers } from "./game.js";
 
-export async function registerSockets(app: FastifyInstance, gameManager: GameManager) {
+export async function registerSockets(app: FastifyInstance, gameManager: GameManager, quickMatchmaker: QuickMatchmaker) {
   const io = new Server(app.server, {
     cors: {
       origin: process.env.WEB_ORIGIN,
@@ -36,7 +37,7 @@ export async function registerSockets(app: FastifyInstance, gameManager: GameMan
       pendingDisconnects.delete(userId);
     }
 
-    registerLobbyHandlers(app, io, socket, gameManager);
+    registerLobbyHandlers(app, io, socket, gameManager, quickMatchmaker);
     registerGameHandlers(app, io, socket, gameManager);
 
     socket.on("disconnect", () => {
@@ -46,6 +47,7 @@ export async function registerSockets(app: FastifyInstance, gameManager: GameMan
       // Grace period de 30s : le joueur a le temps de se reconnecter
       const timer = setTimeout(() => {
         pendingDisconnects.delete(uid);
+        quickMatchmaker.leave(uid, io);
 
         // Vérifier qu'aucune autre socket du même utilisateur n'est connectée
         const stillConnected = [...io.sockets.sockets.values()].some(

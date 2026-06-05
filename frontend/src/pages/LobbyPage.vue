@@ -20,58 +20,27 @@ const hostName = computed(() => current.value?.players.find((p) => p.userId === 
 
 const MAX_PLAYERS = 10;
 
-const botCount = computed(() => current.value?.players.filter((p) => p.isBot).length ?? 0);
 const canAddBot = computed(() =>
-  isHost.value &&
-  (current.value?.players.length ?? 0) < MAX_PLAYERS
+  isHost.value && (current.value?.players.length ?? 0) < MAX_PLAYERS
 );
 
 const CIVILIZATIONS = [
-  {
-    id: "iron_dwarves" as const,
-    name: "Nains de Fer",
-    icon: "🏔️",
-    role: "Défense",
-    bonus: "Pierre +éco · Défense ↑ · Attaque ↓"
-  },
-  {
-    id: "sylvan_elves" as const,
-    name: "Elfes Sylvains",
-    icon: "🌲",
-    role: "Équilibré",
-    bonus: "Bois +éco · Équilibré"
-  },
-  {
-    id: "steppe_horde" as const,
-    name: "Horde des Steppes",
-    icon: "⚔️",
-    role: "Attaque",
-    bonus: "Expansion rapide · Attaque ↑ · Défense ↓"
-  },
-  {
-    id: "aurelian_empire" as const,
-    name: "Empire d'Aurélien",
-    icon: "🏛️",
-    role: "Économie",
-    bonus: "Routes · Territoire compact · Éco/case"
-  }
+  { id: "iron_dwarves" as const, name: "Nains de Fer", icon: "🏔️", role: "Défense", bonus: "Pierre ×2 · Défense ↑ · Attaque ↓" },
+  { id: "sylvan_elves" as const, name: "Elfes Sylvains", icon: "🌲", role: "Équilibré", bonus: "Bois ×2 · Équilibré" },
+  { id: "steppe_horde" as const, name: "Horde des Steppes", icon: "⚔️", role: "Attaque", bonus: "Expansion rapide · Attaque ↑ · Défense ↓" },
+  { id: "aurelian_empire" as const, name: "Empire d'Aurélien", icon: "🏛️", role: "Économie", bonus: "Routes · Territoire compact · +éco/case" }
 ];
 
 const COLORS = [
-  "#3b82f6",
-  "#ef4444",
-  "#a855f7",
-  "#fde047",
-  "#f97316",
-  "#ffffff",
-  "#22c55e",
-  "#f472b6",
-  "#06b6d4",
-  "#e11d48"
+  "#3b82f6","#ef4444","#a855f7","#fde047","#f97316",
+  "#ffffff","#22c55e","#f472b6","#06b6d4","#e11d48"
 ];
 
 const usedColors = computed(() => new Set((current.value?.players ?? []).map((p) => p.color)));
 const readyCount = computed(() => current.value?.players.filter((p) => p.isReady).length ?? 0);
+
+const showCivModal = ref(false);
+const showColorModal = ref(false);
 
 const shakeReady = ref(false);
 function tryStartGame() {
@@ -89,25 +58,15 @@ onMounted(async () => {
   await lobby.joinLobby(gameId.value);
 });
 
-watch(
-  () => lobby.lastStartedGameId,
-  (id) => {
-    if (id === gameId.value) router.push(`/game/${id}`);
-  }
-);
+watch(() => lobby.lastStartedGameId, (id) => {
+  if (id === gameId.value) router.push(`/game/${id}`);
+});
 
-watch(
-  () => lobby.lastError,
-  (err) => {
-    if (!err) return;
-    if (err === "lobby_not_open") {
-      // La partie a déjà démarré — rejoindre directement le jeu
-      router.replace(`/game/${gameId.value}`);
-    } else if (err === "lobby_not_found" || err === "lobby_full") {
-      router.replace("/");
-    }
-  }
-);
+watch(() => lobby.lastError, (err) => {
+  if (!err) return;
+  if (err === "lobby_not_open") router.replace(`/game/${gameId.value}`);
+  else if (err === "lobby_not_found" || err === "lobby_full") router.replace("/");
+});
 
 let leaving = false;
 
@@ -118,7 +77,6 @@ function quitLobby() {
   router.push("/");
 }
 
-// Quitter le lobby si on navigue ailleurs (clic navbar, etc.)
 onBeforeRouteLeave(() => {
   if (!leaving && !lobby.lastStartedGameId) {
     leaving = true;
@@ -129,9 +87,9 @@ onBeforeRouteLeave(() => {
 
 <template>
   <div class="rf-lobby relative">
-    <div class="mx-auto w-full max-w-7xl px-container-margin py-6">
+    <div class="mx-auto w-full max-w-6xl px-container-margin py-6">
 
-      <!-- Header pleine largeur -->
+      <!-- Header -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div class="text-xs font-headline font-bold uppercase tracking-[0.3em] text-primary/80">{{ t('lobby.subtitle') }}</div>
@@ -142,6 +100,16 @@ onBeforeRouteLeave(() => {
         </div>
         <div class="flex items-center gap-2">
           <button
+            v-if="isHost"
+            class="metallic-crest h-12 rounded-md px-6 text-sm font-headline font-extrabold uppercase tracking-widest text-on-primary shadow-xl transition-all hover:brightness-110 active:scale-95"
+            @click="tryStartGame()"
+          >
+            <span class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">swords</span>
+              {{ t('lobby.start_btn') }}
+            </span>
+          </button>
+          <button
             class="rounded-md border border-primary/30 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-primary transition hover:bg-primary hover:text-on-primary"
             @click="quitLobby()"
           >
@@ -150,15 +118,15 @@ onBeforeRouteLeave(() => {
         </div>
       </div>
 
-      <!-- Contenu : chat + card -->
+      <!-- Contenu : chat + joueurs -->
       <div class="flex flex-col lg:flex-row gap-6 items-start">
 
         <!-- Chat panel -->
-        <div class="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-20 overflow-hidden rounded-2xl border border-outline-variant/30 bg-black/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex flex-col h-64 lg:h-[560px]">
-          <div class="scroll-banner flex items-center gap-4 px-6 py-4 shrink-0">
+        <div class="w-full lg:w-64 lg:shrink-0 lg:sticky lg:top-20 overflow-hidden rounded-2xl border border-outline-variant/30 bg-black/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)] flex flex-col h-64 lg:h-[520px]">
+          <div class="scroll-banner flex items-center gap-3 px-4 py-3 shrink-0">
             <div>
               <div class="text-[10px] font-headline font-bold uppercase tracking-[0.25em] text-primary/80">{{ t('lobby.chat_section') }}</div>
-              <div class="text-base font-headline font-bold uppercase tracking-widest text-primary">{{ t('lobby.chat_title') }}</div>
+              <div class="text-sm font-headline font-bold uppercase tracking-widest text-primary">{{ t('lobby.chat_title') }}</div>
             </div>
           </div>
           <div class="flex-1 min-h-0">
@@ -171,210 +139,208 @@ onBeforeRouteLeave(() => {
           </div>
         </div>
 
-        <!-- Card principale -->
+        <!-- Liste des joueurs (pleine largeur) -->
         <div class="flex-1 min-w-0">
-      <div class="overflow-hidden rounded-2xl border border-outline-variant/30 bg-black/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-        <div class="scroll-banner flex items-center justify-between gap-6 px-6 py-5">
-          <div class="flex items-center gap-4">
-            <div class="wax-seal">
-              <span class="material-symbols-outlined text-white text-3xl">campaign</span>
+          <div class="overflow-hidden rounded-2xl border border-outline-variant/30 bg-black/30 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+            <!-- Banner -->
+            <div class="scroll-banner flex items-center justify-between gap-4 px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="wax-seal">
+                  <span class="material-symbols-outlined text-white text-2xl">campaign</span>
+                </div>
+                <div>
+                  <div class="text-[10px] font-headline font-bold uppercase tracking-[0.25em] text-primary/80">{{ t('lobby.gathering_label') }}</div>
+                  <div class="text-base font-headline font-bold uppercase tracking-widest text-primary">{{ t('lobby.game_room_title') }}</div>
+                </div>
+              </div>
+              <div :class="['text-[10px] font-bold uppercase tracking-[0.25em] transition-colors', shakeReady ? 'text-red-400 shake-alert' : 'text-secondary/60']">
+                {{ t('lobby.ready_count', { count: readyCount }) }}
+              </div>
             </div>
-            <div>
-              <div class="text-xs font-headline font-bold uppercase tracking-[0.25em] text-primary/80">{{ t('lobby.gathering_label') }}</div>
-              <div class="text-lg font-headline font-bold uppercase tracking-widest text-primary">{{ t('lobby.game_room_title') }}</div>
-            </div>
-          </div>
-          <div
-            :class="['text-[10px] font-bold uppercase tracking-[0.25em] transition-colors', shakeReady ? 'text-red-400 shake-alert' : 'text-secondary/60']"
-          >
-            {{ t('lobby.ready_count', { count: readyCount }) }}
-          </div>
-        </div>
 
-        <div class="grid gap-0 lg:grid-cols-12">
-          <!-- Players list -->
-          <div class="lg:col-span-8">
-            <div class="custom-scrollbar max-h-[560px] overflow-auto p-6">
-              <div class="grid gap-3">
+            <!-- Slots joueurs -->
+            <div class="custom-scrollbar max-h-[520px] overflow-auto p-4">
+              <div class="grid gap-2">
+                <!-- Joueurs présents -->
                 <div
                   v-for="p in current?.players ?? []"
                   :key="p.id"
-                  class="scroll-banner flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6 p-4 sm:p-6"
+                  class="scroll-banner flex items-center gap-4 p-3 sm:p-4"
                   :class="p.isBot ? 'opacity-80' : ''"
                 >
-                  <div class="flex items-center gap-4 sm:gap-6">
-                    <!-- Avatar bot -->
-                    <div v-if="p.isBot" class="iron-texture grid h-14 w-14 sm:h-20 sm:w-20 shrink-0 place-items-center" :style="{ borderColor: p.color }">
-                      <span class="material-symbols-outlined text-3xl sm:text-4xl" :style="{ color: p.color }">smart_toy</span>
-                    </div>
-                    <!-- Avatar humain -->
-                    <img
-                      v-else-if="p.avatarUrl"
-                      :src="p.avatarUrl"
-                      :alt="`Avatar de ${p.name}`"
-                      class="h-14 w-14 sm:h-20 sm:w-20 border-4 border-outline/50 object-cover shadow-lg shrink-0"
-                    />
-                    <div v-else class="iron-texture grid h-14 w-14 sm:h-20 sm:w-20 shrink-0 place-items-center text-lg sm:text-xl font-headline text-secondary">
-                      {{ p.name.slice(0, 2).toUpperCase() }}
-                    </div>
-                    <div>
-                      <div class="text-xl sm:text-3xl font-headline leading-none text-secondary-fixed">{{ p.name }}</div>
-                      <div class="mt-1 text-sm italic text-secondary/70">
-                        {{ p.isBot ? t('lobby.bot_label') : t('lobby.commander_label') }}
-                      </div>
+                  <!-- Avatar -->
+                  <div v-if="p.isBot" class="iron-texture grid h-12 w-12 shrink-0 place-items-center" :style="{ borderColor: p.color }">
+                    <span class="material-symbols-outlined text-2xl" :style="{ color: p.color }">smart_toy</span>
+                  </div>
+                  <img v-else-if="p.avatarUrl" :src="p.avatarUrl" :alt="p.name"
+                    class="h-12 w-12 shrink-0 border-4 border-outline/50 object-cover shadow-lg" />
+                  <div v-else class="iron-texture grid h-12 w-12 shrink-0 place-items-center text-sm font-headline text-secondary">
+                    {{ p.name.slice(0, 2).toUpperCase() }}
+                  </div>
+
+                  <!-- Nom -->
+                  <div class="flex-1 min-w-0">
+                    <div class="text-base font-headline leading-none text-secondary-fixed truncate">{{ p.name }}</div>
+                    <div class="mt-0.5 text-[10px] italic text-secondary/60">
+                      {{ p.isBot ? t('lobby.bot_label') : t('lobby.commander_label') }}
                     </div>
                   </div>
 
-                  <div class="flex items-center gap-4 sm:gap-8 flex-wrap">
-                    <div class="flex flex-col items-center">
-                      <span class="mb-1 text-[10px] font-bold uppercase tracking-widest text-secondary">{{ t('lobby.civilization_title') }}</span>
-                      <span class="text-2xl">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.icon ?? "🏔️" }}</span>
-                      <span class="mt-0.5 text-[10px] text-secondary/70">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.name ?? "?" }}</span>
-                    </div>
-                    <div class="flex flex-col items-center">
-                      <span class="mb-1 text-[10px] font-bold uppercase tracking-widest text-secondary">{{ t('lobby.heraldry_label') }}</span>
-                      <div class="h-8 w-12 border-2 border-black/20 shadow-md" :style="{ background: p.color }"></div>
-                    </div>
-                    <div class="flex flex-col items-center gap-1">
-                      <div class="wax-seal" :class="p.isReady ? '' : 'opacity-40 bg-zinc-700 grayscale border-zinc-900'" :aria-label="p.isReady ? 'Prêt' : 'En attente'">
-                        <span class="material-symbols-outlined text-white text-3xl" aria-hidden="true">
-                          {{ p.isReady ? "check_circle" : "hourglass_empty" }}
-                        </span>
-                      </div>
-                      <span class="text-[10px] font-bold uppercase tracking-widest" :class="p.isReady ? 'text-primary' : 'text-secondary-fixed-dim'">
-                        {{ p.isReady ? t('lobby.ready') : t('lobby.waiting') }}
-                      </span>
-                    </div>
-                    <!-- Bouton supprimer bot (hôte seulement) -->
-                    <button
-                      v-if="p.isBot && isHost"
-                      class="flex flex-col items-center gap-1 opacity-50 hover:opacity-100 transition-opacity"
-                      :title="t('lobby.bot_remove')"
-                      @click="lobby.removeBot(gameId, p.id)"
-                    >
-                      <span class="material-symbols-outlined text-red-400 text-2xl">delete</span>
-                      <span class="text-[9px] uppercase tracking-widest text-red-400">{{ t('lobby.bot_remove') }}</span>
-                    </button>
+                  <!-- Civilisation : cliquable si c'est moi -->
+                  <button
+                    v-if="p.userId === auth.user?.id"
+                    class="flex flex-col items-center gap-0.5 rounded-md border border-outline-variant/30 bg-black/20 px-3 py-1.5 transition hover:border-primary/50 hover:bg-white/5"
+                    :title="t('lobby.civilization_title')"
+                    @click="showCivModal = true"
+                  >
+                    <span class="text-xl leading-none">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.icon ?? '🏔️' }}</span>
+                    <span class="text-[9px] text-secondary/70">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.name }}</span>
+                  </button>
+                  <div v-else class="flex flex-col items-center gap-0.5 px-2">
+                    <span class="text-xl leading-none">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.icon ?? '🏔️' }}</span>
+                    <span class="text-[9px] text-secondary/70">{{ CIVILIZATIONS.find(c => c.id === p.civilization)?.name }}</span>
                   </div>
+
+                  <!-- Couleur : cliquable si c'est moi -->
+                  <button
+                    v-if="p.userId === auth.user?.id"
+                    class="h-8 w-8 shrink-0 border-2 border-black/30 shadow-md transition hover:scale-110 hover:ring-2 hover:ring-primary/60 hover:ring-offset-1 hover:ring-offset-black"
+                    :style="{ background: p.color }"
+                    :title="t('lobby.heraldry_label')"
+                    @click="showColorModal = true"
+                  />
+                  <div v-else class="h-8 w-8 shrink-0 border-2 border-black/30 shadow-md" :style="{ background: p.color }" />
+
+                  <!-- Prêt / bouton prêt si c'est moi -->
+                  <button
+                    v-if="p.userId === auth.user?.id"
+                    class="flex shrink-0 flex-col items-center gap-0.5 rounded-md border px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all hover:brightness-110 active:scale-95"
+                    :class="me?.isReady
+                      ? 'border-primary/60 bg-primary/10 text-primary'
+                      : 'border-outline-variant/40 bg-black/20 text-secondary/60'"
+                    @click="lobby.setReady(gameId, !me?.isReady)"
+                  >
+                    <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">
+                      {{ me?.isReady ? 'verified' : 'hourglass_bottom' }}
+                    </span>
+                    {{ me?.isReady ? t('lobby.ready') : t('lobby.not_ready') }}
+                  </button>
+                  <div v-else class="flex shrink-0 flex-col items-center gap-0.5 px-2">
+                    <div class="wax-seal h-8 w-8" :class="p.isReady ? '' : 'opacity-30 bg-zinc-700 grayscale border-zinc-900'">
+                      <span class="material-symbols-outlined text-white text-base">{{ p.isReady ? 'check_circle' : 'hourglass_empty' }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Supprimer bot (hôte) -->
+                  <button
+                    v-if="p.isBot && isHost"
+                    class="shrink-0 rounded-md p-1.5 text-red-400/50 transition hover:bg-red-500/10 hover:text-red-400"
+                    :title="t('lobby.bot_remove')"
+                    @click="lobby.removeBot(gameId, p.id)"
+                  >
+                    <span class="material-symbols-outlined text-xl">delete</span>
+                  </button>
                 </div>
 
+                <!-- Slots vides -->
                 <div
                   v-for="i in Math.max(0, MAX_PLAYERS - (current?.players?.length ?? 0))"
                   :key="`empty-${i}`"
-                  class="flex cursor-default items-center justify-center gap-4 border-2 border-dashed border-outline-variant bg-black/40 p-8 text-secondary/50"
+                  class="flex items-center justify-center border-2 border-dashed border-outline-variant/30 bg-black/20 p-5"
                 >
-                  <span class="material-symbols-outlined text-4xl">person_add</span>
-                  <div class="text-center">
-                    <div class="text-xl font-headline">{{ t('lobby.empty_slot_title') }}</div>
-                    <div class="text-[10px] font-bold uppercase tracking-widest text-primary/60">{{ t('lobby.empty_slot_subtitle') }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Controls -->
-          <div class="lg:col-span-4">
-            <div class="border-t-2 border-outline-variant bg-black/60 p-6 lg:border-l-2 lg:border-t-0">
-              <div class="grid gap-6">
-                <div>
-                  <h3 class="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-secondary">
-                    <span class="material-symbols-outlined text-sm">castle</span>
-                    {{ t('lobby.civilization_title') }}
-                  </h3>
-                  <div class="grid grid-cols-2 gap-2">
-                    <button
-                      v-for="civ in CIVILIZATIONS"
-                      :key="civ.id"
-                      class="flex flex-col items-start gap-0.5 border p-2.5 text-left transition-all duration-200 hover:border-primary/60 hover:bg-white/5"
-                      :class="me?.civilization === civ.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-outline-variant/30 bg-black/20'"
-                      @click="lobby.setCivilization(gameId, civ.id)"
-                    >
-                      <span class="text-xl leading-none">{{ civ.icon }}</span>
-                      <span class="mt-1 text-[11px] font-bold leading-tight" :class="me?.civilization === civ.id ? 'text-primary' : 'text-secondary'">{{ civ.name }}</span>
-                      <span class="text-[9px] uppercase tracking-widest" :class="me?.civilization === civ.id ? 'text-primary/70' : 'text-secondary/50'">{{ civ.role }}</span>
-                    </button>
-                  </div>
-                  <p v-if="me?.civilization" class="mt-2 text-[10px] italic text-secondary/60">
-                    {{ CIVILIZATIONS.find(c => c.id === me?.civilization)?.bonus }}
-                  </p>
-                </div>
-
-                <div>
-                  <h3 class="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-secondary">
-                    <span class="material-symbols-outlined text-sm">palette</span>
-                    {{ t('lobby.heraldry_title') }}
-                  </h3>
-                  <div class="flex flex-wrap gap-3">
-                    <button
-                      v-for="c in COLORS"
-                      :key="c"
-                      class="h-10 w-10 border-2 border-black/20 shadow-md transition-all hover:scale-110 disabled:opacity-30"
-                      :style="{ background: c }"
-                      :disabled="usedColors.has(c) && c !== me?.color"
-                      :class="me?.color === c ? 'ring-2 ring-primary ring-offset-2 ring-offset-black' : ''"
-                      @click="lobby.setColor(gameId, c)"
-                    />
-                  </div>
-                </div>
-
-                <div class="flex flex-col justify-center">
                   <button
-                    v-if="me"
-                    class="h-16 w-full overflow-hidden rounded-md border border-outline-variant/50 bg-black/30 text-on-surface shadow-xl transition-all hover:brightness-110 active:scale-95"
-                    :class="me.isReady ? 'metallic-crest' : 'grayscale opacity-70'"
-                    @click="lobby.setReady(gameId, !me.isReady)"
-                  >
-                    <span class="flex items-center justify-center gap-4 text-2xl font-headline">
-                      <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1">
-                        {{ me.isReady ? "verified" : "hourglass_bottom" }}
-                      </span>
-                      <span>{{ me.isReady ? t('lobby.ready') : t('lobby.not_ready') }}</span>
-                    </span>
-                  </button>
-
-                  <!-- Bouton ajouter un bot (hôte seulement) -->
-                  <button
-                    v-if="isHost && canAddBot"
-                    class="mt-3 h-12 w-full rounded-md border border-outline-variant/50 bg-black/40 text-secondary transition-all hover:border-primary/40 hover:text-primary active:scale-95"
+                    v-if="canAddBot"
+                    class="flex items-center gap-2 rounded-md border border-outline-variant/40 bg-black/30 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-secondary/60 transition hover:border-primary/40 hover:text-primary active:scale-95"
                     @click="lobby.addBot(gameId)"
                   >
-                    <span class="flex items-center justify-center gap-3 text-sm font-headline uppercase tracking-widest">
-                      <span class="material-symbols-outlined text-xl">smart_toy</span>
-                      <span>{{ t('lobby.bot_add') }}</span>
-                      <span v-if="botCount > 0" class="text-xs opacity-60">({{ botCount }})</span>
-                    </span>
+                    <span class="material-symbols-outlined text-base">smart_toy</span>
+                    {{ t('lobby.bot_add') }}
                   </button>
-
-                  <button
-                    v-if="isHost"
-                    class="mt-3 h-16 metallic-crest w-full rounded-md text-on-primary shadow-xl transition-all hover:brightness-110 active:scale-95"
-                    @click="tryStartGame()"
-                  >
-                    <span class="flex items-center justify-center gap-4 text-2xl font-headline">
-                      <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1">swords</span>
-                      <span>{{ t('lobby.start_btn') }}</span>
-                    </span>
-                  </button>
-                  <p class="mt-3 text-center text-[10px] font-bold uppercase tracking-widest text-secondary-fixed-dim">
-                    {{ t('lobby.prepare_hint') }}
-                  </p>
+                  <div v-else class="flex items-center gap-2 text-secondary/30">
+                    <span class="material-symbols-outlined text-2xl">person_add</span>
+                    <span class="text-xs font-headline uppercase tracking-widest">{{ t('lobby.empty_slot_subtitle') }}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div> <!-- fin card principale -->
+      </div>
+    </div>
 
-        </div> <!-- fin flex-1 card wrapper -->
-      </div> <!-- fin flex gap-6 -->
-    </div> <!-- fin max-w-7xl -->
+    <!-- Barre décorative bas -->
+    <div class="pointer-events-none fixed bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-primary/40 to-transparent shadow-[0_-4px_20px_rgba(242,202,80,0.2)]"></div>
 
-    <div
-      class="pointer-events-none fixed bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-primary/40 to-transparent shadow-[0_-4px_20px_rgba(242,202,80,0.2)]"
-    ></div>
+    <!-- Modal civilisation -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showCivModal"
+          class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          @click.self="showCivModal = false"
+        >
+          <div class="w-full max-w-md rounded-2xl border border-[#4d4635] bg-stone-900 p-6 shadow-2xl">
+            <div class="mb-4 flex items-center justify-between">
+              <h2 class="font-headline text-lg font-bold uppercase tracking-widest text-[#d4af37]">
+                {{ t('lobby.civilization_title') }}
+              </h2>
+              <button class="text-[#d4c59f]/50 hover:text-[#d4c59f] transition" @click="showCivModal = false">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <button
+                v-for="civ in CIVILIZATIONS"
+                :key="civ.id"
+                class="flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all hover:border-[#d4af37]/60 hover:bg-white/5"
+                :class="me?.civilization === civ.id
+                  ? 'border-[#d4af37] bg-[#d4af37]/10'
+                  : 'border-[#4d4635]/50 bg-black/20'"
+                @click="lobby.setCivilization(gameId, civ.id); showCivModal = false"
+              >
+                <span class="text-3xl leading-none">{{ civ.icon }}</span>
+                <span class="mt-1 text-sm font-bold leading-tight" :class="me?.civilization === civ.id ? 'text-[#d4af37]' : 'text-[#d4c59f]'">{{ civ.name }}</span>
+                <span class="text-[10px] uppercase tracking-widest" :class="me?.civilization === civ.id ? 'text-[#d4af37]/70' : 'text-[#d4c59f]/50'">{{ civ.role }}</span>
+                <span class="mt-1 text-[10px] italic text-[#d4c59f]/40 leading-tight">{{ civ.bonus }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Modal couleur -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showColorModal"
+          class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          @click.self="showColorModal = false"
+        >
+          <div class="w-full max-w-xs rounded-2xl border border-[#4d4635] bg-stone-900 p-6 shadow-2xl">
+            <div class="mb-4 flex items-center justify-between">
+              <h2 class="font-headline text-lg font-bold uppercase tracking-widest text-[#d4af37]">
+                {{ t('lobby.heraldry_title') }}
+              </h2>
+              <button class="text-[#d4c59f]/50 hover:text-[#d4c59f] transition" @click="showColorModal = false">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div class="flex flex-wrap gap-3 justify-center">
+              <button
+                v-for="c in COLORS"
+                :key="c"
+                class="h-12 w-12 border-2 border-black/20 shadow-md transition-all hover:scale-110 disabled:opacity-30 disabled:cursor-not-allowed"
+                :style="{ background: c }"
+                :disabled="usedColors.has(c) && c !== me?.color"
+                :class="me?.color === c ? 'ring-2 ring-[#d4af37] ring-offset-2 ring-offset-stone-900 scale-110' : ''"
+                @click="lobby.setColor(gameId, c); showColorModal = false"
+              />
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -390,43 +356,19 @@ onBeforeRouteLeave(() => {
   --background: #131312;
   --container-margin: 24px;
 }
-
-.px-container-margin {
-  padding-left: var(--container-margin);
-  padding-right: var(--container-margin);
-}
-
-.text-primary {
-  color: var(--primary);
-}
-.text-on-primary {
-  color: var(--on-primary);
-}
-.text-secondary {
-  color: var(--secondary);
-}
-.text-secondary-fixed {
-  color: var(--secondary-fixed);
-}
-.text-secondary-fixed-dim {
-  color: var(--secondary-fixed-dim);
-}
-.border-outline-variant {
-  border-color: var(--outline-variant);
-}
-.border-outline-variant\/30 {
-  border-color: rgba(77, 70, 53, 0.3);
-}
-.border-outline\/50 {
-  border-color: rgba(153, 144, 124, 0.5);
-}
-.bg-background {
-  background-color: var(--background);
-}
+.px-container-margin { padding-left: var(--container-margin); padding-right: var(--container-margin); }
+.text-primary { color: var(--primary); }
+.text-on-primary { color: var(--on-primary); }
+.text-secondary { color: var(--secondary); }
+.text-secondary-fixed { color: var(--secondary-fixed); }
+.text-secondary-fixed-dim { color: var(--secondary-fixed-dim); }
+.border-outline-variant { border-color: var(--outline-variant); }
+.border-outline-variant\/30 { border-color: rgba(77, 70, 53, 0.3); }
+.border-outline\/50 { border-color: rgba(153, 144, 124, 0.5); }
 
 .iron-texture {
   background-color: #1c1c1b;
-  background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
   background-size: 4px 4px;
   border: 2px solid #353533;
   box-shadow: inset 0 0 10px #000, 4px 4px 0 #0e0e0d;
@@ -437,40 +379,32 @@ onBeforeRouteLeave(() => {
   backdrop-filter: blur(8px);
   border: 1px solid #d4af37;
   position: relative;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
 }
 
 .wax-seal {
   background: #920703;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6), 2px 2px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.6), 2px 2px 4px rgba(0,0,0,0.4);
   border: 2px solid #410000;
   transition: transform 0.2s;
 }
-.wax-seal:active {
-  transform: scale(0.9);
-}
+.wax-seal:active { transform: scale(0.9); }
 
 .metallic-crest {
   background: linear-gradient(135deg, #f2ca50 0%, #d4af37 50%, #735c00 100%);
   border: 1px solid #ffe088;
-  box-shadow: 0 0 10px rgba(242, 202, 80, 0.2);
+  box-shadow: 0 0 10px rgba(242,202,80,0.2);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #0e0e0d;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #52482b;
-}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #0e0e0d; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #52482b; }
 
 @keyframes shake {
   0%   { transform: translateX(0); }
@@ -482,8 +416,8 @@ onBeforeRouteLeave(() => {
   90%  { transform: translateX(3px); }
   100% { transform: translateX(0); }
 }
-.shake-alert {
-  animation: shake 0.55s ease;
-}
-</style>
+.shake-alert { animation: shake 0.55s ease; }
 
+.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; transform: scale(0.96); }
+</style>

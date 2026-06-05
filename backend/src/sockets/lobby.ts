@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { Server, Socket } from "socket.io";
 import { GameManager } from "../game/GameManager.js";
+import { QuickMatchmaker } from "../game/QuickMatchmaker.js";
 import type { CivilizationId } from "../game/types.js";
 
 const VALID_CIVS: CivilizationId[] = ["iron_dwarves", "sylvan_elves", "steppe_horde", "aurelian_empire"];
@@ -11,7 +12,7 @@ function userIdOf(socket: Socket) {
   return uid;
 }
 
-export function registerLobbyHandlers(_app: FastifyInstance, io: Server, socket: Socket, gameManager: GameManager) {
+export function registerLobbyHandlers(_app: FastifyInstance, io: Server, socket: Socket, gameManager: GameManager, quickMatchmaker: QuickMatchmaker) {
   socket.on("lobby:list", async () => {
     try {
       await socket.join("lobby");
@@ -125,6 +126,24 @@ export function registerLobbyHandlers(_app: FastifyInstance, io: Server, socket:
       io.to(`game:${payload.gameId}`).emit("game:started", { gameId: payload.gameId });
       io.to(`game:${payload.gameId}`).emit("game:state", instance.snapshot());
       io.to("lobby").emit("lobby:updated", await gameManager.listLobbies());
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  socket.on("quick:join", async () => {
+    try {
+      const userId = userIdOf(socket);
+      await quickMatchmaker.join(userId, io, gameManager);
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  socket.on("quick:leave", () => {
+    try {
+      const userId = userIdOf(socket);
+      quickMatchmaker.leave(userId, io);
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }

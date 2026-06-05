@@ -10,10 +10,12 @@ process.on("unhandledRejection", (reason) => console.error("[unhandledRejection]
 
 import { buildApp } from "./app.js";
 import { GameManager } from "./game/GameManager.js";
+import { QuickMatchmaker } from "./game/QuickMatchmaker.js";
 import { registerSockets } from "./sockets/index.js";
 
 const app = buildApp();
 const gameManager = new GameManager();
+const quickMatchmaker = new QuickMatchmaker();
 
-await registerSockets(app, gameManager);
+await registerSockets(app, gameManager, quickMatchmaker);
 await app.listen({ port: Number(process.env.PORT ?? 3000), host: "0.0.0.0" });

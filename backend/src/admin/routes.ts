@@ -18,7 +18,7 @@ export async function adminRoutes(app: FastifyInstance) {
       return reply.code(403).send({ error: "forbidden" });
     }
 
-    const [totalUsers, totalHumanGames, topPlayers, playersPerDay] = await Promise.all([
+    const [totalUsers, totalHumanGames, gamesLast30Days, topPlayers, playersPerDay] = await Promise.all([
       app.prisma.user.count({
         where: { OR: [{ googleId: { not: null } }, { discordId: { not: null } }] }
       }),
@@ -26,6 +26,18 @@ export async function adminRoutes(app: FastifyInstance) {
       app.prisma.game.count({
         where: {
           status: "FINISHED",
+          players: {
+            some: {
+              user: { OR: [{ googleId: { not: null } }, { discordId: { not: null } }] }
+            }
+          }
+        }
+      }),
+
+      app.prisma.game.count({
+        where: {
+          status: "FINISHED",
+          updatedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
           players: {
             some: {
               user: { OR: [{ googleId: { not: null } }, { discordId: { not: null } }] }
@@ -54,6 +66,6 @@ export async function adminRoutes(app: FastifyInstance) {
       `
     ]);
 
-    return reply.send({ totalUsers, totalHumanGames, topPlayers, playersPerDay });
+    return reply.send({ totalUsers, totalHumanGames, gamesLast30Days, topPlayers, playersPerDay });
   });
 }

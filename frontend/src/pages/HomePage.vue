@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
 import { useAuthStore } from "../stores/authStore";
@@ -17,6 +17,22 @@ function requireAuth(action: () => void) {
   if (!auth.user) { router.push("/login"); return; }
   action();
 }
+
+let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
+watch(() => lobby.inQuickQueue, (inQueue) => {
+  if (inQueue) {
+    countdownInterval = setInterval(() => {
+      if (lobby.quickCountdownSeconds > 0) lobby.quickCountdownSeconds--;
+    }, 1000);
+  } else {
+    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  }
+}, { immediate: true });
+
+onUnmounted(() => {
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+});
 
 const search = ref("");
 const filteredLobbies = computed(() => {
@@ -69,12 +85,28 @@ function hostNameOf(g: any) {
                   <span class="material-symbols-outlined text-primary/80 transition-transform group-hover:translate-x-2" aria-hidden="true">swords</span>
                 </div>
                 <div class="mt-3">
+                  <!-- En file d'attente -->
+                  <div v-if="lobby.inQuickQueue" class="flex flex-col gap-2">
+                    <div class="flex items-center gap-3 rounded-md border border-[#d4af37]/30 bg-[#d4af37]/5 px-4 py-2.5">
+                      <span class="material-symbols-outlined animate-spin text-base text-[#d4af37]">progress_activity</span>
+                      <span class="font-headline text-xs font-bold uppercase tracking-widest text-[#d4af37]">
+                        {{ lobby.quickQueueSize }}/10 joueurs · {{ lobby.quickCountdownSeconds }}s
+                      </span>
+                    </div>
+                    <button
+                      class="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-red-400 transition hover:bg-red-500/20"
+                      @click="requireAuth(() => lobby.leaveQuickGame())"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                  <!-- Bouton lancer -->
                   <button
-                    class="rounded-md border border-outline-variant/30 bg-white/5 px-4 py-2 text-xs font-headline font-bold uppercase tracking-widest text-secondary/50 opacity-60 cursor-not-allowed"
-                    type="button"
-                    disabled
+                    v-else
+                    class="burnished-gold-glow rounded-md border border-[#d4af37]/80 bg-gradient-to-r from-[#d4af37] to-[#f2ca50] px-5 py-2 text-sm font-headline font-extrabold uppercase tracking-[0.25em] text-[#241a00] shadow-lg transition hover:brightness-110 active:scale-[0.98]"
+                    @click="requireAuth(() => lobby.joinQuickGame())"
                   >
-                    {{ t('home.quick_game_soon') }}
+                    {{ t('home.quick_game_btn') }}
                   </button>
                 </div>
               </div>
