@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute, useRouter, onBeforeRouteLeave } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "../stores/authStore";
 import { getSocket } from "../composables/useSocket";
@@ -45,6 +45,13 @@ async function surrender() {
 onMounted(async () => {
   await game.connect(gameId.value);
   await game.getState(gameId.value);
+});
+
+// Quitter la page = reddition immédiate (partie perdue)
+onBeforeRouteLeave(() => {
+  if (game.state?.status === "ACTIVE" && !game.gameOver) {
+    void surrender();
+  }
 });
 
 watch(
