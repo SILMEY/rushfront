@@ -181,11 +181,11 @@ watch(
         <TopResourceBar :state="game.state" />
       </div>
 
-      <!-- Zone de jeu — flex-1 pour occuper toute la hauteur restante -->
-      <div class="relative flex-1 overflow-auto bg-stone-950 p-2 md:p-4 min-h-0">
-        <div class="h-full min-w-max border-4 border-outline-variant bg-stone-900/40 shadow-2xl">
+      <!-- Zone de jeu -->
+      <div class="relative flex-1 overflow-auto bg-stone-950 p-2 md:p-4">
+        <div class="min-h-full min-w-max border-4 border-outline-variant bg-stone-900/40 shadow-2xl">
           <GameCanvas
-            class="h-full min-h-[24rem] w-full"
+            class="h-[calc(100vh-8.75rem)] min-h-[24rem] md:h-[calc(100vh-10.625rem)] w-full"
             :state="game.state"
             @tile-click="game.onTileClick"
             @tile-dblclick="game.onTileDblClick"

@@ -39,6 +39,7 @@ export class GameInstance {
   onGameOver:          ((winner: RuntimePlayer | null) => void) | null = null;
   onPlacingTimeout:    (() => void) | null = null;
   onBotAction:         ((changes: TileChange[], players: ResourcePatch[], wonders: Array<{ playerId: string; endsAt: number }>) => void) | null = null;
+  onGameStart:         (() => void) | null = null;
 
   placingEndsAt = 0;
 
@@ -134,7 +135,7 @@ export class GameInstance {
     this.tileBuildings = Array.from({ length: this.width * this.height }, () => null);
 
     // 10-second window for players to choose their starting tile
-    const PLACING_MS = 10_000;
+    const PLACING_MS = 20_000;
     this.placingEndsAt = Date.now() + PLACING_MS;
     this.placingTimer = setTimeout(() => { void this.handlePlacingTimeout().catch(e => console.error("[placing timeout]", e)); }, PLACING_MS);
   }
@@ -352,6 +353,7 @@ export class GameInstance {
     if (this.players.every((p) => p.hasChosenStart)) {
       this.start();
       void prisma.game.update({ where: { id: this.id }, data: { status: "ACTIVE" } });
+      this.onGameStart?.();
     }
   }
 
