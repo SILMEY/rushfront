@@ -3,10 +3,12 @@ import { computed } from "vue";
 import type { GameStateSnapshot } from "../../types/game";
 import { BuildingType } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
+import { useGameStore } from "../../stores/gameStore";
 import SectionTitle from "./SectionTitle.vue";
 
 const props = defineProps<{ state: GameStateSnapshot | null }>();
 const auth  = useAuthStore();
+const game  = useGameStore();
 
 const me = computed(() => props.state?.players.find(p => p.userId === auth.user?.id) ?? null);
 
@@ -19,6 +21,10 @@ const hasPort = computed(() => {
 
 const fishingBoats    = computed(() => me.value?.fishingBoats    ?? 0);
 const maritimeCharges = computed(() => me.value?.maritimeCharges ?? 0);
+const villagers       = computed(() => me.value?.resources.villagers ?? 0);
+
+function buyFishingBoat()   { if (props.state) game.buyFishingBoat(props.state.gameId); }
+function buyTransportBoat() { if (props.state) game.buyTransportBoat(props.state.gameId); }
 </script>
 
 <template>
