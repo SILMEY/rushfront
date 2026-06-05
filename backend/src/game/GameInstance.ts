@@ -136,27 +136,30 @@ export class GameInstance {
     // 10-second window for players to choose their starting tile
     const PLACING_MS = 10_000;
     this.placingEndsAt = Date.now() + PLACING_MS;
-    this.placingTimer = setTimeout(() => void this.handlePlacingTimeout(), PLACING_MS);
+    this.placingTimer = setTimeout(() => { void this.handlePlacingTimeout().catch(e => console.error("[placing timeout]", e)); }, PLACING_MS);
   }
 
   start() {
     if (this.timer) return;
     this.status = "ACTIVE";
     this.timer = setInterval(() => {
-      applyProduction({
-        players: this.players,
-        tileOwners: this.tileOwners,
-        tileBuildings: this.tileBuildings,
-        tileTypes: this.tileTypes,
-        width: this.width,
-        height: this.height
-      });
-      // Expire brouillage
-      const now = Date.now();
-      for (const [i, e] of this.brouillageTiles) {
-        if (e.expiresAt <= now) this.brouillageTiles.delete(i);
+      try {
+        applyProduction({
+          players: this.players,
+          tileOwners: this.tileOwners,
+          tileBuildings: this.tileBuildings,
+          tileTypes: this.tileTypes,
+          width: this.width,
+          height: this.height
+        });
+        const now = Date.now();
+        for (const [i, e] of this.brouillageTiles) {
+          if (e.expiresAt <= now) this.brouillageTiles.delete(i);
+        }
+        this.onResourceTick?.(this.players.map((p) => ({ id: p.id, resources: p.resources })));
+      } catch (err) {
+        console.error("[production tick]", err);
       }
-      this.onResourceTick?.(this.players.map((p) => ({ id: p.id, resources: p.resources })));
     }, 1000);
   }
 

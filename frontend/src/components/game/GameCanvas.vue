@@ -114,18 +114,33 @@ watch(
 );
 
 let cameraReady = false;
+let baseCentered = false;
 watch(
   () => props.state,
   (state) => {
-    if (state && !cameraReady) {
+    if (!state) return;
+    const canvas = canvasRef.value;
+    const rect = canvas ? canvas.getBoundingClientRect() : { width: 1200, height: 800 };
+
+    // Initialisation de la caméra au premier état reçu
+    if (!cameraReady) {
       cameraReady = true;
-      const canvas = canvasRef.value;
-      const rect = canvas ? canvas.getBoundingClientRect() : { width: 1200, height: 800 };
       const { w: mapW, h: mapH } = hexMapBounds(state.width, state.height, tileSize);
       const fitZoom = Math.min(rect.width / mapW, rect.height / mapH) * 0.90;
       camera.zoom = Math.max(0.10, Math.min(0.40, fitZoom));
       camera.x = rect.width  / 2 - (mapW / 2) * camera.zoom;
       camera.y = rect.height / 2 - (mapH / 2) * camera.zoom;
+    }
+
+    // Dès que la base du joueur est connue, recentrer dessus (une seule fois)
+    if (!baseCentered) {
+      const base = game.mePlayer?.basePosition;
+      if (base) {
+        baseCentered = true;
+        const { x: wx, y: wy } = hexCenter(base.x, base.y, tileSize);
+        camera.x = rect.width  / 2 - wx * camera.zoom;
+        camera.y = rect.height / 2 - wy * camera.zoom;
+      }
     }
   }
 );

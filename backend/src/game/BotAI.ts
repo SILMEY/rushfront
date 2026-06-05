@@ -96,6 +96,14 @@ export class BotAI {
   }
 
   private tick() {
+    try {
+      this.doTick();
+    } catch (err) {
+      console.error("[BotAI] tick error:", err);
+    }
+  }
+
+  private doTick() {
     const { instance, userId } = this;
     const player = instance.getPlayerByUserId(userId);
     if (!player || player.eliminated) { this.stop(); return; }
@@ -113,7 +121,8 @@ export class BotAI {
 
     // ── 1. EXPANSION ─────────────────────────────────────────────────────────
     const reserve = myTiles.size < 20 ? 2 : 1;
-    const toExpand = Math.max(0, player.resources.villagers - reserve);
+    // Cap à 10 pour éviter des messages socket géants et une croissance irréaliste
+    const toExpand = Math.min(Math.max(0, player.resources.villagers - reserve), 10);
     if (toExpand > 0) {
       const changes = this.expand(myTiles, toExpand);
       tickChanges.push(...changes);
