@@ -164,6 +164,20 @@ watch(
     </button>
   </div>
 
+  <!-- ── Overlay reconnexion ─────────────────────────── -->
+  <Transition name="fade">
+    <div
+      v-if="game.socketDisconnected"
+      class="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+    >
+      <div class="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-stone-900/95 px-10 py-8 shadow-2xl">
+        <span class="material-symbols-outlined animate-spin text-5xl text-[#d4af37]">refresh</span>
+        <p class="font-headline text-xl font-bold uppercase tracking-widest text-[#d4af37]">{{ t('game.reconnecting') }}</p>
+        <p class="text-sm text-white/50">{{ t('game.reconnecting_hint') }}</p>
+      </div>
+    </div>
+  </Transition>
+
   <!-- ── Layout principal ─────────────────────────────── -->
   <div class="rf-game">
 

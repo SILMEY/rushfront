@@ -108,9 +108,9 @@ export class GameManager {
     const game = await prisma.game.findUnique({ where: { id: gameId }, include: { players: true } });
     if (!game) throw new Error("lobby_not_found");
     if (game.status !== "LOBBY") throw new Error("lobby_not_open");
-    if (game.players.length >= MAX_PLAYERS) throw new Error("lobby_full");
     const existing = game.players.find((p) => p.userId === userId);
     if (existing) return existing.id;
+    if (game.players.length >= MAX_PLAYERS) throw new Error("lobby_full");
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const usedColors = new Set(game.players.map((p) => p.color));

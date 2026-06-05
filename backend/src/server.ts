@@ -4,6 +4,10 @@ import { loadEnv } from "./config/env.js";
 dotenv.config();
 loadEnv();
 
+// Empêche le crash du process sur erreurs non gérées
+process.on("uncaughtException",  (err)    => console.error("[uncaughtException]",  err));
+process.on("unhandledRejection", (reason) => console.error("[unhandledRejection]", reason));
+
 import { buildApp } from "./app.js";
 import { GameManager } from "./game/GameManager.js";
 import { registerSockets } from "./sockets/index.js";

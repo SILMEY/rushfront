@@ -38,6 +38,7 @@ export const useGameStore = defineStore("game", {
   state: () => ({
     state: null as GameStateSnapshot | null,
     connected: false,
+    socketDisconnected: false,
     lastError: "" as string | null,
     hoveredTile: null as Vec2 | null,
     selectedBuilding: null as BuildingType | null,
@@ -158,6 +159,18 @@ export const useGameStore = defineStore("game", {
 
       socket.on("game:error", ({ error }: { error: string }) => {
         this.lastError = error;
+      });
+
+      socket.on("disconnect", () => {
+        this.socketDisconnected = true;
+      });
+
+      socket.on("connect", () => {
+        this.socketDisconnected = false;
+        // Resync l'état du jeu après reconnexion
+        if (this.currentGameId) {
+          socket.emit("game:get_state", { gameId: this.currentGameId });
+        }
       });
 
       this.connected = true;
@@ -566,16 +579,16 @@ export const useGameStore = defineStore("game", {
         return da - db;
       });
 
-      // Prendre toutes les tuiles dans un rayon de 8 cases autour de la plus proche
-      // → forme un bloc large plutôt qu'une ligne droite
+      // Rayon et nombre de cases scalent avec les villageois disponibles
+      const radius = Math.min(14, 6 + Math.floor(myVillagers / 25));
       const closest = frontier[0]!;
       const closestDist = Math.sqrt((closest.x - target.x) ** 2 + (closest.y - target.y) ** 2);
-      const bandMax = (closestDist + 8) ** 2;
+      const bandMax = (closestDist + radius) ** 2;
       const band = frontier.filter(t => (t.x - target.x) ** 2 + (t.y - target.y) ** 2 <= bandMax);
-      // Mélanger pour éviter de toujours prendre le même côté
       band.sort(() => Math.random() - 0.5);
-      const batch = band.slice(0, Math.min(5, myVillagers));
-      void this.claimTiles(state.gameId, batch);
+      // ~1 case par 6 villageois, min 5, cap 30
+      const claimCount = Math.min(band.length, myVillagers, Math.max(5, Math.floor(myVillagers / 6)), 30);
+      void this.claimTiles(state.gameId, band.slice(0, claimCount));
     }
   }
 });

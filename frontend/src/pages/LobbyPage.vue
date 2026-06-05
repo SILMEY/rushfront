@@ -96,6 +96,19 @@ watch(
   }
 );
 
+watch(
+  () => lobby.lastError,
+  (err) => {
+    if (!err) return;
+    if (err === "lobby_not_open") {
+      // La partie a déjà démarré — rejoindre directement le jeu
+      router.replace(`/game/${gameId.value}`);
+    } else if (err === "lobby_not_found" || err === "lobby_full") {
+      router.replace("/");
+    }
+  }
+);
+
 let leaving = false;
 
 function quitLobby() {

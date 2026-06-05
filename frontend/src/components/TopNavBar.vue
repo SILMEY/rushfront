@@ -1,13 +1,25 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
+import { useGameStore } from "../stores/gameStore";
 import { useI18n } from "vue-i18n";
 import { setLocale, getLocale, type Locale } from "../i18n";
 
 const auth = useAuthStore();
+const game = useGameStore();
 const router = useRouter();
+const route = useRoute();
 const { t } = useI18n();
+
+const activeGameId = computed(() => {
+  const id = game.currentGameId;
+  if (!id || game.gameOver) return null;
+  if (game.state?.status !== "ACTIVE") return null;
+  // Ne pas afficher si on est déjà sur la page de jeu
+  if (route.path === `/game/${id}`) return null;
+  return id;
+});
 
 const displayName = computed(() => auth.displayName);
 const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase());
@@ -65,6 +77,18 @@ function navigate(path: string) {
         {{ t('nav.leaderboards') }}
       </button>
     </div>
+
+    <!-- Bouton retour en partie (visible si une partie est en cours) -->
+    <Transition name="slide-in">
+      <button
+        v-if="activeGameId"
+        class="hidden md:flex items-center gap-2 rounded-md border border-[#d4af37]/60 bg-[#d4af37]/15 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#d4af37] transition hover:bg-[#d4af37]/25 animate-pulse"
+        @click="navigate(`/game/${activeGameId}`)"
+      >
+        <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">swords</span>
+        {{ t('nav.back_to_game') }}
+      </button>
+    </Transition>
 
     <div class="flex items-center gap-2 md:gap-3">
       <!-- Sélecteur de langue -->
@@ -175,6 +199,16 @@ function navigate(path: string) {
         </button>
         <div class="mx-6 my-1 h-px bg-white/10"></div>
         <button
+          v-if="activeGameId"
+          class="flex items-center gap-3 px-6 py-4 text-left text-sm font-bold uppercase tracking-widest text-[#d4af37] hover:bg-white/5 transition"
+          role="menuitem"
+          @click="navigate(`/game/${activeGameId}`)"
+        >
+          <span class="material-symbols-outlined text-sm" style="font-variation-settings:'FILL' 1">swords</span>
+          {{ t('nav.back_to_game') }}
+        </button>
+        <div v-if="activeGameId" class="mx-6 my-1 h-px bg-white/10"></div>
+        <button
           v-if="auth.user"
           class="px-6 py-4 text-left font-headline text-sm font-medium uppercase tracking-widest text-red-400/70 hover:bg-white/5 hover:text-red-400 transition"
           role="menuitem"
@@ -214,5 +248,15 @@ function navigate(path: string) {
 .lang-menu-leave-to {
   opacity: 0;
   transform: translateY(-6px) scale(0.97);
+}
+
+.slide-in-enter-active,
+.slide-in-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.slide-in-enter-from,
+.slide-in-leave-to {
+  opacity: 0;
+  transform: translateX(12px);
 }
 </style>

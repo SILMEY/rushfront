@@ -1,6 +1,7 @@
 export default {
   nav: {
     brand: "FRONTRUSH",
+    back_to_game: "Zurück zum Spiel",
     games: "SPIELE",
     leaderboards: "RANGLISTE",
     profile: "Mein Profil",
@@ -154,6 +155,8 @@ export default {
     winner_msg: "{winner} gewinnt die Schlacht.",
     game_over_title: "Spiel beendet",
     return_home: "Zurück zur Startseite",
+    reconnecting: "Verbindung wird wiederhergestellt...",
+    reconnecting_hint: "Das Spiel läuft weiter, bitte warten.",
     control_panel_title: "Kommandoposten",
     control_panel_subtitle: "Imperial Management Console",
     close_panel: "Kommandoposten schließen",

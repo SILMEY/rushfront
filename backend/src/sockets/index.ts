@@ -24,21 +24,43 @@ export async function registerSockets(app: FastifyInstance, gameManager: GameMan
     }
   });
 
+  // Timers de déconnexion en attente (userId → timeout)
+  const pendingDisconnects = new Map<string, NodeJS.Timeout>();
+
   io.on("connection", (socket) => {
+    const userId = (socket as any).userId as string | undefined;
+
+    // Si le joueur se reconnecte, annuler l'élimination en attente
+    if (userId && pendingDisconnects.has(userId)) {
+      clearTimeout(pendingDisconnects.get(userId)!);
+      pendingDisconnects.delete(userId);
+    }
+
     registerLobbyHandlers(app, io, socket, gameManager);
     registerGameHandlers(app, io, socket, gameManager);
 
     socket.on("disconnect", () => {
-      const userId = (socket as any).userId as string | undefined;
-      if (!userId) return;
-      for (const instance of gameManager.listActive()) {
-        if (instance.status !== "ACTIVE") continue;
-        const changes = instance.surrenderPlayer(userId);
-        if (changes !== null) {
-          // onPlayerEliminated / onGameOver callbacks handle broadcasting
-          break;
+      const uid = (socket as any).userId as string | undefined;
+      if (!uid) return;
+
+      // Grace period de 30s : le joueur a le temps de se reconnecter
+      const timer = setTimeout(() => {
+        pendingDisconnects.delete(uid);
+
+        // Vérifier qu'aucune autre socket du même utilisateur n'est connectée
+        const stillConnected = [...io.sockets.sockets.values()].some(
+          s => (s as any).userId === uid && s.connected
+        );
+        if (stillConnected) return;
+
+        for (const instance of gameManager.listActive()) {
+          if (instance.status !== "ACTIVE") continue;
+          const changes = instance.surrenderPlayer(uid);
+          if (changes !== null) break;
         }
-      }
+      }, 30_000);
+
+      pendingDisconnects.set(uid, timer);
     });
   });
 
