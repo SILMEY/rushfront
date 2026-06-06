@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
 import { useI18n } from "vue-i18n";
@@ -14,6 +14,7 @@ const initials = computed(() => displayName.value.split(" ").map((p) => p[0]).jo
 
 const mobileMenuOpen = ref(false);
 const langMenuOpen = ref(false);
+const langRef = ref<HTMLElement | null>(null);
 
 const currentLocale = ref<Locale>(getLocale());
 
@@ -34,6 +35,15 @@ function navigate(path: string) {
   router.push(path);
   mobileMenuOpen.value = false;
 }
+
+function onDocClick(e: MouseEvent) {
+  if (langRef.value && !langRef.value.contains(e.target as Node)) {
+    langMenuOpen.value = false;
+  }
+}
+
+onMounted(() => document.addEventListener("click", onDocClick));
+onUnmounted(() => document.removeEventListener("click", onDocClick));
 </script>
 
 <template>
@@ -75,7 +85,7 @@ function navigate(path: string) {
 
     <div class="flex items-center gap-2 md:gap-3">
       <!-- Sélecteur de langue -->
-      <div class="relative">
+      <div ref="langRef" class="relative">
         <button
           class="flex h-8 w-8 items-center justify-center rounded-full text-lg transition hover:scale-110 active:scale-95"
           :aria-label="`Langue : ${LOCALES.find(l => l.code === currentLocale)?.label}`"
@@ -84,13 +94,6 @@ function navigate(path: string) {
         >
           {{ LOCALES.find(l => l.code === currentLocale)?.flag }}
         </button>
-
-        <!-- Overlay transparent pour fermer en cliquant dehors -->
-        <div
-          v-if="langMenuOpen"
-          class="fixed inset-0 z-[60]"
-          @click="langMenuOpen = false"
-        />
 
         <!-- Menu déroulant -->
         <Transition name="lang-menu">

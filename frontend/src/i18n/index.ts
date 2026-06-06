@@ -8,7 +8,17 @@ export type Locale = "fr" | "en" | "es" | "de";
 const VALID: Locale[] = ["fr", "en", "es", "de"];
 
 const saved = localStorage.getItem("lang") as Locale | null;
-const locale: Locale = saved && VALID.includes(saved) ? saved : "fr";
+
+function detectBrowserLocale(): Locale {
+  const langs = navigator.languages ?? [navigator.language];
+  for (const l of langs) {
+    const code = l.split("-")[0]?.toLowerCase() as Locale;
+    if (VALID.includes(code)) return code;
+  }
+  return "fr";
+}
+
+const locale: Locale = saved && VALID.includes(saved) ? saved : detectBrowserLocale();
 
 export const i18n = createI18n({
   legacy: false,
