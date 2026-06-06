@@ -17,6 +17,19 @@ const auth = useAuthStore();
 const me = computed(() => props.state?.players.find(p => p.userId === auth.user?.id) ?? null);
 const { t } = useI18n();
 
+const mySawmillCount = computed(() => {
+  const state = props.state;
+  const myId = me.value?.id;
+  if (!state || !myId) return 0;
+  let count = 0;
+  for (let i = 0; i < state.tiles.buildings.length; i++) {
+    if (state.tiles.buildings[i] === BuildingType.Sawmill && state.tiles.owners[i] === myId) count++;
+  }
+  return count;
+});
+
+const sawmillWoodCost = computed(() => mySawmillCount.value === 0 ? 5 : 10);
+
 type BuildItem = {
   type: BuildingType | null;
   label: string;
@@ -28,15 +41,15 @@ type BuildItem = {
   production?: string;
 };
 
-const items: BuildItem[] = [
-  { type: BuildingType.Sawmill,    label: "sawmill",    icon: "forest",        wood: 5,   stone: 0,   villagers: 0, production: "+30/min 🪵" },
+const items = computed<BuildItem[]>(() => [
+  { type: BuildingType.Sawmill,    label: "sawmill",    icon: "forest",        wood: sawmillWoodCost.value, stone: 0,   villagers: 0, production: "+30/min 🪵" },
   { type: BuildingType.Mine,       label: "mine",       icon: "construction",  wood: 10,  stone: 0,   villagers: 0, production: "+30/min 🪨" },
   { type: BuildingType.FishingHut, label: "fishing_hut",icon: "sailing",       wood: 10,  stone: 10,  villagers: 0 },
   { type: BuildingType.Barracks,   label: "barracks",   icon: "shield",        wood: 20,  stone: 10,  villagers: 0 },
   { type: BuildingType.University, label: "university", icon: "history_edu",   wood: 20,  stone: 20,  villagers: 0 },
   { type: BuildingType.City,       label: "city",       icon: "location_city", wood: 40,  stone: 80,  villagers: 0 },
   { type: BuildingType.Wonder,     label: "wonder",     icon: "temple_hindu",  wood: 150, stone: 300, villagers: 0 },
-];
+]);
 
 const hoveredItem = ref<BuildItem | null>(null);
 const tooltipStyle = ref<{ top: string; right: string } | null>(null);

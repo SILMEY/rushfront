@@ -598,7 +598,7 @@ export class GameInstance {
       if (this.wonders.some(w => w.playerId === player.id)) throw new Error("wonder_already_built");
     }
 
-    const cost = buildCost(intent.building);
+    const cost = buildCost(intent.building, this.buildingCount(player.id, intent.building));
     if (player.resources.wood < cost.wood || player.resources.stone < cost.stone)
       throw new Error("not_enough_resources");
 

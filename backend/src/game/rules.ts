@@ -32,12 +32,12 @@ export function claimCost(tileType: TileType): number {
   }
 }
 
-export function buildCost(building: BuildingType): { wood: number; stone: number } {
+export function buildCost(building: BuildingType, existingCount = 0): { wood: number; stone: number } {
   switch (building) {
     case BuildingType.FishingHut: // Port
       return { wood: 10, stone: 10 }; // confirme le coût côté client
     case BuildingType.Sawmill:
-      return { wood: 5, stone: 0 };
+      return { wood: existingCount === 0 ? 5 : 10, stone: 0 };
     case BuildingType.Mine:
       return { wood: 10, stone: 0 };
     case BuildingType.Barracks:

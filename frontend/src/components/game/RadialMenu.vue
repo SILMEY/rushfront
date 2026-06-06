@@ -19,6 +19,16 @@ const emit = defineEmits<{
 const auth = useAuthStore();
 const me   = computed(() => props.state.players.find(p => p.userId === auth.user?.id) ?? null);
 
+const mySawmillCount = computed(() => {
+  const myId = me.value?.id;
+  if (!myId) return 0;
+  let count = 0;
+  for (let i = 0; i < props.state.tiles.buildings.length; i++) {
+    if (props.state.tiles.buildings[i] === BuildingType.Sawmill && props.state.tiles.owners[i] === myId) count++;
+  }
+  return count;
+});
+
 function adjHasType(type: TileType): boolean {
   const { x: col, y: row } = props.tile;
   const { width, height, tiles } = props.state;
@@ -40,19 +50,19 @@ const hasWonder = computed(() =>
 
 type Entry = { building: BuildingType; label: string; icon: string; wood: number; stone: number };
 
-const ALL: Entry[] = [
-  { building: BuildingType.Sawmill,    label: "Scierie",    icon: "forest",          wood: 5,   stone: 0   },
+const ALL = computed<Entry[]>(() => [
+  { building: BuildingType.Sawmill,    label: "Scierie",    icon: "forest",          wood: mySawmillCount.value === 0 ? 5 : 10, stone: 0 },
   { building: BuildingType.Mine,       label: "Mine",       icon: "construction",    wood: 10,  stone: 0   },
   { building: BuildingType.FishingHut, label: "Port",       icon: "sailing",         wood: 10,  stone: 10  },
   { building: BuildingType.Barracks,   label: "Caserne",    icon: "shield",          wood: 20,  stone: 10  },
   { building: BuildingType.University, label: "Université", icon: "history_edu",     wood: 20,  stone: 20  },
   { building: BuildingType.City,       label: "Cité",       icon: "account_balance", wood: 40,  stone: 80  },
   { building: BuildingType.Wonder,     label: "Merveille",  icon: "temple_hindu",    wood: 150, stone: 300 },
-];
+]);
 
 const items = computed(() => {
   if (!me.value) return [];
-  return ALL.filter(e => {
+  return ALL.value.filter(e => {
     if (e.building === BuildingType.Sawmill    && !adjHasType(TileType.Forest)) return false;
     if (e.building === BuildingType.Mine       && !adjHasType(TileType.Quarry)) return false;
     if (e.building === BuildingType.FishingHut && !adjHasType(TileType.Water))  return false;
