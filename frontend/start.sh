@@ -21,5 +21,5 @@ if [ $BUILD_CODE -ne 0 ]; then
   exit $BUILD_CODE
 fi
 
-echo "[start] starting http-server on port $PORT"
+echo "[start] starting vite preview on port $PORT"
 exec npm run serve
