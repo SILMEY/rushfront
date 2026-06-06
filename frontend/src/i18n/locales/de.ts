@@ -98,8 +98,6 @@ export default {
     king:     "König",
     emperor:  "Kaiser",
   },
-    wins: "Siege",
-  },
   profile: {
     commander_label: "Kommandant",
     title: "Mein Profil",
