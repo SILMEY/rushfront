@@ -13,8 +13,9 @@ RUN npm run build
 
 FROM nginx:alpine
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html
-COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 3000
 
-CMD ["/bin/sh", "-c", "envsubst '$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# Remplace __PORT__ par la valeur de $PORT au démarrage (défaut : 3000)
+CMD ["/bin/sh", "-c", "sed -i \"s/__PORT__/${PORT:-3000}/g\" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
