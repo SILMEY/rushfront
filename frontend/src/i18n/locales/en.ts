@@ -140,7 +140,7 @@ export default {
     name_label: "Name",
     name_placeholder: "Your name or username",
     email_label: "Email *",
-    email_placeholder: "your@email.com",
+    email_placeholder: "your{'@'}email.com",
     subject_label: "Subject *",
     subject_placeholder: "Briefly describe your issue",
     message_label: "Message *",
