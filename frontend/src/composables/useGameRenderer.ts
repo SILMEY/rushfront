@@ -456,7 +456,71 @@ export function useGameRenderer() {
       ctx.stroke();
     }
 
-    // ── Pass 7: maritime animations (one boat per active landing) ────────────
+    // ── Pass 7: fishing boats (ambient — floats near each port) ─────────────
+    {
+      const now7 = Date.now();
+      // Build a map: ownerId → list of port positions (sorted by tile index for stable distribution)
+      const portsByOwner = new Map<string, Array<{ col: number; row: number }>>();
+      for (let i = 0; i < state.tiles.buildings.length; i++) {
+        if (state.tiles.buildings[i] !== BuildingType.FishingHut) continue;
+        const ownerId = state.tiles.owners[i];
+        if (!ownerId) continue;
+        const col = i % state.width;
+        const row = Math.floor(i / state.width);
+        if (!portsByOwner.has(ownerId)) portsByOwner.set(ownerId, []);
+        portsByOwner.get(ownerId)!.push({ col, row });
+      }
+
+      for (const player of state.players) {
+        const totalBoats = (player as any).fishingBoats as number ?? 0;
+        if (totalBoats === 0) continue;
+        const ports = portsByOwner.get(player.id) ?? [];
+
+        for (let portIdx = 0; portIdx < ports.length; portIdx++) {
+          // How many boats are assigned to this port (sequential fill: port0 gets first 3, etc.)
+          const boatsHere = Math.max(0, Math.min(totalBoats - portIdx * 3, 3));
+          if (boatsHere === 0) continue;
+
+          const { col, row } = ports[portIdx];
+
+          // Adjacent water tiles visible on screen
+          const waterTiles = hexNeighbors(col, row)
+            .filter(([nc, nr]) => nc >= 0 && nc < state.width && nr >= 0 && nr < state.height)
+            .filter(([nc, nr]) => (state.tiles.types[nr * state.width + nc] as TileType) === TileType.Water);
+
+          if (waterTiles.length === 0) continue;
+
+          for (let b = 0; b < boatsHere; b++) {
+            const [wc, wr] = waterTiles[b % waterTiles.length];
+            // Skip if off-screen
+            if (wc < x0 - 1 || wc > x1 + 1 || wr < y0 - 1 || wr > y1 + 1) continue;
+
+            const { x: bx, y: by } = hexCenter(wc, wr, tileSize);
+            // Each boat has a unique phase so they don't all bob in sync
+            const phase = now7 / 1000 + b * 2.094 + portIdx * 5.1;
+            const bobX = Math.sin(phase * 0.85) * R * 0.20;
+            const bobY = Math.cos(phase * 0.65) * R * 0.14;
+
+            const boatPx = Math.max(R * 1.25, 13 / scale);
+
+            // Soft wake shadow
+            ctx.globalAlpha = 0.28;
+            ctx.fillStyle = "#060f28";
+            ctx.beginPath();
+            ctx.ellipse(bx + bobX, by + R * 0.28 + bobY * 0.25, R * 0.52, R * 0.17, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            ctx.font = `${boatPx}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+            ctx.textAlign    = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("⛵", bx + bobX, by + bobY);
+          }
+        }
+      }
+    }
+
+    // ── Pass 8: maritime animations (one boat per active landing) ────────────
     for (const anim of game.maritimeAnimations) {
       const step = Math.min(anim.step, anim.path.length - 1);
       const pos  = anim.path[step];

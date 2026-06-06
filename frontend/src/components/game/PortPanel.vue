@@ -26,11 +26,13 @@ const hasPort = computed(() => portCount.value > 0);
 const fishingBoats    = computed(() => me.value?.fishingBoats    ?? 0);
 const maritimeCharges = computed(() => me.value?.maritimeCharges ?? 0);
 const villagers       = computed(() => me.value?.resources.villagers ?? 0);
+const wood            = computed(() => me.value?.resources.wood      ?? 0);
 
-const maxFishingBoats = computed(() => portCount.value * 10);
+const maxFishingBoats = computed(() => portCount.value * 3);
 const fishingBoatFull = computed(() => fishingBoats.value >= maxFishingBoats.value);
+const fishingRate     = computed(() => (fishingBoats.value * 0.1).toFixed(1));
 
-const canBuyFishing   = computed(() => !fishingBoatFull.value && villagers.value >= 1);
+const canBuyFishing   = computed(() => !fishingBoatFull.value && villagers.value >= 1 && wood.value >= 5);
 const canBuyTransport = computed(() => villagers.value >= 10);
 
 function buyFishingBoat()   { if (props.state) game.buyFishingBoat(props.state.gameId); }
@@ -47,7 +49,7 @@ function buyTransportBoat() { if (props.state) game.buyTransportBoat(props.state
         <div class="flex items-center justify-between text-white/50">
           <span>{{ t('port_panel.fishing_boats') }}</span>
           <div class="flex items-center gap-2">
-            <span class="text-[9px] text-[#a8c090]/60 font-mono">{{ t('port_panel.fishing_rate', { n: fishingBoats }) }}</span>
+            <span class="text-[9px] text-[#a8c090]/60 font-mono">{{ t('port_panel.fishing_rate', { n: fishingRate }) }}</span>
             <span class="font-bold text-[#a8c090]">{{ fishingBoats }}<span class="text-white/25 font-normal">/{{ maxFishingBoats }}</span></span>
           </div>
         </div>

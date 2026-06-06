@@ -106,6 +106,7 @@ function draw() {
   }
 
   if (game.attackWarnings.some(w => w.expiresAt > Date.now())) scheduleDraw();
+  if (props.state?.players.some(p => ((p as any).fishingBoats ?? 0) > 0)) scheduleDraw();
 }
 
 watch(

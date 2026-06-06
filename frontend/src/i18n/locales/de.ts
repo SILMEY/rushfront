@@ -214,7 +214,7 @@ export default {
     maritime_transports: "Seetransporte",
     max_reached: "Maximum erreicht",
     fishing_btn: "Fischen",
-    fishing_cost: "1 Bew.",
+    fishing_cost: "5 🪵 + 1 👤",
     transport_btn: "Transport",
     transport_cost: "10 Bew.",
     fishing_rate: "+{n} Bew./s",
@@ -226,7 +226,7 @@ export default {
     mine: "Mine",
     mine_hint: "Muss an einem Steinbruch angrenzen. Produziert +30 Stein/min pro angrenzendem Steinbruch (max. 3 = +90/min).",
     fishing_hut: "Hafen",
-    fishing_hut_hint: "An Wasser angrenzend. Lange drücken, um Fischerboote (+1 Bew./s, max. 10 pro Hafen) und Seetransporte (Landung) zu kaufen.",
+    fishing_hut_hint: "An Wasser angrenzend. Lange drücken, um Fischerboote (+0,1 Bew./s, max. 3 pro Hafen) und Seetransporte (Landung) zu kaufen.",
     barracks: "Kaserne",
     barracks_hint: "Schaltet Soldaten und Angriffe frei",
     university: "Universität",
@@ -261,7 +261,7 @@ export default {
   port_menu: {
     fishing_label: "Fischen",
     transport_label: "Transport",
-    fishing_detail: "+1 Bew./s",
+    fishing_detail: "+0,1 Bew./s",
     transport_detail: "1 Landung",
   },
   maritime_menu: {

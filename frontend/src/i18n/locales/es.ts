@@ -214,7 +214,7 @@ export default {
     maritime_transports: "Transportes marítimos",
     max_reached: "Máximo alcanzado",
     fishing_btn: "Pesca",
-    fishing_cost: "1 pob.",
+    fishing_cost: "5 🪵 + 1 👤",
     transport_btn: "Transporte",
     transport_cost: "10 pob.",
     fishing_rate: "+{n} pob./s",
@@ -226,7 +226,7 @@ export default {
     mine: "Mina",
     mine_hint: "Debe estar adyacente a una cantera. Produce +30 piedra/min por cantera adyacente (máx. 3 = +90/min).",
     fishing_hut: "Puerto",
-    fishing_hut_hint: "Adyacente al agua. Mantén pulsado para comprar barcos de pesca (+1 pob./s cada uno, máx. 10 por puerto) y transportes marítimos (desembarco).",
+    fishing_hut_hint: "Adyacente al agua. Mantén pulsado para comprar barcos de pesca (+0,1 pob./s cada uno, máx. 3 por puerto) y transportes marítimos (desembarco).",
     barracks: "Cuartel",
     barracks_hint: "Desbloquea soldados y ataques",
     university: "Universidad",
@@ -261,7 +261,7 @@ export default {
   port_menu: {
     fishing_label: "Pesca",
     transport_label: "Transporte",
-    fishing_detail: "+1 pob./s",
+    fishing_detail: "+0,1 pob./s",
     transport_detail: "1 desembarco",
   },
   maritime_menu: {

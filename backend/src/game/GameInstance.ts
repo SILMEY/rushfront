@@ -545,7 +545,7 @@ export class GameInstance {
 
         if (capturedBuilding === BuildingType.FishingHut) {
           const remainingPorts = this.buildingCount(defender.id, BuildingType.FishingHut);
-          const maxBoats = remainingPorts * 10;
+          const maxBoats = remainingPorts * 3;
           (defender as any).fishingBoats    = Math.min((defender as any).fishingBoats    ?? 0, maxBoats);
           (defender as any).maritimeCharges = remainingPorts > 0
             ? (defender as any).maritimeCharges ?? 0
@@ -670,9 +670,11 @@ export class GameInstance {
     if (!player) throw new Error("not_in_game");
     if (!this.hasPort(player.id)) throw new Error("need_port");
     const portCount = this.buildingCount(player.id, BuildingType.FishingHut);
-    if ((player.fishingBoats ?? 0) >= portCount * 10) throw new Error("max_boats_reached");
+    if ((player.fishingBoats ?? 0) >= portCount * 3) throw new Error("max_boats_reached");
     if (player.resources.villagers < 1) throw new Error("not_enough_habitants");
+    if (player.resources.wood < 5) throw new Error("not_enough_resources");
     player.resources.villagers -= 1;
+    player.resources.wood -= 5;
     player.fishingBoats = (player.fishingBoats ?? 0) + 1;
   }
 

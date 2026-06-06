@@ -214,7 +214,7 @@ export default {
     maritime_transports: "Transports maritimes",
     max_reached: "Maximum atteint",
     fishing_btn: "Pêche",
-    fishing_cost: "1 hab.",
+    fishing_cost: "5 🪵 + 1 👤",
     transport_btn: "Transport",
     transport_cost: "10 hab.",
     fishing_rate: "+{n} hab./s",
@@ -226,7 +226,7 @@ export default {
     mine: "Mine",
     mine_hint: "Doit être adjacente à une carrière. Produit +30 pierre/min par carrière adjacente (max 3 = +90/min).",
     fishing_hut: "Port",
-    fishing_hut_hint: "Adjacent à l'eau. Clic droit pour acheter des bateaux de pêche (+1 hab./s chacun, max 10 par port) et des transports maritimes (débarquement).",
+    fishing_hut_hint: "Adjacent à l'eau. Clic droit pour acheter des bateaux de pêche (+0,1 hab./s chacun, max 3 par port) et des transports maritimes (débarquement).",
     barracks: "Caserne",
     barracks_hint: "Débloque les militaires et les attaques",
     university: "Université",
@@ -261,7 +261,7 @@ export default {
   port_menu: {
     fishing_label: "Pêche",
     transport_label: "Transport",
-    fishing_detail: "+1 hab./s",
+    fishing_detail: "+0,1 hab./s",
     transport_detail: "1 débarquement",
   },
   maritime_menu: {

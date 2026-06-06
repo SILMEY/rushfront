@@ -214,7 +214,7 @@ export default {
     maritime_transports: "Maritime transports",
     max_reached: "Maximum reached",
     fishing_btn: "Fishing",
-    fishing_cost: "1 pop.",
+    fishing_cost: "5 🪵 + 1 👤",
     transport_btn: "Transport",
     transport_cost: "10 pop.",
     fishing_rate: "+{n} pop./s",
@@ -226,7 +226,7 @@ export default {
     mine: "Mine",
     mine_hint: "Must be adjacent to a quarry. Produces +30 stone/min per adjacent quarry (max 3 = +90/min).",
     fishing_hut: "Port",
-    fishing_hut_hint: "Adjacent to water. Long press to buy fishing boats (+1 pop./s each, max 10 per port) and maritime transports (landing).",
+    fishing_hut_hint: "Adjacent to water. Long press to buy fishing boats (+0.1 pop./s each, max 3 per port) and maritime transports (landing).",
     barracks: "Barracks",
     barracks_hint: "Unlocks soldiers and attacks",
     university: "University",
@@ -261,7 +261,7 @@ export default {
   port_menu: {
     fishing_label: "Fishing",
     transport_label: "Transport",
-    fishing_detail: "+1 pop./s",
+    fishing_detail: "+0.1 pop./s",
     transport_detail: "1 landing",
   },
   maritime_menu: {

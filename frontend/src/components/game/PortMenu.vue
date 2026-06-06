@@ -30,6 +30,9 @@ const ALL: PortEntry[] = [
 
 function canAfford(e: PortEntry): boolean {
   if (!me.value) return false;
+  if (e.action === "fishing-boat") {
+    return me.value.resources.villagers >= 1 && me.value.resources.wood >= 5;
+  }
   return me.value.resources.villagers >= e.cost;
 }
 
