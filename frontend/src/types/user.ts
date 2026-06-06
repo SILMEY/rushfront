@@ -7,4 +7,6 @@ export type User = {
   preferredColor?: string | null;
   preferredCivilization?: string | null;
   isAdmin?: boolean;
+  elo?: number;
+  quickGamesPlayed?: number;
 };

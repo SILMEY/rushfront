@@ -97,7 +97,9 @@ export async function authRoutes(app: FastifyInstance) {
       avatarUrl: user.avatarUrl,
       preferredColor: user.preferredColor ?? null,
       preferredCivilization: user.preferredCivilization ?? null,
-      isAdmin: user.email === ADMIN_EMAIL
+      isAdmin: user.email === ADMIN_EMAIL,
+      elo: user.elo ?? 1000,
+      quickGamesPlayed: user.quickGamesPlayed ?? 0
     };
   }
 
@@ -204,10 +206,10 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.get("/leaderboard", async (_req, reply) => {
     const players = await app.prisma.user.findMany({
-      where:   { quickGameWins: { gt: 0 } },
-      orderBy: { quickGameWins: "desc" },
+      where:   { quickGamesPlayed: { gt: 0 } },
+      orderBy: { elo: "desc" },
       take:    50,
-      select:  { id: true, pseudo: true, name: true, avatarUrl: true, quickGameWins: true }
+      select:  { id: true, pseudo: true, name: true, avatarUrl: true, quickGameWins: true, quickGamesPlayed: true, elo: true }
     });
     return reply.send({ players });
   });

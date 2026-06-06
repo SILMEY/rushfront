@@ -26,6 +26,8 @@ model User {
   preferredColor        String?
   preferredCivilization String?
   quickGameWins         Int      @default(0)
+  quickGamesPlayed      Int      @default(0)
+  elo                   Int      @default(1000)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

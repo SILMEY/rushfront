@@ -13,6 +13,7 @@ export default {
   footer: {
     privacy: "Confidentialité",
     support: "Support",
+    discord: "Rejoindre le Discord",
     copyright: "© 2026 FRONTRUSH EMPIRE.",
   },
   home: {
@@ -75,13 +76,27 @@ export default {
   leaderboard: {
     glory_label: "Gloire éternelle",
     title: "Classement",
-    subtitle: "Parties rapides remportées",
-    col_rank: "Rang · Commandant",
+    subtitle: "Classement ELO — Parties rapides",
+    col_rank: "Commandant",
+    col_elo: "ELO",
     col_wins: "Victoires",
     loading: "Chargement...",
-    no_victories: "Aucune victoire enregistrée pour l'instant.",
+    no_victories: "Aucune partie rapide jouée pour l'instant.",
     coming_soon: "Les parties rapides arrivent bientôt.",
     wins: "victoires",
+    games: "parties",
+  },
+  grade: {
+    peon:     "Péon",
+    squire:   "Écuyer",
+    knight:   "Chevalier",
+    captain:  "Capitaine",
+    marshal:  "Maréchal",
+    baron:    "Baron",
+    count:    "Comte",
+    prince:   "Prince",
+    king:     "Roi",
+    emperor:  "Empereur",
   },
   profile: {
     commander_label: "Commandant",

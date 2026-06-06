@@ -1,4 +1,15 @@
 import { prisma } from "../prisma/client.js";
+
+// ELO pairwise : winner vs moyenne des adversaires humains, K=32
+function computeEloUpdates(winnerElo: number, loserElos: number[]) {
+  const K = 32;
+  const avgOpp = loserElos.reduce((s, e) => s + e, 0) / loserElos.length;
+  const winnerDelta = Math.round(K * (1 - 1 / (1 + Math.pow(10, (avgOpp - winnerElo) / 400))));
+  const loserDeltas = loserElos.map(e =>
+    -Math.round(K * (1 / (1 + Math.pow(10, (winnerElo - e) / 400))))
+  );
+  return { winnerDelta, loserDeltas };
+}
 import { generateMap } from "./mapGenerator.js";
 import {
   BuildingType,
@@ -148,9 +159,7 @@ export class GameInstance {
     this.status = "ACTIVE";
     this.maxDurationTimer = setTimeout(() => {
       console.log(`[game ${this.id}] 2h timeout — forcing game over`);
-      this.stop();
-      void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
-      this.onGameOver?.(null);
+      void this.finalizeGame(null);
     }, GameInstance.MAX_DURATION_MS);
     this.timer = setInterval(() => {
       try {
@@ -198,27 +207,17 @@ export class GameInstance {
     const chosen = this.players.filter((p) => p.hasChosenStart);
 
     if (chosen.length === 0) {
-      // Nobody chose — just end the game
       this.status = "FINISHED" as any;
-      void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
-      this.onGameOver?.(null);
+      void this.finalizeGame(null);
       return;
     }
 
-    // Start the game with whoever chose in time
     this.start();
     void prisma.game.update({ where: { id: this.id }, data: { status: "ACTIVE" } });
-    this.onPlacingTimeout?.(); // ask socket layer to broadcast fresh state
+    this.onPlacingTimeout?.();
 
-    // If only 1 player chose → immediate win
     if (chosen.length === 1) {
-      const winner = chosen[0]!;
-      this.stop();
-      void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
-      if (!winner.isBot) {
-        void prisma.user.update({ where: { id: winner.userId }, data: { quickGameWins: { increment: 1 } } });
-      }
-      this.onGameOver?.(winner);
+      void this.finalizeGame(chosen[0]!);
     }
   }
 
@@ -248,23 +247,12 @@ export class GameInstance {
     const alive = this.players.filter((p) => p.hasChosenStart && !p.eliminated);
     // If all remaining players are bots, stop the game immediately — no point continuing without humans.
     if (alive.length > 1 && alive.every((p) => p.isBot)) {
-      this.stop();
-      void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
-      this.onGameOver?.(null);
+      void this.finalizeGame(null);
       return;
     }
     if (alive.length > 1) return;
 
-    const winner = alive[0] ?? null;
-    this.stop();
-    void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
-    if (winner && !winner.isBot) {
-      void prisma.user.update({
-        where: { id: winner.userId },
-        data: { quickGameWins: { increment: 1 } }
-      });
-    }
-    this.onGameOver?.(winner);
+    void this.finalizeGame(alive[0] ?? null);
   }
 
   private checkEliminationOf(playerId: string) {
@@ -273,6 +261,60 @@ export class GameInstance {
     if (this.tileCount(playerId) === 0) {
       this.doEliminate(playerId);
     }
+  }
+
+  // Centralise la fin de partie : DB, stats ELO/grades, callback
+  private async finalizeGame(winner: RuntimePlayer | null) {
+    this.stop();
+    await prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
+
+    if (this.gameType === "quick") {
+      const humans = this.players.filter(p => p.hasChosenStart && !p.isBot);
+      if (humans.length > 0) {
+        // Incrémenter quickGamesPlayed pour tous les humains
+        await prisma.user.updateMany({
+          where: { id: { in: humans.map(p => p.userId) } },
+          data: { quickGamesPlayed: { increment: 1 } }
+        });
+
+        const humanWinner = winner && !winner.isBot ? winner : null;
+
+        if (humanWinner) {
+          // Incrémenter les victoires du gagnant humain
+          await prisma.user.update({
+            where: { id: humanWinner.userId },
+            data: { quickGameWins: { increment: 1 } }
+          });
+        }
+
+        // ELO uniquement si 2+ humains ont participé et qu'un humain a gagné
+        if (humanWinner && humans.length >= 2) {
+          const humanLosers = humans.filter(p => p.userId !== humanWinner.userId);
+          const userElos = await prisma.user.findMany({
+            where: { id: { in: humans.map(p => p.userId) } },
+            select: { id: true, elo: true }
+          });
+          const eloMap = Object.fromEntries(userElos.map(u => [u.id, u.elo]));
+          const winnerElo = eloMap[humanWinner.userId] ?? 1000;
+          const loserElos  = humanLosers.map(p => eloMap[p.userId] ?? 1000);
+          const { winnerDelta, loserDeltas } = computeEloUpdates(winnerElo, loserElos);
+
+          await prisma.user.update({
+            where: { id: humanWinner.userId },
+            data: { elo: winnerElo + winnerDelta }
+          });
+          for (let i = 0; i < humanLosers.length; i++) {
+            const newElo = Math.max(100, loserElos[i]! + loserDeltas[i]!);
+            await prisma.user.update({
+              where: { id: humanLosers[i]!.userId },
+              data: { elo: newElo }
+            });
+          }
+        }
+      }
+    }
+
+    this.onGameOver?.(winner);
   }
 
   // Surrender called on disconnect or explicit quit — returns changes if player was active
@@ -580,11 +622,8 @@ export class GameInstance {
       const endsAt = Date.now() + WONDER_MS;
       this.wonders.push({ playerId: player.id, tileIndex, endsAt });
       const timer = setTimeout(() => {
-        if (this.tileOwners[tileIndex] === player.id) {
-          this.stop();
-          void prisma.game.update({ where: { id: this.id }, data: { status: "FINISHED" } });
-          void prisma.user.update({ where: { id: player.userId }, data: { quickGameWins: { increment: 1 } } });
-          this.onGameOver?.(player);
+        if (this.status === "ACTIVE" && this.tileOwners[tileIndex] === player.id) {
+          void this.finalizeGame(player);
         }
       }, WONDER_MS);
       this.wonderTimers.set(player.id, timer);

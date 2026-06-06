@@ -13,6 +13,7 @@ export default {
   footer: {
     privacy: "Privacy",
     support: "Support",
+    discord: "Join Discord",
     copyright: "© 2026 FRONTRUSH EMPIRE.",
   },
   home: {
@@ -75,13 +76,27 @@ export default {
   leaderboard: {
     glory_label: "Eternal glory",
     title: "Leaderboard",
-    subtitle: "Quick games won",
-    col_rank: "Rank · Commander",
+    subtitle: "ELO Ranking — Quick games",
+    col_rank: "Commander",
+    col_elo: "ELO",
     col_wins: "Wins",
     loading: "Loading...",
-    no_victories: "No victories recorded yet.",
+    no_victories: "No quick games played yet.",
     coming_soon: "Quick games coming soon.",
     wins: "wins",
+    games: "games",
+  },
+  grade: {
+    peon:     "Peon",
+    squire:   "Squire",
+    knight:   "Knight",
+    captain:  "Captain",
+    marshal:  "Marshal",
+    baron:    "Baron",
+    count:    "Count",
+    prince:   "Prince",
+    king:     "King",
+    emperor:  "Emperor",
   },
   profile: {
     commander_label: "Commander",
