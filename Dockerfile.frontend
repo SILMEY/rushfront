@@ -1,7 +1,5 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache nginx
-
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -14,4 +12,4 @@ WORKDIR /app/frontend
 
 EXPOSE 3000
 
-CMD ["sh", "/app/frontend/start.sh"]
+CMD sh -c "npm run build && npm run serve"
