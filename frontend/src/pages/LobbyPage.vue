@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, type ComputedRef } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
 import { useLobbyStore } from "../stores/lobbyStore";
 import { useAuthStore } from "../stores/authStore";
@@ -24,12 +24,11 @@ const canAddBot = computed(() =>
   isHost.value && (current.value?.players.length ?? 0) < MAX_PLAYERS
 );
 
-type CivId = "iron_dwarves" | "sylvan_elves" | "steppe_horde" | "aurelian_empire";
-const CIVILIZATIONS: ComputedRef<{ id: CivId; icon: string; name: string; role: string; bonus: string }[]> = computed(() => [
-  { id: "iron_dwarves",    icon: "🏔️", name: t('civ.iron_dwarves.name'),    role: t('civ.iron_dwarves.role'),    bonus: t('civ.iron_dwarves.bonus') },
-  { id: "sylvan_elves",    icon: "🌲", name: t('civ.sylvan_elves.name'),    role: t('civ.sylvan_elves.role'),    bonus: t('civ.sylvan_elves.bonus') },
-  { id: "steppe_horde",    icon: "⚔️", name: t('civ.steppe_horde.name'),    role: t('civ.steppe_horde.role'),    bonus: t('civ.steppe_horde.bonus') },
-  { id: "aurelian_empire", icon: "🏛️", name: t('civ.aurelian_empire.name'), role: t('civ.aurelian_empire.role'), bonus: t('civ.aurelian_empire.bonus') },
+const CIVILIZATIONS = computed(() => [
+  { id: "iron_dwarves" as const,    icon: "🏔️", name: t('civ.iron_dwarves.name'),    role: t('civ.iron_dwarves.role'),    bonus: t('civ.iron_dwarves.bonus') },
+  { id: "sylvan_elves" as const,    icon: "🌲", name: t('civ.sylvan_elves.name'),    role: t('civ.sylvan_elves.role'),    bonus: t('civ.sylvan_elves.bonus') },
+  { id: "steppe_horde" as const,    icon: "⚔️", name: t('civ.steppe_horde.name'),    role: t('civ.steppe_horde.role'),    bonus: t('civ.steppe_horde.bonus') },
+  { id: "aurelian_empire" as const, icon: "🏛️", name: t('civ.aurelian_empire.name'), role: t('civ.aurelian_empire.role'), bonus: t('civ.aurelian_empire.bonus') },
 ]);
 
 const COLORS = [
