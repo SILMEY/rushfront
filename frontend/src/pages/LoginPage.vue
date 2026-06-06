@@ -38,7 +38,7 @@ const { t } = useI18n();
       <div class="mt-12 text-center">
         <div class="text-xs uppercase tracking-[0.25em] text-slate-200/60">{{ t('login.terms') }}</div>
         <a
-          href="https://discord.gg/YbW8QxMy"
+          href="https://discord.gg/QhUqEMYtfg"
           target="_blank"
           rel="noopener noreferrer"
           class="mt-6 inline-flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-indigo-300/80 transition hover:bg-indigo-500/20 hover:text-indigo-200"

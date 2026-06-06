@@ -13,7 +13,7 @@ const { t } = useI18n();
         <button class="font-headline text-sm uppercase tracking-widest text-secondary/60 transition-colors hover:text-primary" @click="router.push('/privacy')">{{ t('footer.privacy') }}</button>
         <button class="font-headline text-sm uppercase tracking-widest text-secondary/60 transition-colors hover:text-primary" @click="router.push('/support')">{{ t('footer.support') }}</button>
         <a
-          href="https://discord.gg/YbW8QxMy"
+          href="https://discord.gg/QhUqEMYtfg"
           target="_blank"
           rel="noopener noreferrer"
           class="flex items-center gap-2 font-headline text-sm uppercase tracking-widest text-indigo-400/70 transition-colors hover:text-indigo-300"
