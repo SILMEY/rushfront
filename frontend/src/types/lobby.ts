@@ -9,6 +9,7 @@ export type LobbyPlayer = {
   civilization: CivilizationId;
   isReady: boolean;
   isBot?: boolean;
+  quickGamesPlayed?: number;
 };
 
 export type LobbySummary = {

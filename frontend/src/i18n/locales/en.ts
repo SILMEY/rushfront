@@ -118,6 +118,7 @@ export default {
     preferences_subtitle: "Automatically applied to every game you join.",
     preferred_civ_label: "Preferred civilization",
     preferred_color_label: "Preferred colour",
+    pseudo_unique_hint: "Unique · 3–20 characters",
     deselect_hint: "Click again to cancel selection.",
     preferences_saved_btn: "✓ Saved",
     preferences_saving_btn: "Saving…",

@@ -5,6 +5,7 @@ import { useLobbyStore } from "../stores/lobbyStore";
 import { useAuthStore } from "../stores/authStore";
 import ChatPanel from "../components/game/ChatPanel.vue";
 import { useI18n } from "vue-i18n";
+import { getGrade } from "../utils/grade";
 
 const lobby = useLobbyStore();
 const auth = useAuthStore();
@@ -181,8 +182,14 @@ onBeforeRouteLeave(() => {
                   <!-- Nom -->
                   <div class="flex-1 min-w-0">
                     <div class="text-base font-headline leading-none text-secondary-fixed truncate">{{ p.name }}</div>
-                    <div class="mt-0.5 text-[10px] italic text-secondary/60">
-                      {{ p.isBot ? t('lobby.bot_label') : t('lobby.commander_label') }}
+                    <div class="mt-0.5 flex items-center gap-1 text-[10px] italic text-secondary/60">
+                      <template v-if="p.isBot">{{ t('lobby.bot_label') }}</template>
+                      <template v-else>
+                        <span>{{ getGrade(p.quickGamesPlayed ?? 0).icon }}</span>
+                        <span :style="{ color: getGrade(p.quickGamesPlayed ?? 0).color }">
+                          {{ t('grade.' + getGrade(p.quickGamesPlayed ?? 0).key) }}
+                        </span>
+                      </template>
                     </div>
                   </div>
 

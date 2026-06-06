@@ -118,6 +118,7 @@ export default {
     preferences_subtitle: "Werden automatisch auf jedes Spiel angewendet, dem du beitrittst.",
     preferred_civ_label: "Bevorzugte Zivilisation",
     preferred_color_label: "Bevorzugte Farbe",
+    pseudo_unique_hint: "Einzigartig · 3–20 Zeichen",
     deselect_hint: "Erneut klicken, um die Auswahl aufzuheben.",
     preferences_saved_btn: "✓ Gespeichert",
     preferences_saving_btn: "Speichere…",

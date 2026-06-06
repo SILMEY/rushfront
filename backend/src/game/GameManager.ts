@@ -66,7 +66,8 @@ export class GameManager {
         color: p.color,
         civilization: p.civilization as CivilizationId,
         isReady: p.isReady,
-        isBot: false as const
+        isBot: false as const,
+        quickGamesPlayed: p.user.quickGamesPlayed
       }));
       const botPlayers = bots.map((b) => ({
         id: b.id,

@@ -3,6 +3,7 @@ import { computed, ref, watch } from "vue";
 import { useAuthStore } from "../stores/authStore";
 import AppFooter from "../components/AppFooter.vue";
 import { useI18n } from "vue-i18n";
+import { getGrade } from "../utils/grade";
 
 const auth = useAuthStore();
 const { t } = useI18n();
@@ -70,8 +71,23 @@ async function savePreferences() {
   <div class="relative mx-auto grid max-w-5xl gap-8 px-6 py-10">
 
     <div class="relative z-10 text-center">
-      <div class="text-xs font-headline font-bold uppercase tracking-[0.35em] text-amber-300/80">{{ t('profile.commander_label') }}</div>
-      <h1 class="mt-2 text-4xl font-headline font-extrabold uppercase tracking-[0.12em] text-amber-300">{{ t('profile.title') }}</h1>
+      <h1 class="text-4xl font-headline font-extrabold uppercase tracking-[0.12em] text-amber-300">{{ t('profile.title') }}</h1>
+
+      <!-- Grade + ELO -->
+      <div v-if="auth.user" class="mt-4 inline-flex items-center gap-4 rounded-2xl border border-white/10 bg-black/30 px-6 py-3 backdrop-blur">
+        <div class="flex flex-col items-center">
+          <span class="text-3xl leading-none">{{ getGrade(auth.user.quickGamesPlayed ?? 0).icon }}</span>
+          <span class="mt-1 text-xs font-bold uppercase tracking-widest" :style="{ color: getGrade(auth.user.quickGamesPlayed ?? 0).color }">
+            {{ t('grade.' + getGrade(auth.user.quickGamesPlayed ?? 0).key) }}
+          </span>
+          <span class="text-[10px] text-slate-500">{{ auth.user.quickGamesPlayed ?? 0 }} {{ t('leaderboard.games') }}</span>
+        </div>
+        <div class="h-10 w-px bg-white/10"></div>
+        <div class="flex flex-col items-center">
+          <span class="font-headline text-3xl font-extrabold text-amber-300">{{ auth.user.elo ?? 1000 }}</span>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-amber-300/50">ELO</span>
+        </div>
+      </div>
     </div>
 
     <div class="relative z-10 grid gap-6 md:grid-cols-2">
@@ -104,6 +120,7 @@ async function savePreferences() {
             @keyup.enter="save()"
           />
           <div class="text-xs text-slate-500">{{ t('profile.preview_label') }} <span class="text-slate-300 font-semibold">{{ displayName }}</span></div>
+          <div class="text-[10px] text-slate-600">{{ t('profile.pseudo_unique_hint') }}</div>
           <div v-if="error" class="text-sm text-red-400">{{ error }}</div>
         </div>
 

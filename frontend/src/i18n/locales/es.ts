@@ -118,6 +118,7 @@ export default {
     preferences_subtitle: "Se aplican automáticamente a cada partida que te unes.",
     preferred_civ_label: "Civilización preferida",
     preferred_color_label: "Color preferido",
+    pseudo_unique_hint: "Único · 3–20 caracteres",
     deselect_hint: "Haz clic de nuevo para cancelar la selección.",
     preferences_saved_btn: "✓ Guardado",
     preferences_saving_btn: "Guardando…",
