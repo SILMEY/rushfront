@@ -78,12 +78,6 @@ function hostNameOf(g: any) {
               <div class="relative flex h-full w-full flex-col border border-primary/10 p-6">
                 <h3 class="mb-2 font-headline text-2xl leading-none text-primary">{{ t('home.quick_game_title') }}</h3>
                 <p class="mb-4 text-sm italic leading-relaxed text-secondary/80">{{ t('home.quick_game_desc') }}</p>
-                <div class="mt-auto flex items-center justify-between border-t border-outline-variant/30 pt-4">
-                  <span class="font-headline text-sm font-bold uppercase tracking-widest text-primary/80 transition-colors group-hover:text-primary">
-                    {{ t('home.quick_game_btn') }}
-                  </span>
-                  <span class="material-symbols-outlined text-primary/80 transition-transform group-hover:translate-x-2" aria-hidden="true">swords</span>
-                </div>
                 <div class="mt-3">
                   <!-- En file d'attente -->
                   <div v-if="lobby.inQuickQueue" class="flex flex-col gap-2">
