@@ -19,6 +19,15 @@ export enum BuildingType {
 
 export type Vec2 = { x: number; y: number };
 
+export type GalleonState = {
+  id: string;
+  playerId: string;
+  portKey: string;
+  x: number;
+  y: number;
+  hp: number;
+};
+
 export type PlayerResources = {
   villagers: number;
   soldiers: number;
@@ -40,7 +49,7 @@ export type GamePlayerState = {
   desiredSoldierPct?: number;
   eliminated?: boolean;
   bridgeCharges?: number;
-  fishingBoats?: number;
+  portFishingBoats?: Record<string, number>; // key: "${x}_${y}"
   maritimeCharges?: number;
 };
 
@@ -59,6 +68,7 @@ export type GameStateSnapshot = {
     buildings: (number | null)[];
   };
   brouillage: Array<{ casterPlayerId: string; x: number; y: number; expiresAt: number }>;
+  galleons: GalleonState[];
 };
 
 export type PlayerEliminatedEvent = {
@@ -81,7 +91,7 @@ export type TileChangePatch = {
 
 export type TileUpdateEvent = {
   changes: TileChangePatch[];
-  players: Array<{ id: string; resources: PlayerResources; maritimeCharges?: number; fishingBoats?: number }>;
+  players: Array<{ id: string; resources: PlayerResources; maritimeCharges?: number; portFishingBoats?: Record<string, number> }>;
   wonders?: Array<{ playerId: string; endsAt: number }>;
 };
 

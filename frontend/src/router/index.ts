@@ -9,6 +9,7 @@ import LeaderboardPage from "../pages/LeaderboardPage.vue";
 import PrivacyPage from "../pages/PrivacyPage.vue";
 import SupportPage from "../pages/SupportPage.vue";
 import AdminPage from "../pages/AdminPage.vue";
+import TutorialPage from "../pages/TutorialPage.vue";
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -19,6 +20,7 @@ export const router = createRouter({
     { path: "/leaderboard", component: LeaderboardPage },
     { path: "/privacy",     component: PrivacyPage },
     { path: "/support",     component: SupportPage },
+    { path: "/tutorial",    component: TutorialPage },
     { path: "/profile",     component: ProfilePage },
     { path: "/lobby/:id",   component: LobbyPage, props: true },
     { path: "/game/:id",    component: GamePage,  props: true },
@@ -26,7 +28,7 @@ export const router = createRouter({
   ]
 });
 
-const PUBLIC_PATHS = ["/", "/login", "/leaderboard", "/privacy", "/support"];
+const PUBLIC_PATHS = ["/", "/login", "/leaderboard", "/privacy", "/support", "/tutorial"];
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore();

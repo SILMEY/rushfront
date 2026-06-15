@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { BrouillagePatchEvent, GameOverEvent, GameStateSnapshot, PlayerEliminatedEvent, PlayerUpdateEvent, ResourceUpdateEvent, TileUpdateEvent, Vec2 } from "../types/game";
+import type { BrouillagePatchEvent, GameOverEvent, GalleonState, GameStateSnapshot, PlayerEliminatedEvent, PlayerUpdateEvent, ResourceUpdateEvent, TileUpdateEvent, Vec2 } from "../types/game";
 import { BuildingType, TileType } from "../types/game";
 import { getSocket } from "../composables/useSocket";
 import { useAuthStore } from "./authStore";
@@ -55,6 +55,8 @@ export const useGameStore = defineStore("game", {
     portMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
     maritimeMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
     maritimeAnimations: [] as Array<{ id: string; path: Vec2[]; step: number; isOwn: boolean; gameId: string; targetPos: Vec2 }>,
+    galleons: [] as GalleonState[],
+    cannonballs: [] as Array<{ id: string; from: Vec2; to: Vec2; startedAt: number }>,
     stateRevision: 0   // incremented on every mutation — watched instead of deep state
   }),
   getters: {
@@ -71,6 +73,7 @@ export const useGameStore = defineStore("game", {
       // Full snapshot — used on initial join and after special actions (start, tech, brouillage)
       socket.on("game:state", (snapshot: GameStateSnapshot) => {
         this.state = snapshot;
+        this.galleons = snapshot.galleons ?? [];
         this.currentGameId = snapshot.gameId;
         this.optimisticClaims = {};
         if (snapshot.status !== "FINISHED") this.gameOver = null;
@@ -95,8 +98,8 @@ export const useGameStore = defineStore("game", {
           const player = this.state.players.find((pl) => pl.id === p.id);
           if (player) {
             player.resources = p.resources;
-            if (p.maritimeCharges !== undefined) player.maritimeCharges = p.maritimeCharges;
-            if (p.fishingBoats    !== undefined) player.fishingBoats    = p.fishingBoats;
+            if (p.maritimeCharges   !== undefined) player.maritimeCharges   = p.maritimeCharges;
+            if (p.portFishingBoats  !== undefined) player.portFishingBoats  = p.portFishingBoats;
           }
         }
         if (event.wonders !== undefined) this.state.wonders = event.wonders;
@@ -125,6 +128,19 @@ export const useGameStore = defineStore("game", {
         if (!this.currentGameId) return;
         const targetPos = event.path[event.path.length - 1] ?? { x: 0, y: 0 };
         this._startBoatAnimation(event.animId, event.path, this.currentGameId, false, targetPos);
+      });
+
+      socket.on("game:galleons_update", (event: { galleons: GalleonState[]; fires: Array<{ from: Vec2; to: Vec2 }> }) => {
+        if (this.state) this.state.galleons = event.galleons;
+        this.galleons = event.galleons;
+        for (const fire of event.fires) {
+          const id = `cb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          this.cannonballs.push({ id, from: fire.from, to: fire.to, startedAt: Date.now() });
+        }
+        // Clean cannonballs older than 1.5s
+        const now = Date.now();
+        this.cannonballs = this.cannonballs.filter(c => now - c.startedAt < 1500);
+        this.stateRevision++;
       });
 
       socket.on("game:brouillage_patch", (event: BrouillagePatchEvent) => {
@@ -266,14 +282,19 @@ export const useGameStore = defineStore("game", {
       this.hoveredTile = pos;
     },
 
-    async buyFishingBoat(gameId: string) {
+    async buyFishingBoat(gameId: string, portPos: Vec2) {
       const socket = await getSocket();
-      socket.emit("game:buy_fishing_boat", { gameId });
+      socket.emit("game:buy_fishing_boat", { gameId, portX: portPos.x, portY: portPos.y });
     },
 
     async buyTransportBoat(gameId: string) {
       const socket = await getSocket();
       socket.emit("game:buy_transport_boat", { gameId });
+    },
+
+    async buyGalleon(gameId: string, portPos: Vec2) {
+      const socket = await getSocket();
+      socket.emit("game:buy_galleon", { gameId, portX: portPos.x, portY: portPos.y });
     },
 
     async maritimeLand(gameId: string, pos: Vec2) {

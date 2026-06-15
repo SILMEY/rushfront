@@ -52,7 +52,8 @@ export function applyProduction(input: {
   for (const player of players) {
     const techs = new Set((player as any).techs as string[] | undefined);
 
-    const fishingBoats = (player as any).fishingBoats ?? 0;
+    const pfb = (player as any).portFishingBoats as Record<string, number> | undefined;
+    const fishingBoats = pfb ? Object.values(pfb).reduce((s, n) => s + n, 0) : 0;
 
     // Passe unique : ownedTiles + cityCount + sawmills + mines en un seul parcours
     let ownedTiles = 0, cityCount = 0;

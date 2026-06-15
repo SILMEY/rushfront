@@ -16,12 +16,13 @@ import {
   TileType,
   type BuildIntent,
   type CivilizationId,
+  type GalleonState,
   type GamePlayerState,
   type GameStateSnapshot,
   type TileChange,
   type Vec2
 } from "./types.js";
-import { buildCost, idx, inBounds, orthogonalNeighbors } from "./rules.js";
+import { buildCost, idx, inBounds, orthogonalNeighbors, GALLEON_COST, GALLEON_HP, GALLEON_MAX_PER_PORT, GALLEON_ATTACK_RANGE } from "./rules.js";
 import { applyProduction } from "./turnResolver.js";
 import { TECHS, isTechId } from "./tech.js";
 
@@ -51,12 +52,16 @@ export class GameInstance {
   onPlacingTimeout:    (() => void) | null = null;
   onBotAction:         ((changes: TileChange[], players: ResourcePatch[], wonders: Array<{ playerId: string; endsAt: number }>) => void) | null = null;
   onGameStart:         (() => void) | null = null;
+  onGalleonUpdate:     ((galleons: GalleonState[], fires: Array<{ from: Vec2; to: Vec2 }>) => void) | null = null;
 
   placingEndsAt = 0;
 
   // Wonder victory — plusieurs merveilles possibles simultanément
   private wonderTimers = new Map<string, NodeJS.Timeout>(); // playerId → timer
   wonders: Array<{ playerId: string; tileIndex: number; endsAt: number }> = [];
+
+  galleons: GalleonState[] = [];
+  private galleonTickCounter = 0;
 
   // O(1) building presence cache — avoids O(n) tileBuildings.some() scans
   private _buildingCounts = new Map<string, Map<number, number>>();
@@ -176,6 +181,13 @@ export class GameInstance {
           if (e.expiresAt <= now) this.brouillageTiles.delete(i);
         }
         this.onResourceTick?.(this.players.map((p) => ({ id: p.id, resources: p.resources })));
+
+        // Tick galions toutes les 2 secondes
+        this.galleonTickCounter++;
+        if (this.galleonTickCounter % 2 === 0 && this.galleons.length > 0) {
+          const { fires } = this.tickGalleons();
+          this.onGalleonUpdate?.(this.galleons, fires);
+        }
       } catch (err) {
         console.error("[production tick]", err);
       }
@@ -346,7 +358,8 @@ export class GameInstance {
         owners: this.tileOwners,
         buildings: this.tileBuildings
       },
-      brouillage
+      brouillage,
+      galleons: this.galleons
     };
   }
 
@@ -544,9 +557,12 @@ export class GameInstance {
         this._addBuilding(player.id, capturedBuilding);
 
         if (capturedBuilding === BuildingType.FishingHut) {
+          const portK = `${index % this.width}_${Math.floor(index / this.width)}`;
+          const pfb = (defender as any).portFishingBoats as Record<string, number> | undefined;
+          if (pfb) delete pfb[portK];
+          // Remove galleons belonging to this port
+          this.galleons = this.galleons.filter(g => !(g.playerId === defender.id && g.portKey === portK));
           const remainingPorts = this.buildingCount(defender.id, BuildingType.FishingHut);
-          const maxBoats = remainingPorts * 3;
-          (defender as any).fishingBoats    = Math.min((defender as any).fishingBoats    ?? 0, maxBoats);
           (defender as any).maritimeCharges = remainingPorts > 0
             ? (defender as any).maritimeCharges ?? 0
             : 0;
@@ -664,18 +680,22 @@ export class GameInstance {
     return this.hasBuilding(playerId, BuildingType.FishingHut);
   }
 
-  buyFishingBoat(userId: string) {
+  buyFishingBoat(userId: string, portPos: Vec2) {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
-    if (!this.hasPort(player.id)) throw new Error("need_port");
-    const portCount = this.buildingCount(player.id, BuildingType.FishingHut);
-    if ((player.fishingBoats ?? 0) >= portCount * 3) throw new Error("max_boats_reached");
+    const portIdx = idx(portPos, this.width);
+    if (this.tileBuildings[portIdx] !== BuildingType.FishingHut || this.tileOwners[portIdx] !== player.id)
+      throw new Error("invalid_port");
+    const portK = `${portPos.x}_${portPos.y}`;
+    const pfb: Record<string, number> = (player as any).portFishingBoats ?? {};
+    if ((pfb[portK] ?? 0) >= 3) throw new Error("max_boats_reached");
     if (player.resources.villagers < 1) throw new Error("not_enough_habitants");
     if (player.resources.wood < 5) throw new Error("not_enough_resources");
     player.resources.villagers -= 1;
     player.resources.wood -= 5;
-    player.fishingBoats = (player.fishingBoats ?? 0) + 1;
+    pfb[portK] = (pfb[portK] ?? 0) + 1;
+    (player as any).portFishingBoats = pfb;
   }
 
   buyTransportBoat(userId: string) {
@@ -686,6 +706,152 @@ export class GameInstance {
     if (player.resources.villagers < 10) throw new Error("not_enough_habitants");
     player.resources.villagers -= 10;
     player.maritimeCharges = (player.maritimeCharges ?? 0) + 1;
+  }
+
+  buyGalleon(userId: string, portPos: Vec2): GalleonState {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    const portIdx = idx(portPos, this.width);
+    if (this.tileBuildings[portIdx] !== BuildingType.FishingHut || this.tileOwners[portIdx] !== player.id)
+      throw new Error("invalid_port");
+    const portK = `${portPos.x}_${portPos.y}`;
+    const portGalleons = this.galleons.filter(g => g.playerId === player.id && g.portKey === portK).length;
+    if (portGalleons >= GALLEON_MAX_PER_PORT) throw new Error("max_galleons_reached");
+    if (player.resources.wood < GALLEON_COST.wood) throw new Error("not_enough_resources");
+    if (player.resources.stone < GALLEON_COST.stone) throw new Error("not_enough_resources");
+
+    const spawnPos = this.findGalleonSpawnPos(portPos);
+    if (!spawnPos) throw new Error("no_water_adjacent_to_port");
+
+    player.resources.wood  -= GALLEON_COST.wood;
+    player.resources.stone -= GALLEON_COST.stone;
+
+    const galleon: GalleonState = {
+      id: `${player.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      playerId: player.id,
+      portKey: portK,
+      x: spawnPos.x,
+      y: spawnPos.y,
+      hp: GALLEON_HP
+    };
+    this.galleons.push(galleon);
+    return galleon;
+  }
+
+  private findGalleonSpawnPos(portPos: Vec2): Vec2 | null {
+    for (const n of orthogonalNeighbors(portPos).filter(n => inBounds(n, this.width, this.height))) {
+      const ni = idx(n, this.width);
+      if ((this.tileTypes[ni] as TileType) === TileType.Water) {
+        const occupied = this.galleons.some(g => g.x === n.x && g.y === n.y);
+        if (!occupied) return n;
+      }
+    }
+    return null;
+  }
+
+  private waterBFS(from: Vec2, to: Vec2): Vec2 | null {
+    if (from.x === to.x && from.y === to.y) return null;
+    const visited = new Set<number>();
+    const queue: Array<{ pos: Vec2; first: Vec2 | null }> = [{ pos: from, first: null }];
+    visited.add(idx(from, this.width));
+
+    while (queue.length > 0) {
+      const { pos, first } = queue.shift()!;
+      for (const n of orthogonalNeighbors(pos)) {
+        if (!inBounds(n, this.width, this.height)) continue;
+        const ni = idx(n, this.width);
+        if (visited.has(ni)) continue;
+        visited.add(ni);
+        const step = first ?? n;
+        if (n.x === to.x && n.y === to.y) return step;
+        if ((this.tileTypes[ni] as TileType) === TileType.Water) {
+          queue.push({ pos: n, first: step });
+        }
+      }
+    }
+    return null;
+  }
+
+  private findGalleonTarget(galleon: GalleonState): Vec2 | null {
+    let nearest: Vec2 | null = null;
+    let nearestDist = Infinity;
+
+    for (const g of this.galleons) {
+      if (g.playerId === galleon.playerId) continue;
+      const dist = Math.hypot(g.x - galleon.x, g.y - galleon.y);
+      if (dist < nearestDist) { nearestDist = dist; nearest = { x: g.x, y: g.y }; }
+    }
+
+    for (let i = 0; i < this.tileBuildings.length; i++) {
+      if (this.tileBuildings[i] !== BuildingType.FishingHut) continue;
+      const owner = this.tileOwners[i];
+      if (!owner || owner === galleon.playerId) continue;
+      const portPos = { x: i % this.width, y: Math.floor(i / this.width) };
+      for (const n of orthogonalNeighbors(portPos).filter(n => inBounds(n, this.width, this.height))) {
+        const ni = idx(n, this.width);
+        if ((this.tileTypes[ni] as TileType) !== TileType.Water) continue;
+        const dist = Math.hypot(n.x - galleon.x, n.y - galleon.y);
+        if (dist < nearestDist) { nearestDist = dist; nearest = { x: n.x, y: n.y }; }
+      }
+    }
+
+    return nearest;
+  }
+
+  tickGalleons(): { fires: Array<{ from: Vec2; to: Vec2 }> } {
+    const fires: Array<{ from: Vec2; to: Vec2 }> = [];
+    const toDestroy = new Set<string>();
+
+    for (const galleon of this.galleons) {
+      if (toDestroy.has(galleon.id)) continue;
+
+      let attacked = false;
+
+      // Attack enemy galleons in range
+      for (const enemy of this.galleons) {
+        if (enemy.playerId === galleon.playerId || toDestroy.has(enemy.id)) continue;
+        if (Math.hypot(enemy.x - galleon.x, enemy.y - galleon.y) <= GALLEON_ATTACK_RANGE) {
+          fires.push({ from: { x: galleon.x, y: galleon.y }, to: { x: enemy.x, y: enemy.y } });
+          enemy.hp--;
+          if (enemy.hp <= 0) toDestroy.add(enemy.id);
+          attacked = true;
+          break;
+        }
+      }
+
+      // Attack enemy fishing boats in range
+      if (!attacked) {
+        for (let i = 0; i < this.tileBuildings.length; i++) {
+          if (this.tileBuildings[i] !== BuildingType.FishingHut) continue;
+          const owner = this.tileOwners[i];
+          if (!owner || owner === galleon.playerId) continue;
+          const portPos = { x: i % this.width, y: Math.floor(i / this.width) };
+          if (Math.hypot(portPos.x - galleon.x, portPos.y - galleon.y) <= GALLEON_ATTACK_RANGE) {
+            fires.push({ from: { x: galleon.x, y: galleon.y }, to: portPos });
+            const targetPlayer = this.players.find(p => p.id === owner);
+            if (targetPlayer && (targetPlayer.fishingBoats ?? 0) > 0) {
+              targetPlayer.fishingBoats = (targetPlayer.fishingBoats ?? 0) - 1;
+            }
+            attacked = true;
+            break;
+          }
+        }
+      }
+
+      // Move toward nearest target
+      const target = this.findGalleonTarget(galleon);
+      if (target) {
+        const next = this.waterBFS({ x: galleon.x, y: galleon.y }, target);
+        if (next) {
+          const blocked = this.galleons.some(g => g.id !== galleon.id && g.x === next.x && g.y === next.y);
+          if (!blocked) { galleon.x = next.x; galleon.y = next.y; }
+        }
+      }
+    }
+
+    this.galleons = this.galleons.filter(g => !toDestroy.has(g.id));
+    return { fires };
   }
 
   // Débarquement maritime : case côtière neutre (settler) ou ennemie (assaut)

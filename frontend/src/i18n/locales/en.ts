@@ -4,6 +4,7 @@ export default {
     back_to_game: "Return to game",
     games: "GAMES",
     leaderboards: "LEADERBOARDS",
+    tutorial: "GUIDE",
     profile: "My profile",
     login: "Sign in",
     logout: "Logout",
@@ -219,6 +220,7 @@ export default {
     transport_cost: "10 pop.",
     fishing_rate: "+{n} pop./s",
     context_hint: "Long press a port to buy · Press a coastal tile to land",
+    click_port_hint: "Right-click a port to buy ⛵ and ⚓",
   },
   build_panel: {
     sawmill: "Sawmill",
@@ -300,5 +302,57 @@ export default {
   },
   canvas: {
     label: "Game map — long press to open menu",
+  },
+  tutorial: {
+    title: "Game Guide",
+    subtitle: "Learn how to conquer, build and dominate. This guide covers everything you need for your first game.",
+    play_now: "Play now",
+
+    resources_title: "Resources",
+    resources_intro: "The bar at the top of the screen shows your resources in real time. Everything in the game is built or purchased with these four resources.",
+    wood: "Wood",
+    wood_desc: "Produced by sawmills. Required for almost everything.",
+    stone: "Stone",
+    stone_desc: "Produced by mines. Required for advanced buildings.",
+    villagers: "Villagers",
+    villagers_desc: "Grow naturally over time. The source of everything — workers, soldiers, sailors.",
+    soldiers: "Soldiers",
+    soldiers_desc: "Converted from villagers via the military slider. Used to attack and defend.",
+
+    expand_title: "Expanding your territory",
+    expand_text: "Right-click on an empty tile adjacent to your territory to claim it. The more tiles you own, the higher your max population and the more resources you passively produce. Forests, quarries and coastlines are strategic locations to secure first.",
+
+    buildings_title: "Building progression",
+    buildings_intro: "Build in order to grow your power. Right-click an empty tile in your territory to open the build menu.",
+    sawmill: "Sawmill",
+    sawmill_desc: "Must be adjacent to a forest. Produces passive wood. Your first mandatory building.",
+    mine: "Mine",
+    mine_desc: "Must be adjacent to a quarry. Produces stone. Required for everything that comes next.",
+    barracks: "Barracks",
+    barracks_desc: "Unlocks villager → soldier conversion. Without a barracks, you cannot have soldiers.",
+    university: "University",
+    university_desc: "Allows purchasing technologies that improve your production, combat or defence.",
+    city: "City",
+    city_desc: "Massively increases population capacity (+500 max pop). Essential in late game.",
+    wonder: "Wonder",
+    wonder_desc: "Victory! If your wonder stands for 10 minutes without being destroyed, you win the game.",
+
+    combat_title: "Combat & attack",
+    combat_text1: "To attack an enemy tile adjacent to your territory, simply right-click it. Your soldiers engage automatically. The more soldiers you have and the higher your military density, the more losses you inflict on the enemy.",
+    combat_text2: "If the enemy has few soldiers on their land, conquest is quick. If they are well defended, each tile is costly. Concentrate your forces on a narrow front rather than attacking along the entire line.",
+    combat_tip: "Tip: raise the military slider to 80-100% before attacking, then lower it again to replenish villagers after the conquest.",
+
+    naval_title: "Sea & ports",
+    fishing_boat: "Fishing boat",
+    fishing_boat_desc: "Increases villager growth. Max 3 per port. Right-click a port to buy one.",
+    transport: "Transport",
+    transport_desc: "Allows landing soldiers on an enemy coast. Amphibious attack from the sea.",
+    galleon: "Galleon",
+    galleon_desc: "Autonomous warship. Hunts and cannonballs enemy boats automatically. 25🪵 15🪨.",
+
+    naval_hint: "Right-click one of your ports to buy fishing boats or combat galleons.",
+
+    victory_title: "Victory conditions",
+    victory_text: "Victory is achieved by building a Wonder and holding it for 10 minutes. The enemy can destroy your wonder by capturing the tile it sits on — defend it! Alternatively, you can eliminate all opponents by conquering their base.",
   },
 };

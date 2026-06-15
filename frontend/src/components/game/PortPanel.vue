@@ -23,20 +23,22 @@ const portCount = computed(() => {
 
 const hasPort = computed(() => portCount.value > 0);
 
-const fishingBoats    = computed(() => me.value?.fishingBoats    ?? 0);
+const fishingBoats    = computed(() => Object.values(me.value?.portFishingBoats ?? {}).reduce((s, n) => s + n, 0));
 const maritimeCharges = computed(() => me.value?.maritimeCharges ?? 0);
 const villagers       = computed(() => me.value?.resources.villagers ?? 0);
 const wood            = computed(() => me.value?.resources.wood      ?? 0);
+const stone           = computed(() => me.value?.resources.stone     ?? 0);
 
 const maxFishingBoats = computed(() => portCount.value * 3);
 const fishingBoatFull = computed(() => fishingBoats.value >= maxFishingBoats.value);
 const fishingRate     = computed(() => (fishingBoats.value * 0.1).toFixed(1));
 
-const canBuyFishing   = computed(() => !fishingBoatFull.value && villagers.value >= 1 && wood.value >= 5);
-const canBuyTransport = computed(() => villagers.value >= 10);
+const myGalleons      = computed(() => game.galleons.filter(g => g.playerId === me.value?.id).length);
+const maxGalleons     = computed(() => portCount.value * 2);
+const galleonsFull    = computed(() => myGalleons.value >= maxGalleons.value);
 
-function buyFishingBoat()   { if (props.state) game.buyFishingBoat(props.state.gameId); }
 function buyTransportBoat() { if (props.state) game.buyTransportBoat(props.state.gameId); }
+const canBuyTransport = computed(() => villagers.value >= 10);
 </script>
 
 <template>
@@ -57,24 +59,14 @@ function buyTransportBoat() { if (props.state) game.buyTransportBoat(props.state
           <span>{{ t('port_panel.maritime_transports') }}</span>
           <span class="font-bold text-[#06b6d4]">{{ maritimeCharges }}</span>
         </div>
+        <div class="flex items-center justify-between text-white/50">
+          <span>Galions</span>
+          <span class="font-bold text-[#f97316]">{{ myGalleons }}<span class="text-white/25 font-normal">/{{ maxGalleons }}</span></span>
+        </div>
       </div>
 
-      <!-- Boutons d'achat -->
-      <div class="grid grid-cols-2 gap-2">
-
-        <button
-          class="flex flex-col items-center gap-1 rounded border py-2 px-1 transition-all duration-150"
-          :class="canBuyFishing ? 'border-[#8b7e66] bg-[#1c1812]/80 hover:border-[#f2ca50] hover:bg-[#f2ca50]/5 cursor-pointer' : 'border-[#8b7e66]/20 bg-[#1c1812]/40 opacity-40 cursor-not-allowed'"
-          :disabled="!canBuyFishing"
-          @click="buyFishingBoat"
-        >
-          <span class="material-symbols-outlined text-[17px]" :class="canBuyFishing ? 'text-[#d4c59f]' : 'text-white/30'">sailing</span>
-          <span class="text-[8px] font-bold uppercase tracking-wide" :class="canBuyFishing ? 'text-white/60' : 'text-white/20'">{{ t('port_panel.fishing_btn') }}</span>
-          <span class="text-[7px]" :class="canBuyFishing ? 'text-[#a8c090]/70' : 'text-white/15'">
-            {{ fishingBoatFull ? t('port_panel.max_reached') : t('port_panel.fishing_cost') }}
-          </span>
-        </button>
-
+      <!-- Boutons d'achat (transport global uniquement — fishing/galion via clic droit sur port) -->
+      <div class="grid grid-cols-1 gap-2">
         <button
           class="flex flex-col items-center gap-1 rounded border py-2 px-1 transition-all duration-150"
           :class="canBuyTransport ? 'border-[#8b7e66] bg-[#1c1812]/80 hover:border-[#f2ca50] hover:bg-[#f2ca50]/5 cursor-pointer' : 'border-[#8b7e66]/20 bg-[#1c1812]/40 opacity-40 cursor-not-allowed'"
@@ -85,8 +77,8 @@ function buyTransportBoat() { if (props.state) game.buyTransportBoat(props.state
           <span class="text-[8px] font-bold uppercase tracking-wide" :class="canBuyTransport ? 'text-white/60' : 'text-white/20'">{{ t('port_panel.transport_btn') }}</span>
           <span class="text-[7px]" :class="canBuyTransport ? 'text-[#a8c090]/70' : 'text-white/15'">{{ t('port_panel.transport_cost') }}</span>
         </button>
-
       </div>
+      <p class="text-[8px] text-white/25 text-center">{{ t('port_panel.click_port_hint') }}</p>
     </div>
   </section>
 </template>

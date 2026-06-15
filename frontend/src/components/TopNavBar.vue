@@ -75,6 +75,12 @@ onUnmounted(() => document.removeEventListener("click", onDocClick));
         {{ t('nav.leaderboards') }}
       </button>
       <button
+        class="font-headline text-sm font-medium uppercase tracking-widest text-[#d4c59f] transition-colors duration-200 hover:text-[#d4af37]"
+        @click="navigate('/tutorial')"
+      >
+        {{ t('nav.tutorial') }}
+      </button>
+      <button
         v-if="auth.user?.isAdmin"
         class="font-headline text-sm font-medium uppercase tracking-widest text-amber-400 transition-colors duration-200 hover:text-amber-300"
         @click="navigate('/admin')"
@@ -182,6 +188,13 @@ onUnmounted(() => document.removeEventListener("click", onDocClick));
           @click="navigate('/leaderboard')"
         >
           {{ t('nav.leaderboards') }}
+        </button>
+        <button
+          class="px-6 py-4 text-left font-headline text-sm font-medium uppercase tracking-widest text-[#d4c59f] hover:bg-white/5 hover:text-[#d4af37] transition"
+          role="menuitem"
+          @click="navigate('/tutorial')"
+        >
+          {{ t('nav.tutorial') }}
         </button>
         <button
           v-if="auth.user?.isAdmin"

@@ -365,34 +365,34 @@ export function useGameRenderer() {
       }
     }
 
-    // ── Pass 2: wonders (multi-hex bounding box overlay) ──────────────────
+    // ── Pass 2: wonders (single hex, prominent) ───────────────────────────
     for (const { col, row, ownerId } of getWonderTiles(state)) {
       if (col < x0 || col > x1 || row < y0 || row > y1) continue;
-      {
-        const ownerColor = ownerId ? (colorByPlayer.get(ownerId) ?? "#f2ca50") : "#f2ca50";
 
-        const { x: cx, y: cy } = hexCenter(col, row, tileSize);
-        const half = R * 4;
+      const ownerColor = ownerId ? (colorByPlayer.get(ownerId) ?? "#f2ca50") : "#f2ca50";
+      const { x: cx, y: cy } = hexCenter(col, row, tileSize);
 
-        const left   = Math.max(0,                    cx - half);
-        const top    = Math.max(0,                    cy - half);
-        const right  = Math.min(state.width  * W * 2, cx + half);
-        const bottom = Math.min(state.height * VS,    cy + half);
+      // Hex background
+      hexPathAt(ctx, cx, cy, R);
+      ctx.fillStyle = rgba(ownerColor, 0.30);
+      ctx.fill();
 
-        ctx.fillStyle = rgba(ownerColor, 0.18);
-        ctx.fillRect(left, top, right - left, bottom - top);
-        ctx.strokeStyle = rgba(ownerColor, 0.7);
-        ctx.lineWidth = 2 / scale;
-        ctx.setLineDash([4 / scale, 4 / scale]);
-        ctx.strokeRect(left, top, right - left, bottom - top);
-        ctx.setLineDash([]);
+      // Glowing border
+      ctx.save();
+      ctx.shadowColor = ownerColor;
+      ctx.shadowBlur  = R * 2;
+      hexPathAt(ctx, cx, cy, R * 0.93);
+      ctx.strokeStyle = rgba(ownerColor, 0.95);
+      ctx.lineWidth   = 2.5 / scale;
+      ctx.stroke();
+      ctx.restore();
 
-        ctx.fillStyle    = rgba(ownerColor, 0.95);
-        ctx.font         = `${Math.min(R * 6, Math.max(12 / scale, R * 3))}px "Material Symbols Outlined"`;
-        ctx.textAlign    = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("temple_hindu", cx, cy);
-      }
+      // Icon
+      ctx.fillStyle    = "#f2ca50";
+      ctx.font         = `${R * 1.2}px "Material Symbols Outlined"`;
+      ctx.textAlign    = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("temple_hindu", cx, cy);
     }
 
     // ── Pass 3: optimistic claims ─────────────────────────────────────────
@@ -472,16 +472,14 @@ export function useGameRenderer() {
       }
 
       for (const player of state.players) {
-        const totalBoats = (player as any).fishingBoats as number ?? 0;
-        if (totalBoats === 0) continue;
+        const pfb = (player as any).portFishingBoats as Record<string, number> | undefined;
         const ports = portsByOwner.get(player.id) ?? [];
 
         for (let portIdx = 0; portIdx < ports.length; portIdx++) {
-          // How many boats are assigned to this port (sequential fill: port0 gets first 3, etc.)
-          const boatsHere = Math.max(0, Math.min(totalBoats - portIdx * 3, 3));
-          if (boatsHere === 0) continue;
-
           const { col, row } = ports[portIdx];
+          const portK = `${col}_${row}`;
+          const boatsHere = pfb ? (pfb[portK] ?? 0) : 0;
+          if (boatsHere === 0) continue;
 
           // Adjacent water tiles visible on screen
           const waterTiles = hexNeighbors(col, row)
@@ -520,7 +518,81 @@ export function useGameRenderer() {
       }
     }
 
-    // ── Pass 8: maritime animations (one boat per active landing) ────────────
+    // ── Pass 8: galions ───────────────────────────────────────────────────────
+    {
+      const nowG = Date.now();
+      for (const galleon of (game.galleons ?? [])) {
+        if (galleon.x < x0 - 1 || galleon.x > x1 + 1 || galleon.y < y0 - 1 || galleon.y > y1 + 1) continue;
+        const { x: cx, y: cy } = hexCenter(galleon.x, galleon.y, tileSize);
+        const ownerColor = colorByPlayer.get(galleon.playerId) ?? "#f2ca50";
+        const bob = Math.sin(nowG / 700 + galleon.x * 1.3 + galleon.y * 0.7) * R * 0.08;
+
+        // Glow halo
+        ctx.save();
+        ctx.shadowColor = ownerColor;
+        ctx.shadowBlur  = R * 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy + bob, R * 0.55, 0, Math.PI * 2);
+        ctx.fillStyle = rgba(ownerColor, 0.22);
+        ctx.fill();
+        ctx.restore();
+
+        // Wake shadow
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle   = "#060f28";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + bob + R * 0.30, R * 0.60, R * 0.18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Owner ring
+        ctx.beginPath();
+        ctx.arc(cx, cy + bob, R * 0.52, 0, Math.PI * 2);
+        ctx.strokeStyle = rgba(ownerColor, 0.85);
+        ctx.lineWidth   = 2 / scale;
+        ctx.stroke();
+
+        // Ship emoji
+        const galleonPx = Math.max(R * 1.5, 16 / scale);
+        ctx.font         = `${galleonPx}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+        ctx.textAlign    = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("⚓", cx, cy + bob);
+
+        // HP bar (seulement si endommagé)
+        if (galleon.hp < 3) {
+          const barW = R * 1.1;
+          const barH = R * 0.18;
+          const barX = cx - barW / 2;
+          const barY = cy + bob - R * 0.85;
+          ctx.fillStyle = rgba("#111", 0.7);
+          ctx.fillRect(barX, barY, barW, barH);
+          ctx.fillStyle = galleon.hp >= 2 ? "#22c55e" : "#ef4444";
+          ctx.fillRect(barX, barY, barW * (galleon.hp / 3), barH);
+        }
+      }
+
+      // Cannonballs
+      for (const cb of (game.cannonballs ?? [])) {
+        const elapsed = (nowG - cb.startedAt) / 800;
+        if (elapsed >= 1) continue;
+        const { x: fx, y: fy } = hexCenter(cb.from.x, cb.from.y, tileSize);
+        const { x: tx, y: ty } = hexCenter(cb.to.x,   cb.to.y,   tileSize);
+        const t = elapsed;
+        const bx2 = fx + (tx - fx) * t;
+        const by2 = fy + (ty - fy) * t - Math.sin(t * Math.PI) * R * 2;
+
+        ctx.beginPath();
+        ctx.arc(bx2, by2, Math.max(2 / scale, R * 0.12), 0, Math.PI * 2);
+        ctx.fillStyle = "#f97316";
+        ctx.fill();
+        ctx.strokeStyle = "#fde047";
+        ctx.lineWidth   = 1 / scale;
+        ctx.stroke();
+      }
+    }
+
+    // ── Pass 9: maritime animations (one boat per active landing) ────────────
     for (const anim of game.maritimeAnimations) {
       const step = Math.min(anim.step, anim.path.length - 1);
       const pos  = anim.path[step];
@@ -543,6 +615,7 @@ export function useGameRenderer() {
     }
 
     ctx.restore();
+
 
     // ── Screen-space grain overlay (one fill, efficient) ──────────────────
     const grain = getGrainPattern(ctx);

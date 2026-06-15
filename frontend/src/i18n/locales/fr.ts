@@ -4,6 +4,7 @@ export default {
     back_to_game: "Retourner en partie",
     games: "GAMES",
     leaderboards: "LEADERBOARDS",
+    tutorial: "GUIDE",
     profile: "Mon profil",
     login: "Se connecter",
     logout: "Logout",
@@ -219,6 +220,7 @@ export default {
     transport_cost: "10 hab.",
     fishing_rate: "+{n} hab./s",
     context_hint: "Appui long sur un port pour acheter · Appui sur une case côtière pour débarquer",
+    click_port_hint: "Clic droit sur un port pour acheter ⛵ et ⚓",
   },
   build_panel: {
     sawmill: "Scierie",
@@ -300,5 +302,57 @@ export default {
   },
   canvas: {
     label: "Carte du jeu — appui long pour ouvrir le menu",
+  },
+  tutorial: {
+    title: "Guide du jeu",
+    subtitle: "Apprends à conquérir, construire et dominer. Ce guide couvre tout ce dont tu as besoin pour ta première partie.",
+    play_now: "Jouer maintenant",
+
+    resources_title: "Les ressources",
+    resources_intro: "La barre en haut de l'écran affiche tes ressources en temps réel. Tout dans le jeu se construit ou s'achète avec ces quatre ressources.",
+    wood: "Bois",
+    wood_desc: "Produit par les scieries. Nécessaire pour presque tout.",
+    stone: "Pierre",
+    stone_desc: "Produite par les mines. Requise pour les bâtiments avancés.",
+    villagers: "Habitants",
+    villagers_desc: "Grandissent naturellement. Source de tout — travailleurs, soldats, marins.",
+    soldiers: "Soldats",
+    soldiers_desc: "Convertis depuis les habitants via le curseur militaire. Servent à attaquer et défendre.",
+
+    expand_title: "Étendre son territoire",
+    expand_text: "Fais un clic droit sur une case vide adjacente à ton territoire pour la revendiquer. Plus tu possèdes de cases, plus ta population max augmente et plus tu produis de ressources passivement. Les forêts, carrières et côtes sont des emplacements stratégiques à sécuriser en priorité.",
+
+    buildings_title: "Progression des bâtiments",
+    buildings_intro: "Construis dans l'ordre pour monter en puissance. Fais un clic droit sur une case vide de ton territoire pour ouvrir le menu de construction.",
+    sawmill: "Scierie",
+    sawmill_desc: "Doit être adjacente à une forêt. Produit du bois passif. C'est ton premier bâtiment obligatoire.",
+    mine: "Mine",
+    mine_desc: "Doit être adjacente à une carrière. Produit de la pierre. Nécessaire pour tout ce qui vient ensuite.",
+    barracks: "Caserne",
+    barracks_desc: "Débloque la conversion habitants → soldats. Sans caserne, tu ne peux pas avoir de militaires.",
+    university: "Université",
+    university_desc: "Permet d'acheter des technologies qui améliorent ta production, ton combat ou ta défense.",
+    city: "Cité",
+    city_desc: "Augmente massivement la capacité de population (+500 hab. max). Indispensable en fin de partie.",
+    wonder: "Merveille",
+    wonder_desc: "Victoire ! Si ta merveille tient 10 minutes sans être détruite, tu gagnes la partie.",
+
+    combat_title: "Combat et attaque",
+    combat_text1: "Pour attaquer une case ennemie adjacente à ton territoire, fais simplement un clic droit dessus. Tes soldats s'engagent automatiquement. Plus tu as de soldats et plus ta densité militaire est élevée, plus tu infliges de pertes à l'ennemi.",
+    combat_text2: "Si l'ennemi a peu de soldats sur ses terres, ta conquête est rapide. S'il est bien défendu, chaque case coûte cher. Concentre tes forces sur un front étroit plutôt que d'attaquer sur toute la ligne.",
+    combat_tip: "Astuce : monte le curseur militaire à 80-100% avant d'attaquer, puis redescends-le pour renflouer tes habitants après la conquête.",
+
+    naval_title: "Mer et ports",
+    fishing_boat: "Bateau de pêche",
+    fishing_boat_desc: "Augmente la croissance des habitants. Max 3 par port. Clic droit sur un port pour en acheter.",
+    transport: "Transport",
+    transport_desc: "Permet de débarquer des soldats sur une côte ennemie. Attaque amphibie depuis la mer.",
+    galleon: "Galion",
+    galleon_desc: "Bateau de guerre autonome. Pourchasse et canonne les bateaux ennemis automatiquement. 25🪵 15🪨.",
+
+    naval_hint: "Clic droit sur un de tes ports pour acheter des bateaux de pêche ou des galions de combat.",
+
+    victory_title: "Conditions de victoire",
+    victory_text: "La victoire s'obtient en construisant une Merveille et en la maintenant pendant 10 minutes. L'ennemi peut détruire ta merveille en capturant la case sur laquelle elle est posée — défends-la ! Alternativement, tu peux éliminer tous tes adversaires en conquérant leur base.",
   },
 };

@@ -59,9 +59,18 @@ export type GamePlayerState = {
   desiredSoldierPct?: number; // 0..100
   eliminated?: boolean;
   bridgeCharges?: number;
-  fishingBoats?: number;
+  portFishingBoats?: Record<string, number>; // key: "${x}_${y}"
   maritimeCharges?: number;
   isBot?: boolean;
+};
+
+export type GalleonState = {
+  id: string;
+  playerId: string;
+  portKey: string; // "${x}_${y}" of the port it belongs to
+  x: number;
+  y: number;
+  hp: number;
 };
 
 export type BotConfig = {
@@ -101,4 +110,5 @@ export type GameStateSnapshot = {
     buildings: (number | null)[];
   };
   brouillage: Array<{ casterPlayerId: string; x: number; y: number; expiresAt: number }>;
+  galleons: GalleonState[];
 };

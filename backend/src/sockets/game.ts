@@ -63,6 +63,9 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
         instance.onGameStart = () => {
           io.to(room).emit("game:state", instance.snapshot());
         };
+        instance.onGalleonUpdate = (galleons, fires) => {
+          io.to(room).emit("game:galleons_update", { galleons, fires });
+        };
       }
       // Wonder victory already fires through onGameOver
 
@@ -233,16 +236,31 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     }
   });
 
-  // ── Port : bateaux ───────────────────────────────────────────────────────
+  // ── Galions ───────────────────────────────────────────────────────────────
 
-  socket.on("game:buy_fishing_boat", (payload: { gameId: string }) => {
+  socket.on("game:buy_galleon", (payload: { gameId: string; portX: number; portY: number }) => {
     try {
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
-      instance.buyFishingBoat(userId);
+      instance.buyGalleon(userId, { x: payload.portX, y: payload.portY });
+      const player = instance.getPlayerByUserId(userId)!;
+      io.to(`game:${payload.gameId}`).emit("game:galleons_update", { galleons: instance.galleons, fires: [] });
+      socket.emit("game:player_update", { player: { id: player.id, resources: player.resources } });
+    } catch (e: any) {
+      socket.emit("game:error", { error: e?.message ?? "unknown_error" });
+    }
+  });
+
+  // ── Port : bateaux ───────────────────────────────────────────────────────
+
+  socket.on("game:buy_fishing_boat", (payload: { gameId: string; portX: number; portY: number }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = getInstance(gameManager, payload.gameId);
+      instance.buyFishingBoat(userId, { x: payload.portX, y: payload.portY });
       const player = instance.getPlayerByUserId(userId)!;
       socket.emit("game:player_update", {
-        player: { id: player.id, resources: player.resources, fishingBoats: player.fishingBoats }
+        player: { id: player.id, resources: player.resources, portFishingBoats: (player as any).portFishingBoats }
       });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });

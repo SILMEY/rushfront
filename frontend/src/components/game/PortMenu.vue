@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import type { GameStateSnapshot, Vec2 } from "../../types/game";
 import { useAuthStore } from "../../stores/authStore";
+import { useGameStore } from "../../stores/gameStore";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
@@ -17,32 +18,41 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const auth = useAuthStore();
-const me   = computed(() => props.state.players.find(p => p.userId === auth.user?.id) ?? null);
+const auth  = useAuthStore();
+const game  = useGameStore();
+const me    = computed(() => props.state.players.find(p => p.userId === auth.user?.id) ?? null);
 const { t } = useI18n();
 
-type PortEntry = { action: "fishing-boat" | "transport"; labelKey: string; icon: string; cost: number; detailKey: string };
+const portKey = computed(() => `${props.tile.x}_${props.tile.y}`);
 
-const ALL: PortEntry[] = [
-  { action: "fishing-boat", labelKey: "port_menu.fishing_label",   icon: "sailing",         cost: 1,  detailKey: "port_menu.fishing_detail" },
-  { action: "transport",    labelKey: "port_menu.transport_label",  icon: "directions_boat", cost: 10, detailKey: "port_menu.transport_detail" },
-];
+const portBoats   = computed(() => (me.value?.portFishingBoats ?? {})[portKey.value] ?? 0);
+const portGalleons = computed(() => game.galleons.filter(g => g.playerId === me.value?.id && g.portKey === portKey.value).length);
 
-function canAfford(e: PortEntry): boolean {
-  if (!me.value) return false;
-  if (e.action === "fishing-boat") {
-    return me.value.resources.villagers >= 1 && me.value.resources.wood >= 5;
-  }
-  return me.value.resources.villagers >= e.cost;
-}
+type PortEntry = { action: "fishing-boat" | "transport" | "galleon"; label: string; icon: string; costLine: string; disabled: boolean };
+
+const entries = computed((): PortEntry[] => {
+  const r = me.value?.resources;
+  const canFish    = portBoats.value < 3 && (r?.villagers ?? 0) >= 1 && (r?.wood ?? 0) >= 5;
+  const canTransport = (r?.villagers ?? 0) >= 10;
+  const canGalleon = portGalleons.value < 2 && (r?.wood ?? 0) >= 25 && (r?.stone ?? 0) >= 15;
+  return [
+    { action: "fishing-boat", label: t("port_menu.fishing_label"),   icon: "sailing",         costLine: portBoats.value >= 3 ? t("port_panel.max_reached") : t("port_menu.fishing_detail"),   disabled: !canFish },
+    { action: "transport",    label: t("port_menu.transport_label"),  icon: "directions_boat", costLine: t("port_menu.transport_detail"), disabled: !canTransport },
+    { action: "galleon",      label: "Galion",                        icon: "⚓",               costLine: portGalleons.value >= 2 ? t("port_panel.max_reached") : "25🪵 15🪨",               disabled: !canGalleon },
+  ];
+});
 
 function onAction(e: PortEntry) {
-  if (!canAfford(e)) return;
+  if (e.disabled) return;
   if (e.action === "fishing-boat") emit("buy-fishing-boat");
-  else emit("buy-transport-boat");
+  else if (e.action === "transport") emit("buy-transport-boat");
+  else if (e.action === "galleon") {
+    if (props.state) game.buyGalleon(props.state.gameId, props.tile);
+    emit("close");
+  }
 }
 
-const RADIUS   = 58;
+const RADIUS   = 68;
 const HALF_BTN = 24;
 const MARGIN   = RADIUS + HALF_BTN + 6;
 
@@ -64,14 +74,20 @@ function itemStyle(i: number, total: number) {
   <!-- Menu -->
   <div class="fixed z-[401]" :style="{ left: cx + 'px', top: cy + 'px' }">
 
+    <!-- Info port -->
+    <div
+      class="absolute pointer-events-none text-[8px] text-white/40 whitespace-nowrap"
+      style="transform: translate(-50%, calc(-100% - 14px))"
+    >⛵ {{ portBoats }}/3 &nbsp;·&nbsp; ⚓ {{ portGalleons }}/2</div>
+
     <!-- Lignes SVG vers items -->
     <svg class="absolute overflow-visible pointer-events-none" style="transform: translate(-50%, -50%)" width="1" height="1">
       <line
-        v-for="(item, i) in ALL"
+        v-for="(item, i) in entries"
         :key="'l' + item.action"
         x1="0" y1="0"
-        :x2="Math.round(Math.cos((i / ALL.length) * 2 * Math.PI - Math.PI / 2) * RADIUS)"
-        :y2="Math.round(Math.sin((i / ALL.length) * 2 * Math.PI - Math.PI / 2) * RADIUS)"
+        :x2="Math.round(Math.cos((i / entries.length) * 2 * Math.PI - Math.PI / 2) * RADIUS)"
+        :y2="Math.round(Math.sin((i / entries.length) * 2 * Math.PI - Math.PI / 2) * RADIUS)"
         stroke="rgba(242,202,80,0.18)"
         stroke-width="1"
       />
@@ -85,35 +101,33 @@ function itemStyle(i: number, total: number) {
 
     <!-- Items -->
     <div
-      v-for="(entry, i) in ALL"
+      v-for="(entry, i) in entries"
       :key="entry.action"
       class="absolute"
-      :style="itemStyle(i, ALL.length)"
+      :style="itemStyle(i, entries.length)"
     >
       <button
         class="flex flex-col items-center gap-0.5 group"
-        :disabled="!canAfford(entry)"
+        :disabled="entry.disabled"
         @click.stop="onAction(entry)"
       >
         <div
           class="w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all duration-150 shadow-lg"
-          :class="canAfford(entry)
+          :class="!entry.disabled
             ? 'bg-[#1c1812]/95 border-[#8b7e66] group-hover:border-[#f2ca50] group-hover:scale-110'
             : 'bg-[#1c1812]/70 border-[#8b7e66]/25 opacity-40'"
         >
-          <span
-            class="material-symbols-outlined text-[19px]"
-            :class="canAfford(entry) ? 'text-[#d4c59f]' : 'text-white/30'"
-          >{{ entry.icon }}</span>
+          <span v-if="entry.icon.length > 2" class="text-[18px]">{{ entry.icon }}</span>
+          <span v-else class="material-symbols-outlined text-[19px]" :class="!entry.disabled ? 'text-[#d4c59f]' : 'text-white/30'">{{ entry.icon }}</span>
         </div>
         <span
           class="text-[8px] font-bold uppercase tracking-wide whitespace-nowrap"
-          :class="canAfford(entry) ? 'text-white/60' : 'text-white/20'"
-        >{{ t(entry.labelKey) }}</span>
+          :class="!entry.disabled ? 'text-white/60' : 'text-white/20'"
+        >{{ entry.label }}</span>
         <span
           class="text-[7px] whitespace-nowrap"
-          :class="canAfford(entry) ? 'text-[#a8c090]/70' : 'text-white/15'"
-        >{{ t(entry.detailKey) }}</span>
+          :class="!entry.disabled ? 'text-[#a8c090]/70' : 'text-white/15'"
+        >{{ entry.costLine }}</span>
       </button>
     </div>
   </div>

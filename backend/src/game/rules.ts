@@ -56,6 +56,11 @@ export function buildCost(building: BuildingType, existingCount = 0): { wood: nu
   }
 }
 
+export const GALLEON_COST = { wood: 25, stone: 15 };
+export const GALLEON_HP   = 3;
+export const GALLEON_MAX_PER_PORT = 2;
+export const GALLEON_ATTACK_RANGE = 3.5;
+
 export function inBounds(pos: Vec2, width: number, height: number) {
   return pos.x >= 0 && pos.y >= 0 && pos.x < width && pos.y < height;
 }
