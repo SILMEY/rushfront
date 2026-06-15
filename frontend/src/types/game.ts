@@ -50,6 +50,7 @@ export type GamePlayerState = {
   eliminated?: boolean;
   bridgeCharges?: number;
   portFishingBoats?: Record<string, number>; // key: "${x}_${y}"
+  portTransports?: Record<string, number>;   // key: "${x}_${y}"
   maritimeCharges?: number;
 };
 
@@ -91,7 +92,7 @@ export type TileChangePatch = {
 
 export type TileUpdateEvent = {
   changes: TileChangePatch[];
-  players: Array<{ id: string; resources: PlayerResources; maritimeCharges?: number; portFishingBoats?: Record<string, number> }>;
+  players: Array<{ id: string; resources: PlayerResources; maritimeCharges?: number; portFishingBoats?: Record<string, number>; portTransports?: Record<string, number> }>;
   wonders?: Array<{ playerId: string; endsAt: number }>;
 };
 

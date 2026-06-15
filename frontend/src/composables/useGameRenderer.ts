@@ -527,37 +527,99 @@ export function useGameRenderer() {
         const ownerColor = colorByPlayer.get(galleon.playerId) ?? "#f2ca50";
         const bob = Math.sin(nowG / 700 + galleon.x * 1.3 + galleon.y * 0.7) * R * 0.08;
 
-        // Glow halo
-        ctx.save();
-        ctx.shadowColor = ownerColor;
-        ctx.shadowBlur  = R * 1.5;
-        ctx.beginPath();
-        ctx.arc(cx, cy + bob, R * 0.55, 0, Math.PI * 2);
-        ctx.fillStyle = rgba(ownerColor, 0.22);
-        ctx.fill();
-        ctx.restore();
-
         // Wake shadow
         ctx.globalAlpha = 0.35;
         ctx.fillStyle   = "#060f28";
         ctx.beginPath();
-        ctx.ellipse(cx, cy + bob + R * 0.30, R * 0.60, R * 0.18, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy + bob + R * 0.45, R * 0.70, R * 0.20, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Owner ring
+        // ── Dessin du galion espagnol ───────────────────────────────────────
+        ctx.save();
+        ctx.translate(cx, cy + bob);
+        const lw = Math.max(1, 1.5 / scale);
+
+        // Coque
         ctx.beginPath();
-        ctx.arc(cx, cy + bob, R * 0.52, 0, Math.PI * 2);
-        ctx.strokeStyle = rgba(ownerColor, 0.85);
-        ctx.lineWidth   = 2 / scale;
+        ctx.moveTo(-R * 0.62, R * 0.05);
+        ctx.lineTo( R * 0.62, R * 0.05);
+        ctx.lineTo( R * 0.48, R * 0.52);
+        ctx.lineTo(-R * 0.52, R * 0.52);
+        ctx.closePath();
+        ctx.fillStyle = rgba(ownerColor, 0.88);
+        ctx.fill();
+        ctx.strokeStyle = rgba(ownerColor, 1);
+        ctx.lineWidth = lw;
         ctx.stroke();
 
-        // Ship emoji
-        const galleonPx = Math.max(R * 1.5, 16 / scale);
-        ctx.font         = `${galleonPx}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-        ctx.textAlign    = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("⚓", cx, cy + bob);
+        // Proue (étrave pointue à droite)
+        ctx.beginPath();
+        ctx.moveTo(R * 0.62, R * 0.05);
+        ctx.lineTo(R * 0.88, R * 0.28);
+        ctx.lineTo(R * 0.48, R * 0.52);
+        ctx.closePath();
+        ctx.fillStyle = rgba(ownerColor, 0.70);
+        ctx.fill();
+
+        // Mât principal (gauche)
+        ctx.beginPath();
+        ctx.moveTo(-R * 0.18, R * 0.05);
+        ctx.lineTo(-R * 0.18, -R * 0.88);
+        ctx.strokeStyle = rgba(ownerColor, 1);
+        ctx.lineWidth = lw * 1.4;
+        ctx.stroke();
+
+        // Mât de misaine (droite)
+        ctx.beginPath();
+        ctx.moveTo(R * 0.22, R * 0.05);
+        ctx.lineTo(R * 0.22, -R * 0.52);
+        ctx.lineWidth = lw;
+        ctx.stroke();
+
+        // Grande voile (ivoire/blanc cassé)
+        ctx.beginPath();
+        ctx.moveTo(-R * 0.18, -R * 0.82);
+        ctx.lineTo(-R * 0.18, -R * 0.08);
+        ctx.lineTo(R * 0.20, -R * 0.26);
+        ctx.lineTo(R * 0.20, -R * 0.68);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(255,248,210,0.90)";
+        ctx.fill();
+        ctx.strokeStyle = rgba(ownerColor, 0.35);
+        ctx.lineWidth = lw * 0.7;
+        ctx.stroke();
+
+        // Voile de misaine
+        ctx.beginPath();
+        ctx.moveTo(R * 0.22, -R * 0.48);
+        ctx.lineTo(R * 0.22, -R * 0.08);
+        ctx.lineTo(R * 0.54, -R * 0.22);
+        ctx.lineTo(R * 0.54, -R * 0.42);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(255,248,210,0.75)";
+        ctx.fill();
+
+        // Pavillon (rouge croix espagnole)
+        ctx.beginPath();
+        ctx.moveTo(-R * 0.18, -R * 0.88);
+        ctx.lineTo( R * 0.10, -R * 0.75);
+        ctx.lineTo(-R * 0.18, -R * 0.62);
+        ctx.closePath();
+        ctx.fillStyle = "#dc2626";
+        ctx.fill();
+
+        // Croix sur le pavillon
+        ctx.strokeStyle = "#fef2f2";
+        ctx.lineWidth = lw * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(-R * 0.14, -R * 0.82); ctx.lineTo( R * 0.06, -R * 0.75);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-R * 0.04, -R * 0.86); ctx.lineTo(-R * 0.04, -R * 0.64);
+        ctx.stroke();
+
+        ctx.restore();
 
         // HP bar (seulement si endommagé)
         if (galleon.hp < 3) {
@@ -611,7 +673,7 @@ export function useGameRenderer() {
       ctx.font         = `${boatSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
       ctx.textAlign    = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("🚢", cx, cy);
+      ctx.fillText("🛶", cx, cy);
     }
 
     ctx.restore();

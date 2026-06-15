@@ -100,6 +100,7 @@ export const useGameStore = defineStore("game", {
             player.resources = p.resources;
             if (p.maritimeCharges   !== undefined) player.maritimeCharges   = p.maritimeCharges;
             if (p.portFishingBoats  !== undefined) player.portFishingBoats  = p.portFishingBoats;
+            if (p.portTransports    !== undefined) player.portTransports    = p.portTransports;
           }
         }
         if (event.wonders !== undefined) this.state.wonders = event.wonders;
@@ -287,9 +288,9 @@ export const useGameStore = defineStore("game", {
       socket.emit("game:buy_fishing_boat", { gameId, portX: portPos.x, portY: portPos.y });
     },
 
-    async buyTransportBoat(gameId: string) {
+    async buyTransportBoat(gameId: string, portPos: Vec2) {
       const socket = await getSocket();
-      socket.emit("game:buy_transport_boat", { gameId });
+      socket.emit("game:buy_transport_boat", { gameId, portX: portPos.x, portY: portPos.y });
     },
 
     async buyGalleon(gameId: string, portPos: Vec2) {

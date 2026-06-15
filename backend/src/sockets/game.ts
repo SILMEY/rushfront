@@ -267,14 +267,14 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     }
   });
 
-  socket.on("game:buy_transport_boat", (payload: { gameId: string }) => {
+  socket.on("game:buy_transport_boat", (payload: { gameId: string; portX: number; portY: number }) => {
     try {
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
-      instance.buyTransportBoat(userId);
+      instance.buyTransportBoat(userId, { x: payload.portX, y: payload.portY });
       const player = instance.getPlayerByUserId(userId)!;
       socket.emit("game:player_update", {
-        player: { id: player.id, resources: player.resources, maritimeCharges: player.maritimeCharges }
+        player: { id: player.id, resources: player.resources, maritimeCharges: player.maritimeCharges, portTransports: (player as any).portTransports }
       });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });

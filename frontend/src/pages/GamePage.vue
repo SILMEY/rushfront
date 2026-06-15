@@ -135,7 +135,7 @@ watch(
     :client-x="game.portMenu.clientX"
     :client-y="game.portMenu.clientY"
     @buy-fishing-boat="() => { game.buyFishingBoat(game.state!.gameId, game.portMenu!.tile); game.portMenu = null; }"
-    @buy-transport-boat="() => { game.buyTransportBoat(game.state!.gameId); game.portMenu = null; }"
+    @buy-transport-boat="() => { game.buyTransportBoat(game.state!.gameId, game.portMenu!.tile); game.portMenu = null; }"
     @close="game.portMenu = null"
   />
 

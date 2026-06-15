@@ -25,22 +25,55 @@ const { t } = useI18n();
 
 const portKey = computed(() => `${props.tile.x}_${props.tile.y}`);
 
-const portBoats   = computed(() => (me.value?.portFishingBoats ?? {})[portKey.value] ?? 0);
+const portBoats    = computed(() => (me.value?.portFishingBoats ?? {})[portKey.value] ?? 0);
+const portTransport= computed(() => (me.value?.portTransports   ?? {})[portKey.value] ?? 0);
 const portGalleons = computed(() => game.galleons.filter(g => g.playerId === me.value?.id && g.portKey === portKey.value).length);
 
-type PortEntry = { action: "fishing-boat" | "transport" | "galleon"; label: string; icon: string; costLine: string; disabled: boolean };
+type PortEntry = {
+  action: "fishing-boat" | "transport" | "galleon";
+  label: string;
+  iconMaterial?: string;   // Material Symbol name
+  iconEmoji?: string;      // Emoji fallback
+  costLine: string;
+  disabled: boolean;
+};
 
 const entries = computed((): PortEntry[] => {
   const r = me.value?.resources;
-  const canFish    = portBoats.value < 3 && (r?.villagers ?? 0) >= 1 && (r?.wood ?? 0) >= 5;
-  const canTransport = (r?.villagers ?? 0) >= 10;
-  const canGalleon = portGalleons.value < 2 && (r?.wood ?? 0) >= 25 && (r?.stone ?? 0) >= 15;
+  const canFish     = portBoats.value < 3 && (r?.villagers ?? 0) >= 1 && (r?.wood ?? 0) >= 5;
+  const canTransport= (r?.villagers ?? 0) >= 10;
+  const canGalleon  = portGalleons.value < 2 && (r?.wood ?? 0) >= 25 && (r?.stone ?? 0) >= 15;
   return [
-    { action: "fishing-boat", label: t("port_menu.fishing_label"),   icon: "sailing",         costLine: portBoats.value >= 3 ? t("port_panel.max_reached") : t("port_menu.fishing_detail"),   disabled: !canFish },
-    { action: "transport",    label: t("port_menu.transport_label"),  icon: "directions_boat", costLine: t("port_menu.transport_detail"), disabled: !canTransport },
-    { action: "galleon",      label: "Galion",                        icon: "⚓",               costLine: portGalleons.value >= 2 ? t("port_panel.max_reached") : "25🪵 15🪨",               disabled: !canGalleon },
+    {
+      action: "fishing-boat",
+      label: t("port_menu.fishing_label"),
+      iconMaterial: "sailing",
+      costLine: portBoats.value >= 3 ? t("port_panel.max_reached") : t("port_menu.fishing_detail"),
+      disabled: !canFish
+    },
+    {
+      action: "transport",
+      label: t("port_menu.transport_label"),
+      iconMaterial: "directions_boat",
+      costLine: t("port_menu.transport_detail"),
+      disabled: !canTransport
+    },
+    {
+      action: "galleon",
+      label: "Galion",
+      iconMaterial: "sailing",
+      costLine: portGalleons.value >= 2 ? t("port_panel.max_reached") : "25🪵 15🪨",
+      disabled: !canGalleon
+    },
   ];
 });
+
+function iconColor(entry: PortEntry): string {
+  if (entry.disabled) return "text-white/30";
+  if (entry.action === "fishing-boat") return "text-[#a8c090]";
+  if (entry.action === "transport")    return "text-[#06b6d4]";
+  return "text-[#f97316]"; // galleon — orange/rouge
+}
 
 function onAction(e: PortEntry) {
   if (e.disabled) return;
@@ -52,7 +85,7 @@ function onAction(e: PortEntry) {
   }
 }
 
-const RADIUS   = 68;
+const RADIUS   = 72;
 const HALF_BTN = 24;
 const MARGIN   = RADIUS + HALF_BTN + 6;
 
@@ -78,7 +111,7 @@ function itemStyle(i: number, total: number) {
     <div
       class="absolute pointer-events-none text-[8px] text-white/40 whitespace-nowrap"
       style="transform: translate(-50%, calc(-100% - 14px))"
-    >⛵ {{ portBoats }}/3 &nbsp;·&nbsp; ⚓ {{ portGalleons }}/2</div>
+    >⛵ {{ portBoats }}/3 &nbsp;·&nbsp; 🛶 {{ portTransport }} &nbsp;·&nbsp; ⚔ {{ portGalleons }}/2</div>
 
     <!-- Lignes SVG vers items -->
     <svg class="absolute overflow-visible pointer-events-none" style="transform: translate(-50%, -50%)" width="1" height="1">
@@ -117,8 +150,10 @@ function itemStyle(i: number, total: number) {
             ? 'bg-[#1c1812]/95 border-[#8b7e66] group-hover:border-[#f2ca50] group-hover:scale-110'
             : 'bg-[#1c1812]/70 border-[#8b7e66]/25 opacity-40'"
         >
-          <span v-if="entry.icon.length > 2" class="text-[18px]">{{ entry.icon }}</span>
-          <span v-else class="material-symbols-outlined text-[19px]" :class="!entry.disabled ? 'text-[#d4c59f]' : 'text-white/30'">{{ entry.icon }}</span>
+          <span
+            class="material-symbols-outlined text-[20px]"
+            :class="iconColor(entry)"
+          >{{ entry.iconMaterial }}</span>
         </div>
         <span
           class="text-[8px] font-bold uppercase tracking-wide whitespace-nowrap"

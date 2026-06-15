@@ -60,6 +60,7 @@ export type GamePlayerState = {
   eliminated?: boolean;
   bridgeCharges?: number;
   portFishingBoats?: Record<string, number>; // key: "${x}_${y}"
+  portTransports?: Record<string, number>;   // key: "${x}_${y}"
   maritimeCharges?: number;
   isBot?: boolean;
 };

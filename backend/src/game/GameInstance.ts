@@ -560,6 +560,8 @@ export class GameInstance {
           const portK = `${index % this.width}_${Math.floor(index / this.width)}`;
           const pfb = (defender as any).portFishingBoats as Record<string, number> | undefined;
           if (pfb) delete pfb[portK];
+          const pt = (defender as any).portTransports as Record<string, number> | undefined;
+          if (pt) { delete pt[portK]; defender.maritimeCharges = Object.values(pt).reduce((s, n) => s + n, 0); }
           // Remove galleons belonging to this port
           this.galleons = this.galleons.filter(g => !(g.playerId === defender.id && g.portKey === portK));
           const remainingPorts = this.buildingCount(defender.id, BuildingType.FishingHut);
@@ -698,14 +700,20 @@ export class GameInstance {
     (player as any).portFishingBoats = pfb;
   }
 
-  buyTransportBoat(userId: string) {
+  buyTransportBoat(userId: string, portPos: Vec2) {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
-    if (!this.hasPort(player.id)) throw new Error("need_port");
+    const portIdx = idx(portPos, this.width);
+    if (this.tileBuildings[portIdx] !== BuildingType.FishingHut || this.tileOwners[portIdx] !== player.id)
+      throw new Error("invalid_port");
     if (player.resources.villagers < 10) throw new Error("not_enough_habitants");
+    const portK = `${portPos.x}_${portPos.y}`;
+    const pt: Record<string, number> = (player as any).portTransports ?? {};
     player.resources.villagers -= 10;
-    player.maritimeCharges = (player.maritimeCharges ?? 0) + 1;
+    pt[portK] = (pt[portK] ?? 0) + 1;
+    (player as any).portTransports = pt;
+    player.maritimeCharges = Object.values(pt).reduce((s, n) => s + n, 0);
   }
 
   buyGalleon(userId: string, portPos: Vec2): GalleonState {
@@ -740,12 +748,28 @@ export class GameInstance {
   }
 
   private findGalleonSpawnPos(portPos: Vec2): Vec2 | null {
-    for (const n of orthogonalNeighbors(portPos).filter(n => inBounds(n, this.width, this.height))) {
-      const ni = idx(n, this.width);
-      if ((this.tileTypes[ni] as TileType) === TileType.Water) {
-        const occupied = this.galleons.some(g => g.x === n.x && g.y === n.y);
-        if (!occupied) return n;
+    // Prefer water tiles 2-4 hops from port so galleons don't overlap fishing boats
+    const visited = new Set<number>();
+    visited.add(idx(portPos, this.width));
+    const queue: Array<{ pos: Vec2; hops: number }> = [{ pos: portPos, hops: 0 }];
+    while (queue.length > 0) {
+      const { pos, hops } = queue.shift()!;
+      for (const n of orthogonalNeighbors(pos)) {
+        if (!inBounds(n, this.width, this.height)) continue;
+        const ni = idx(n, this.width);
+        if (visited.has(ni)) continue;
+        visited.add(ni);
+        if ((this.tileTypes[ni] as TileType) !== TileType.Water) continue;
+        const newHops = hops + 1;
+        if (newHops >= 2 && !this.galleons.some(g => g.x === n.x && g.y === n.y)) return n;
+        if (newHops < 5) queue.push({ pos: n, hops: newHops });
       }
+    }
+    // Fallback to adjacent
+    for (const n of orthogonalNeighbors(portPos)) {
+      if (!inBounds(n, this.width, this.height)) continue;
+      const ni = idx(n, this.width);
+      if ((this.tileTypes[ni] as TileType) === TileType.Water && !this.galleons.some(g => g.x === n.x && g.y === n.y)) return n;
     }
     return null;
   }
