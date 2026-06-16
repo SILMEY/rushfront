@@ -16,6 +16,8 @@ import SectionTitle from "../components/game/SectionTitle.vue";
 import RadialMenu    from "../components/game/RadialMenu.vue";
 import PortMenu      from "../components/game/PortMenu.vue";
 import MaritimeMenu  from "../components/game/MaritimeMenu.vue";
+import BarracksMenu  from "../components/game/BarracksMenu.vue";
+import ForestMenu    from "../components/game/ForestMenu.vue";
 import { useGameStore } from "../stores/gameStore";
 
 const route  = useRoute();
@@ -128,6 +130,35 @@ watch(
   />
 
   <!-- Menu port -->
+  <PortMenu
+    v-if="game.portMenu && game.state"
+    :state="game.state"
+    :tile="game.portMenu.tile"
+    :client-x="game.portMenu.clientX"
+    :client-y="game.portMenu.clientY"
+    @buy-fishing-boat="() => { game.buyFishingBoat(game.state!.gameId, game.portMenu!.tile); game.portMenu = null; }"
+  />
+
+  <!-- Menu caserne -->
+  <BarracksMenu
+    v-if="game.barracksMenu && game.state"
+    :state="game.state"
+    :tile="game.barracksMenu.tile"
+    :client-x="game.barracksMenu.clientX"
+    :client-y="game.barracksMenu.clientY"
+    @close="game.barracksMenu = null"
+  />
+
+  <!-- Menu forêt (Elfes) -->
+  <ForestMenu
+    v-if="game.forestMenu && game.state"
+    :state="game.state"
+    :tile="game.forestMenu.tile"
+    :client-x="game.forestMenu.clientX"
+    :client-y="game.forestMenu.clientY"
+    @close="game.forestMenu = null"
+  />
+
   <PortMenu
     v-if="game.portMenu && game.state"
     :state="game.state"

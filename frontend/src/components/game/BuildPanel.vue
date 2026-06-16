@@ -41,6 +41,8 @@ type BuildItem = {
   production?: string;
 };
 
+const isAurelian = computed(() => me.value?.civilization === "aurelian_empire");
+
 const items = computed<BuildItem[]>(() => [
   { type: BuildingType.Sawmill,    label: "sawmill",    icon: "forest",        wood: sawmillWoodCost.value, stone: 0,   villagers: 0, production: "+30/min 🪵" },
   { type: BuildingType.Mine,       label: "mine",       icon: "construction",  wood: 10,  stone: 0,   villagers: 0, production: "+30/min 🪨" },
@@ -49,6 +51,7 @@ const items = computed<BuildItem[]>(() => [
   { type: BuildingType.University, label: "university", icon: "history_edu",   wood: 20,  stone: 20,  villagers: 0 },
   { type: BuildingType.City,       label: "city",       icon: "location_city", wood: 40,  stone: 80,  villagers: 0 },
   { type: BuildingType.Wonder,     label: "wonder",     icon: "temple_hindu",  wood: 150, stone: 300, villagers: 0 },
+  ...(isAurelian.value ? [{ type: BuildingType.Catapult, label: "catapult", icon: "target", wood: 30, stone: 20, villagers: 0 }] : []),
 ]);
 
 const hoveredItem = ref<BuildItem | null>(null);

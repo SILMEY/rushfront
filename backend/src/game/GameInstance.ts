@@ -17,12 +17,18 @@ import {
   type BuildIntent,
   type CivilizationId,
   type GalleonState,
+  type LandUnitState,
   type GamePlayerState,
   type GameStateSnapshot,
   type TileChange,
   type Vec2
 } from "./types.js";
-import { buildCost, idx, inBounds, orthogonalNeighbors, GALLEON_COST, GALLEON_HP, GALLEON_MAX_PER_PORT, GALLEON_ATTACK_RANGE } from "./rules.js";
+import {
+  buildCost, idx, inBounds, orthogonalNeighbors,
+  GALLEON_COST, GALLEON_HP, GALLEON_MAX_PER_PORT, GALLEON_ATTACK_RANGE,
+  LAND_UNIT_COST, LAND_UNIT_MAX_PER_BARRACKS, CATAPULT_FIRE_INTERVAL_MS, CATAPULT_RANGE,
+  CURSE_FOREST_COOLDOWN_MS, landUnitHP, landUnitDamage
+} from "./rules.js";
 import { applyProduction } from "./turnResolver.js";
 import { TECHS, isTechId } from "./tech.js";
 
@@ -53,6 +59,9 @@ export class GameInstance {
   onBotAction:         ((changes: TileChange[], players: ResourcePatch[], wonders: Array<{ playerId: string; endsAt: number }>) => void) | null = null;
   onGameStart:         (() => void) | null = null;
   onGalleonUpdate:     ((galleons: GalleonState[], fires: Array<{ from: Vec2; to: Vec2 }>) => void) | null = null;
+  onLandUnitsUpdate:   ((units: LandUnitState[]) => void) | null = null;
+  onCatapultFire:      ((center: Vec2, neutralized: TileChange[]) => void) | null = null;
+  onCurseApplied:      ((changes: TileChange[], playerId: string) => void) | null = null;
 
   placingEndsAt = 0;
 
@@ -62,6 +71,9 @@ export class GameInstance {
 
   galleons: GalleonState[] = [];
   private galleonTickCounter = 0;
+
+  landUnits: LandUnitState[] = [];
+  private catapultLastFired = new Map<number, number>(); // tileIdx → last fire timestamp
 
   // O(1) building presence cache — avoids O(n) tileBuildings.some() scans
   private _buildingCounts = new Map<string, Map<number, number>>();
@@ -184,9 +196,26 @@ export class GameInstance {
 
         // Tick galions toutes les 2 secondes
         this.galleonTickCounter++;
-        if (this.galleonTickCounter % 2 === 0 && this.galleons.length > 0) {
-          const { fires } = this.tickGalleons();
-          this.onGalleonUpdate?.(this.galleons, fires);
+        if (this.galleonTickCounter % 2 === 0) {
+          if (this.galleons.length > 0) {
+            const { fires } = this.tickGalleons();
+            this.onGalleonUpdate?.(this.galleons, fires);
+          }
+          if (this.landUnits.length > 0) {
+            this.tickLandUnits();
+            this.onLandUnitsUpdate?.(this.landUnits);
+          }
+        }
+        // Tick catapultes toutes les secondes
+        if (this.catapultLastFired.size > 0) {
+          const now2 = Date.now();
+          for (const [tileIdx, lastFired] of this.catapultLastFired) {
+            if (now2 - lastFired >= CATAPULT_FIRE_INTERVAL_MS) {
+              const result = this.fireCatapult(tileIdx);
+              this.catapultLastFired.set(tileIdx, now2);
+              if (result.length > 0) this.onCatapultFire?.({ x: tileIdx % this.width, y: Math.floor(tileIdx / this.width) }, result);
+            }
+          }
         }
       } catch (err) {
         console.error("[production tick]", err);
@@ -249,6 +278,10 @@ export class GameInstance {
       changes.push({ x: i % this.width, y: Math.floor(i / this.width), owner: null, building: null });
     }
     this._tilesByPlayer.delete(playerId);
+    this.landUnits = this.landUnits.filter(u => u.playerId !== playerId);
+    for (const [ti] of this.catapultLastFired) {
+      if (this.tileOwners[ti] === null) this.catapultLastFired.delete(ti);
+    }
 
     this.onPlayerEliminated?.(playerId, changes);
     this.checkGameOver();
@@ -359,7 +392,8 @@ export class GameInstance {
         buildings: this.tileBuildings
       },
       brouillage,
-      galleons: this.galleons
+      galleons: this.galleons,
+      landUnits: this.landUnits
     };
   }
 
@@ -548,10 +582,9 @@ export class GameInstance {
     if (capturedBuilding != null) {
       this._removeBuilding(defender.id, capturedBuilding);
 
-      if (capturedBuilding === BuildingType.Mine || capturedBuilding === BuildingType.Sawmill) {
-        // Bâtiments de production détruits à la capture (défenseur perd la production,
-        // attaquant reçoit une case vide — symétrie avec la perte des bateaux)
+      if (capturedBuilding === BuildingType.Mine || capturedBuilding === BuildingType.Sawmill || capturedBuilding === BuildingType.Catapult) {
         this.tileBuildings[index] = null;
+        if (capturedBuilding === BuildingType.Catapult) this.catapultLastFired.delete(index);
       } else {
         // Tous les autres bâtiments (caserne, université, port…) passent à l'attaquant
         this._addBuilding(player.id, capturedBuilding);
@@ -615,6 +648,11 @@ export class GameInstance {
     if (intent.building === BuildingType.Wonder) {
       if (this.wonders.some(w => w.playerId === player.id)) throw new Error("wonder_already_built");
     }
+    // Catapulte : Aurélien seulement, 1 seule par joueur
+    if (intent.building === BuildingType.Catapult) {
+      if (player.civilization !== "aurelian_empire") throw new Error("wrong_civilization");
+      if (this.buildingCount(player.id, BuildingType.Catapult) > 0) throw new Error("catapult_already_built");
+    }
 
     const cost = buildCost(intent.building, this.buildingCount(player.id, intent.building));
     if (player.resources.wood < cost.wood || player.resources.stone < cost.stone)
@@ -645,6 +683,11 @@ export class GameInstance {
         }
       }, WONDER_MS);
       this.wonderTimers.set(player.id, timer);
+    }
+
+    // Catapulte : démarrer le timer de tir
+    if (intent.building === BuildingType.Catapult) {
+      this.catapultLastFired.set(tileIndex, Date.now());
     }
 
     return { x: intent.x, y: intent.y, owner: player.id, building: intent.building };
@@ -876,6 +919,203 @@ export class GameInstance {
 
     this.galleons = this.galleons.filter(g => !toDestroy.has(g.id));
     return { fires };
+  }
+
+  // ── Unités terrestres (Cavalerie / Golem) ────────────────────────────────
+
+  buyLandUnit(userId: string, barracksPos: Vec2): LandUnitState {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    const civ = player.civilization;
+    if (civ !== "iron_dwarves" && civ !== "steppe_horde") throw new Error("wrong_civilization");
+    const barracksIdx = idx(barracksPos, this.width);
+    if (this.tileBuildings[barracksIdx] !== BuildingType.Barracks || this.tileOwners[barracksIdx] !== player.id)
+      throw new Error("invalid_barracks");
+    const barracksKey = `${barracksPos.x}_${barracksPos.y}`;
+    if (this.landUnits.filter(u => u.playerId === player.id && u.barracksKey === barracksKey).length >= LAND_UNIT_MAX_PER_BARRACKS)
+      throw new Error("max_units_reached");
+    if (player.resources.wood < LAND_UNIT_COST.wood || player.resources.stone < LAND_UNIT_COST.stone)
+      throw new Error("not_enough_resources");
+    const spawnPos = this.findLandUnitSpawnPos(barracksPos);
+    if (!spawnPos) throw new Error("no_spawn_position");
+    player.resources.wood  -= LAND_UNIT_COST.wood;
+    player.resources.stone -= LAND_UNIT_COST.stone;
+    const unit: LandUnitState = {
+      id: `${player.id}-lu-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+      playerId: player.id,
+      civilization: civ,
+      barracksKey,
+      x: spawnPos.x,
+      y: spawnPos.y,
+      hp: landUnitHP(civ)
+    };
+    this.landUnits.push(unit);
+    return unit;
+  }
+
+  private findLandUnitSpawnPos(barracksPos: Vec2): Vec2 | null {
+    for (const n of orthogonalNeighbors(barracksPos)) {
+      if (!inBounds(n, this.width, this.height)) continue;
+      const ni = idx(n, this.width);
+      if ((this.tileTypes[ni] as TileType) === TileType.Water) continue;
+      if (this.tileBuildings[ni] !== null) continue;
+      if (!this.landUnits.some(u => u.x === n.x && u.y === n.y)) return n;
+    }
+    return null;
+  }
+
+  private landBFS(from: Vec2, to: Vec2): Vec2 | null {
+    if (from.x === to.x && from.y === to.y) return null;
+    const visited = new Set<number>();
+    const queue: Array<{ pos: Vec2; first: Vec2 | null }> = [{ pos: from, first: null }];
+    visited.add(idx(from, this.width));
+    while (queue.length > 0) {
+      const { pos, first } = queue.shift()!;
+      for (const n of orthogonalNeighbors(pos)) {
+        if (!inBounds(n, this.width, this.height)) continue;
+        const ni = idx(n, this.width);
+        if (visited.has(ni)) continue;
+        visited.add(ni);
+        if ((this.tileTypes[ni] as TileType) === TileType.Water) continue;
+        const step = first ?? n;
+        if (n.x === to.x && n.y === to.y) return step;
+        queue.push({ pos: n, first: step });
+      }
+    }
+    return null;
+  }
+
+  private findLandUnitTarget(unit: LandUnitState): Vec2 | null {
+    let nearest: Vec2 | null = null;
+    let nearestDist = Infinity;
+    for (let i = 0; i < this.tileOwners.length; i++) {
+      const owner = this.tileOwners[i];
+      if (!owner || owner === unit.playerId) continue;
+      if ((this.tileTypes[i] as TileType) === TileType.Water) continue;
+      const pos = { x: i % this.width, y: Math.floor(i / this.width) };
+      const dist = Math.hypot(pos.x - unit.x, pos.y - unit.y);
+      if (dist < nearestDist) { nearestDist = dist; nearest = pos; }
+    }
+    return nearest;
+  }
+
+  tickLandUnits() {
+    const toDestroy = new Set<string>();
+    for (const unit of this.landUnits) {
+      if (toDestroy.has(unit.id)) continue;
+
+      // Dégâts aux soldats ennemis adjacents
+      for (const n of orthogonalNeighbors({ x: unit.x, y: unit.y })) {
+        if (!inBounds(n, this.width, this.height)) continue;
+        const owner = this.tileOwners[idx(n, this.width)];
+        if (owner && owner !== unit.playerId) {
+          const enemy = this.players.find(p => p.id === owner);
+          if (enemy) {
+            enemy.resources.soldiers = Math.max(0, enemy.resources.soldiers - landUnitDamage(unit.civilization));
+            break;
+          }
+        }
+      }
+
+      // Mort passive : dégâts basés sur les soldats ennemis autour
+      let enemySoldiers = 0;
+      for (const n of [{ x: unit.x, y: unit.y }, ...orthogonalNeighbors({ x: unit.x, y: unit.y })]) {
+        if (!inBounds(n, this.width, this.height)) continue;
+        const owner = this.tileOwners[idx(n, this.width)];
+        if (owner && owner !== unit.playerId) {
+          const enemy = this.players.find(p => p.id === owner);
+          if (enemy) enemySoldiers += enemy.resources.soldiers;
+        }
+      }
+      const passiveDmg = Math.floor(enemySoldiers / 30);
+      if (passiveDmg > 0) {
+        unit.hp -= passiveDmg;
+        if (unit.hp <= 0) { toDestroy.add(unit.id); continue; }
+      }
+
+      // Déplacement vers la cible
+      const target = this.findLandUnitTarget(unit);
+      if (target) {
+        const next = this.landBFS({ x: unit.x, y: unit.y }, target);
+        if (next && !this.landUnits.some(u => u.id !== unit.id && u.x === next.x && u.y === next.y)) {
+          unit.x = next.x;
+          unit.y = next.y;
+        }
+      }
+    }
+    this.landUnits = this.landUnits.filter(u => !toDestroy.has(u.id));
+  }
+
+  // ── Catapulte (Empire d'Aurélien) ─────────────────────────────────────────
+
+  private fireCatapult(catapultTileIdx: number): TileChange[] {
+    const catPos = { x: catapultTileIdx % this.width, y: Math.floor(catapultTileIdx / this.width) };
+    const catOwner = this.tileOwners[catapultTileIdx];
+    if (!catOwner) return [];
+
+    // Trouver le meilleur groupe de 7 cases ennemi dans le rayon
+    let bestCenter: Vec2 | null = null;
+    let bestCount = 0;
+    for (let i = 0; i < this.tileOwners.length; i++) {
+      if (this.tileOwners[i] === catOwner || this.tileOwners[i] === null) continue;
+      const c = { x: i % this.width, y: Math.floor(i / this.width) };
+      if (Math.hypot(c.x - catPos.x, c.y - catPos.y) > CATAPULT_RANGE) continue;
+      const group = [c, ...orthogonalNeighbors(c).filter(n => inBounds(n, this.width, this.height))];
+      const count = group.filter(t => {
+        const o = this.tileOwners[idx(t, this.width)];
+        return o && o !== catOwner;
+      }).length;
+      if (count > bestCount) { bestCount = count; bestCenter = c; }
+    }
+    if (!bestCenter || bestCount === 0) return [];
+
+    // Neutraliser le groupe
+    const changes: TileChange[] = [];
+    const group = [bestCenter, ...orthogonalNeighbors(bestCenter).filter(n => inBounds(n, this.width, this.height))];
+    for (const tile of group) {
+      const ti = idx(tile, this.width);
+      const prev = this.tileOwners[ti];
+      if (!prev || prev === catOwner) continue;
+      if ((this.tileTypes[ti] as TileType) === TileType.Water) continue;
+      this._removeTile(prev, ti);
+      const b = this.tileBuildings[ti];
+      if (b !== null) { this._removeBuilding(prev, b); this.tileBuildings[ti] = null; }
+      this.tileOwners[ti] = null;
+      changes.push({ x: tile.x, y: tile.y, owner: null, building: null });
+    }
+    return changes;
+  }
+
+  // ── Forêt maudite (Elfes Sylvains) ────────────────────────────────────────
+
+  cursedForest(userId: string, forestPos: Vec2): TileChange[] {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    if (player.civilization !== "sylvan_elves") throw new Error("wrong_civilization");
+    const fi = idx(forestPos, this.width);
+    if ((this.tileTypes[fi] as TileType) !== TileType.Forest) throw new Error("not_forest");
+    if (this.tileOwners[fi] !== player.id) throw new Error("must_own_tile");
+    const cooldownEnds = (player as any).cursedForestCooldownEnds ?? 0;
+    if (Date.now() < cooldownEnds) throw new Error("cooldown_active");
+
+    const changes: TileChange[] = [];
+    for (const n of orthogonalNeighbors(forestPos)) {
+      if (!inBounds(n, this.width, this.height)) continue;
+      const ni = idx(n, this.width);
+      if ((this.tileTypes[ni] as TileType) === TileType.Water) continue;
+      const prev = this.tileOwners[ni];
+      if (!prev || prev === player.id) continue;
+      this._removeTile(prev, ni);
+      const b = this.tileBuildings[ni];
+      if (b !== null) { this._removeBuilding(prev, b); this.tileBuildings[ni] = null; }
+      this.tileOwners[ni] = player.id;
+      this._addTile(player.id, ni);
+      changes.push({ x: n.x, y: n.y, owner: player.id, building: null });
+    }
+    (player as any).cursedForestCooldownEnds = Date.now() + CURSE_FOREST_COOLDOWN_MS;
+    return changes;
   }
 
   // Débarquement maritime : case côtière neutre (settler) ou ennemie (assaut)

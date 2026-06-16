@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { BrouillagePatchEvent, GameOverEvent, GalleonState, GameStateSnapshot, PlayerEliminatedEvent, PlayerUpdateEvent, ResourceUpdateEvent, TileUpdateEvent, Vec2 } from "../types/game";
+import type { BrouillagePatchEvent, GameOverEvent, GalleonState, LandUnitState, LandUnitsUpdateEvent, CatapultFireEvent, GameStateSnapshot, PlayerEliminatedEvent, PlayerUpdateEvent, ResourceUpdateEvent, TileUpdateEvent, Vec2 } from "../types/game";
 import { BuildingType, TileType } from "../types/game";
 import { getSocket } from "../composables/useSocket";
 import { useAuthStore } from "./authStore";
@@ -57,6 +57,10 @@ export const useGameStore = defineStore("game", {
     maritimeAnimations: [] as Array<{ id: string; path: Vec2[]; step: number; isOwn: boolean; gameId: string; targetPos: Vec2 }>,
     galleons: [] as GalleonState[],
     cannonballs: [] as Array<{ id: string; from: Vec2; to: Vec2; startedAt: number }>,
+    landUnits: [] as LandUnitState[],
+    catapultFlashes: [] as Array<{ center: Vec2; startedAt: number }>,
+    barracksMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
+    forestMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
     stateRevision: 0   // incremented on every mutation — watched instead of deep state
   }),
   getters: {
@@ -74,6 +78,7 @@ export const useGameStore = defineStore("game", {
       socket.on("game:state", (snapshot: GameStateSnapshot) => {
         this.state = snapshot;
         this.galleons = snapshot.galleons ?? [];
+        this.landUnits = snapshot.landUnits ?? [];
         this.currentGameId = snapshot.gameId;
         this.optimisticClaims = {};
         if (snapshot.status !== "FINISHED") this.gameOver = null;
@@ -101,6 +106,7 @@ export const useGameStore = defineStore("game", {
             if (p.maritimeCharges   !== undefined) player.maritimeCharges   = p.maritimeCharges;
             if (p.portFishingBoats  !== undefined) player.portFishingBoats  = p.portFishingBoats;
             if (p.portTransports    !== undefined) player.portTransports    = p.portTransports;
+            if ((p as any).cursedForestCooldownEnds !== undefined) (player as any).cursedForestCooldownEnds = (p as any).cursedForestCooldownEnds;
           }
         }
         if (event.wonders !== undefined) this.state.wonders = event.wonders;
@@ -129,6 +135,25 @@ export const useGameStore = defineStore("game", {
         if (!this.currentGameId) return;
         const targetPos = event.path[event.path.length - 1] ?? { x: 0, y: 0 };
         this._startBoatAnimation(event.animId, event.path, this.currentGameId, false, targetPos);
+      });
+
+      socket.on("game:land_units_update", (event: LandUnitsUpdateEvent) => {
+        if (this.state) this.state.landUnits = event.units;
+        this.landUnits = event.units;
+        this.stateRevision++;
+      });
+
+      socket.on("game:catapult_fire", (event: CatapultFireEvent) => {
+        if (!this.state) return;
+        this.catapultFlashes.push({ center: event.center, startedAt: Date.now() });
+        const now = Date.now();
+        this.catapultFlashes = this.catapultFlashes.filter(f => now - f.startedAt < 3000);
+        for (const ch of event.changes) {
+          const i = tileIndex(ch.x, ch.y, this.state.width);
+          this.state.tiles.owners[i] = ch.owner;
+          this.state.tiles.buildings[i] = ch.building;
+        }
+        this.stateRevision++;
       });
 
       socket.on("game:galleons_update", (event: { galleons: GalleonState[]; fires: Array<{ from: Vec2; to: Vec2 }> }) => {
@@ -298,6 +323,16 @@ export const useGameStore = defineStore("game", {
       socket.emit("game:buy_galleon", { gameId, portX: portPos.x, portY: portPos.y });
     },
 
+    async buyLandUnit(gameId: string, barracksPos: Vec2) {
+      const socket = await getSocket();
+      socket.emit("game:buy_land_unit", { gameId, barracksX: barracksPos.x, barracksY: barracksPos.y });
+    },
+
+    async curseForest(gameId: string, forestPos: Vec2) {
+      const socket = await getSocket();
+      socket.emit("game:curse_forest", { gameId, x: forestPos.x, y: forestPos.y });
+    },
+
     async maritimeLand(gameId: string, pos: Vec2) {
       this.maritimeLandingMode = false;
 
@@ -409,6 +444,21 @@ export const useGameStore = defineStore("game", {
         if (this.state.tiles.buildings[i] === BuildingType.FishingHut) {
           this.portMenu = { tile: pos, clientX, clientY };
           return;
+        }
+        // Caserne → menu unités terrestres (Nains / Horde seulement)
+        if (this.state.tiles.buildings[i] === BuildingType.Barracks) {
+          const civ = this.mePlayer?.civilization;
+          if (civ === "iron_dwarves" || civ === "steppe_horde") {
+            this.barracksMenu = { tile: pos, clientX, clientY };
+            return;
+          }
+        }
+        // Forêt → menu malédiction (Elfes seulement)
+        if ((this.state.tiles.types[i] as TileType) === TileType.Forest) {
+          if (this.mePlayer?.civilization === "sylvan_elves") {
+            this.forestMenu = { tile: pos, clientX, clientY };
+            return;
+          }
         }
         // Case plain vide → menu de construction
         if ((this.state.tiles.types[i] as TileType) === TileType.Plain && this.state.tiles.buildings[i] === null) {

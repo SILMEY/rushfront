@@ -66,6 +66,15 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
         instance.onGalleonUpdate = (galleons, fires) => {
           io.to(room).emit("game:galleons_update", { galleons, fires });
         };
+        instance.onLandUnitsUpdate = (units) => {
+          io.to(room).emit("game:land_units_update", { units });
+        };
+        instance.onCatapultFire = (center, changes) => {
+          io.to(room).emit("game:catapult_fire", { center, changes });
+        };
+        instance.onCurseApplied = (changes, playerId) => {
+          io.to(room).emit("game:curse_applied", { changes, playerId });
+        };
       }
       // Wonder victory already fires through onGameOver
 
@@ -234,6 +243,33 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }
+  });
+
+  // ── Unités terrestres ────────────────────────────────────────────────────
+
+  socket.on("game:buy_land_unit", (payload: { gameId: string; barracksX: number; barracksY: number }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = getInstance(gameManager, payload.gameId);
+      instance.buyLandUnit(userId, { x: payload.barracksX, y: payload.barracksY });
+      const player = instance.getPlayerByUserId(userId)!;
+      io.to(`game:${payload.gameId}`).emit("game:land_units_update", { units: instance.landUnits });
+      socket.emit("game:player_update", { player: { id: player.id, resources: player.resources } });
+    } catch (e: any) { socket.emit("game:error", { error: e?.message ?? "unknown_error" }); }
+  });
+
+  socket.on("game:curse_forest", (payload: { gameId: string; x: number; y: number }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = getInstance(gameManager, payload.gameId);
+      const changes = instance.cursedForest(userId, { x: payload.x, y: payload.y });
+      const player = instance.getPlayerByUserId(userId)!;
+      io.to(`game:${payload.gameId}`).emit("game:tile_update", {
+        changes,
+        players: [{ id: player.id, resources: player.resources, cursedForestCooldownEnds: (player as any).cursedForestCooldownEnds }]
+      });
+      instance.onCurseApplied?.(changes, player.id);
+    } catch (e: any) { socket.emit("game:error", { error: e?.message ?? "unknown_error" }); }
   });
 
   // ── Galions ───────────────────────────────────────────────────────────────

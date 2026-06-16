@@ -14,7 +14,8 @@ export enum BuildingType {
   University = 6,
   City = 7,
   Wonder = 8,
-  Bridge = 9
+  Bridge = 9,
+  Catapult = 10
 }
 
 export type Vec2 = { x: number; y: number };
@@ -23,6 +24,16 @@ export type GalleonState = {
   id: string;
   playerId: string;
   portKey: string;
+  x: number;
+  y: number;
+  hp: number;
+};
+
+export type LandUnitState = {
+  id: string;
+  playerId: string;
+  civilization: string;
+  barracksKey: string;
   x: number;
   y: number;
   hp: number;
@@ -52,6 +63,7 @@ export type GamePlayerState = {
   portFishingBoats?: Record<string, number>; // key: "${x}_${y}"
   portTransports?: Record<string, number>;   // key: "${x}_${y}"
   maritimeCharges?: number;
+  cursedForestCooldownEnds?: number;
 };
 
 export type GameStateSnapshot = {
@@ -70,7 +82,12 @@ export type GameStateSnapshot = {
   };
   brouillage: Array<{ casterPlayerId: string; x: number; y: number; expiresAt: number }>;
   galleons: GalleonState[];
+  landUnits: LandUnitState[];
 };
+
+export type LandUnitsUpdateEvent = { units: LandUnitState[] };
+export type CatapultFireEvent    = { center: Vec2; changes: TileChangePatch[] };
+export type CurseAppliedEvent    = { changes: TileChangePatch[]; playerId: string };
 
 export type PlayerEliminatedEvent = {
   playerId: string;

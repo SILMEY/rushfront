@@ -223,6 +223,8 @@ export default {
     click_port_hint: "Right-click a port to buy ⛵ and ⚓",
   },
   build_panel: {
+    catapult: "Catapult",
+    catapult_hint: "Aurelian Empire only. Fires every 60 seconds at the nearest enemy tile cluster (range 15). Destroyed if its tile is captured.",
     sawmill: "Sawmill",
     sawmill_hint: "Must be adjacent to a forest. Produces +30 wood/min per adjacent forest (max 3 forests = +90/min).",
     mine: "Mine",

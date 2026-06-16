@@ -4,6 +4,7 @@ export default {
     back_to_game: "Zurück zum Spiel",
     games: "SPIELE",
     leaderboards: "RANGLISTE",
+    tutorial: "ANLEITUNG",
     profile: "Mein Profil",
     login: "Anmelden",
     logout: "Abmelden",
@@ -219,6 +220,7 @@ export default {
     transport_cost: "10 Bew.",
     fishing_rate: "+{n} Bew./s",
     context_hint: "Lange drücken auf Hafen zum Kaufen · Küstenfeld drücken zum Landen",
+    click_port_hint: "Rechtsklick auf einen Hafen, um ⛵ und ⚓ zu kaufen",
   },
   build_panel: {
     sawmill: "Sägewerk",
@@ -300,5 +302,57 @@ export default {
   },
   canvas: {
     label: "Spielkarte — lange drücken, um das Menü zu öffnen",
+  },
+  tutorial: {
+    title: "Spielanleitung",
+    subtitle: "Lerne, wie du eroberst, baust und dominierst. Dieser Leitfaden deckt alles ab, was du für deine erste Partie brauchst.",
+    play_now: "Jetzt spielen",
+
+    resources_title: "Ressourcen",
+    resources_intro: "Die Leiste oben auf dem Bildschirm zeigt deine Ressourcen in Echtzeit. Alles im Spiel wird mit diesen vier Ressourcen gebaut oder gekauft.",
+    wood: "Holz",
+    wood_desc: "Von Sägewerken produziert. Für fast alles notwendig.",
+    stone: "Stein",
+    stone_desc: "Von Minen produziert. Für fortgeschrittene Gebäude erforderlich.",
+    villagers: "Einwohner",
+    villagers_desc: "Wachsen von Natur aus. Die Quelle von allem — Arbeiter, Soldaten, Seeleute.",
+    soldiers: "Soldaten",
+    soldiers_desc: "Aus Einwohnern über den Militärregler umgewandelt. Werden zum Angreifen und Verteidigen verwendet.",
+
+    expand_title: "Gebiet erweitern",
+    expand_text: "Klicke mit der rechten Maustaste auf ein leeres Feld neben deinem Gebiet, um es zu beanspruchen. Je mehr Felder du besitzt, desto höher ist deine maximale Bevölkerung und desto mehr Ressourcen produzierst du passiv. Wälder, Steinbrüche und Küsten sind strategische Standorte, die du zuerst sichern solltest.",
+
+    buildings_title: "Gebäudeprogression",
+    buildings_intro: "Baue der Reihe nach, um Macht zu gewinnen. Klicke mit der rechten Maustaste auf ein leeres Feld in deinem Gebiet, um das Baumenü zu öffnen.",
+    sawmill: "Sägewerk",
+    sawmill_desc: "Muss an einem Wald angrenzen. Produziert passiv Holz. Dein erstes Pflichtgebäude.",
+    mine: "Mine",
+    mine_desc: "Muss an einem Steinbruch angrenzen. Produziert Stein. Für alles danach notwendig.",
+    barracks: "Kaserne",
+    barracks_desc: "Schaltet die Umwandlung Einwohner → Soldaten frei. Ohne Kaserne kannst du keine Soldaten haben.",
+    university: "Universität",
+    university_desc: "Ermöglicht den Kauf von Technologien, die Produktion, Kampf oder Verteidigung verbessern.",
+    city: "Stadt",
+    city_desc: "Erhöht die Bevölkerungskapazität massiv (+500 max. Bev.). Unverzichtbar im späten Spiel.",
+    wonder: "Weltwunder",
+    wonder_desc: "Sieg! Wenn dein Weltwunder 10 Minuten lang nicht zerstört wird, gewinnst du die Partie.",
+
+    combat_title: "Kampf & Angriff",
+    combat_text1: "Um ein feindliches Feld neben deinem Gebiet anzugreifen, klicke einfach mit der rechten Maustaste darauf. Deine Soldaten greifen automatisch an. Je mehr Soldaten du hast und je höher deine Militärdichte ist, desto mehr Verluste fügst du dem Feind zu.",
+    combat_text2: "Wenn der Feind wenig Soldaten auf seinem Land hat, ist die Eroberung schnell. Wenn er gut verteidigt ist, kostet jedes Feld viel. Konzentriere deine Kräfte auf eine schmale Front, anstatt entlang der gesamten Linie anzugreifen.",
+    combat_tip: "Tipp: Stelle den Militärregler vor dem Angriff auf 80-100%, dann senke ihn wieder, um nach der Eroberung Einwohner aufzufüllen.",
+
+    naval_title: "Meer & Häfen",
+    fishing_boat: "Fischerboot",
+    fishing_boat_desc: "Erhöht das Einwohnerwachstum. Max. 3 pro Hafen. Rechtsklick auf einen Hafen, um eines zu kaufen.",
+    transport: "Transport",
+    transport_desc: "Ermöglicht das Landen von Soldaten an einer feindlichen Küste. Amphibischer Angriff vom Meer aus.",
+    galleon: "Galeone",
+    galleon_desc: "Autonomes Kriegsschiff. Verfolgt und beschießt feindliche Schiffe automatisch. 25🪵 15🪨.",
+
+    naval_hint: "Rechtsklick auf einen deiner Häfen, um Fischerboote oder Kampfgaleonen zu kaufen.",
+
+    victory_title: "Siegbedingungen",
+    victory_text: "Der Sieg wird durch den Bau eines Weltwunders und dessen Erhalt für 10 Minuten erzielt. Der Feind kann dein Weltwunder zerstören, indem er das Feld einnimmt, auf dem es steht — verteidige es! Alternativ kannst du alle Gegner eliminieren, indem du ihre Basis eroberst.",
   },
 };

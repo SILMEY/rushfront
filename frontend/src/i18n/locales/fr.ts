@@ -223,6 +223,8 @@ export default {
     click_port_hint: "Clic droit sur un port pour acheter ⛵ et ⚓",
   },
   build_panel: {
+    catapult: "Catapulte",
+    catapult_hint: "Empire d'Aurélien uniquement. Tire toutes les 60 secondes sur le groupe de cases ennemies le plus proche (rayon 15). Détruite si sa case est capturée.",
     sawmill: "Scierie",
     sawmill_hint: "Doit être adjacente à une forêt. Produit +30 bois/min par forêt adjacente (max 3 forêts = +90/min).",
     mine: "Mine",

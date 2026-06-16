@@ -4,6 +4,7 @@ export default {
     back_to_game: "Volver a la partida",
     games: "PARTIDAS",
     leaderboards: "CLASIFICACIÓN",
+    tutorial: "GUÍA",
     profile: "Mi perfil",
     login: "Iniciar sesión",
     logout: "Cerrar sesión",
@@ -219,6 +220,7 @@ export default {
     transport_cost: "10 pob.",
     fishing_rate: "+{n} pob./s",
     context_hint: "Mantén pulsado un puerto para comprar · Pulsa una casilla costera para desembarcar",
+    click_port_hint: "Clic derecho en un puerto para comprar ⛵ y ⚓",
   },
   build_panel: {
     sawmill: "Aserradero",
@@ -300,5 +302,57 @@ export default {
   },
   canvas: {
     label: "Mapa del juego — mantén pulsado para abrir el menú",
+  },
+  tutorial: {
+    title: "Guía del juego",
+    subtitle: "Aprende a conquistar, construir y dominar. Esta guía cubre todo lo que necesitas para tu primera partida.",
+    play_now: "Jugar ahora",
+
+    resources_title: "Los recursos",
+    resources_intro: "La barra en la parte superior de la pantalla muestra tus recursos en tiempo real. Todo en el juego se construye o compra con estos cuatro recursos.",
+    wood: "Madera",
+    wood_desc: "Producida por los aserraderos. Necesaria para casi todo.",
+    stone: "Piedra",
+    stone_desc: "Producida por las minas. Requerida para edificios avanzados.",
+    villagers: "Habitantes",
+    villagers_desc: "Crecen de forma natural. La fuente de todo — trabajadores, soldados, marineros.",
+    soldiers: "Soldados",
+    soldiers_desc: "Convertidos desde habitantes con el control militar. Sirven para atacar y defender.",
+
+    expand_title: "Expandir tu territorio",
+    expand_text: "Haz clic derecho en una casilla vacía adyacente a tu territorio para reclamarla. Cuantas más casillas poseas, mayor será tu población máxima y más recursos producirás pasivamente. Los bosques, canteras y costas son ubicaciones estratégicas que debes asegurar primero.",
+
+    buildings_title: "Progresión de edificios",
+    buildings_intro: "Construye en orden para ganar poder. Haz clic derecho en una casilla vacía de tu territorio para abrir el menú de construcción.",
+    sawmill: "Aserradero",
+    sawmill_desc: "Debe estar adyacente a un bosque. Produce madera pasiva. Es tu primer edificio obligatorio.",
+    mine: "Mina",
+    mine_desc: "Debe estar adyacente a una cantera. Produce piedra. Necesaria para todo lo que viene después.",
+    barracks: "Cuartel",
+    barracks_desc: "Desbloquea la conversión habitantes → soldados. Sin cuartel, no puedes tener soldados.",
+    university: "Universidad",
+    university_desc: "Permite comprar tecnologías que mejoran tu producción, combate o defensa.",
+    city: "Ciudad",
+    city_desc: "Aumenta masivamente la capacidad de población (+500 pob. máx). Esencial al final de la partida.",
+    wonder: "Maravilla",
+    wonder_desc: "¡Victoria! Si tu maravilla aguanta 10 minutos sin ser destruida, ganas la partida.",
+
+    combat_title: "Combate y ataque",
+    combat_text1: "Para atacar una casilla enemiga adyacente a tu territorio, haz clic derecho sobre ella. Tus soldados se involucran automáticamente. Cuantos más soldados tengas y mayor sea tu densidad militar, más bajas causarás al enemigo.",
+    combat_text2: "Si el enemigo tiene pocos soldados en sus tierras, la conquista es rápida. Si está bien defendido, cada casilla cuesta mucho. Concentra tus fuerzas en un frente estrecho en lugar de atacar en toda la línea.",
+    combat_tip: "Consejo: sube el control militar al 80-100% antes de atacar, luego bájalo para reponer habitantes tras la conquista.",
+
+    naval_title: "Mar y puertos",
+    fishing_boat: "Barco de pesca",
+    fishing_boat_desc: "Aumenta el crecimiento de habitantes. Máx. 3 por puerto. Clic derecho en un puerto para comprar uno.",
+    transport: "Transporte",
+    transport_desc: "Permite desembarcar soldados en una costa enemiga. Ataque anfibio desde el mar.",
+    galleon: "Galeón",
+    galleon_desc: "Barco de guerra autónomo. Persigue y cañonea barcos enemigos automáticamente. 25🪵 15🪨.",
+
+    naval_hint: "Clic derecho en uno de tus puertos para comprar barcos de pesca o galeones de combate.",
+
+    victory_title: "Condiciones de victoria",
+    victory_text: "La victoria se logra construyendo una Maravilla y manteniéndola durante 10 minutos. El enemigo puede destruir tu maravilla capturando la casilla donde está — ¡defiéndela! Alternativamente, puedes eliminar a todos los adversarios conquistando su base.",
   },
 };

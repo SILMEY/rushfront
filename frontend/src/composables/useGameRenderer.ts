@@ -353,6 +353,7 @@ export function useGameRenderer() {
               case BuildingType.Mine:       bIcon = "construction";    bColor = "rgba(255,215,135,0.95)"; break;
               case BuildingType.FishingHut: bIcon = "sailing";         bColor = "rgba(135,215,255,0.95)"; break;
               case BuildingType.Bridge:     bIcon = "water";           bColor = "rgba(251,191,36,0.95)";  break;
+              case BuildingType.Catapult:   bIcon = "target";          bColor = "rgba(251,146,60,0.95)";  break;
             }
             const useEmoji = (bIcon.codePointAt(0) ?? 0) > 127;
             ctx.font = useEmoji
@@ -432,7 +433,37 @@ export function useGameRenderer() {
       ctx.stroke();
     }
 
-    // ── Pass 5: attack warnings (pulsing) ─────────────────────────────────
+    // ── Pass 5: forêt maudite (Elfes — glow vert sur forêts possédées) ──────
+    {
+      const nowF = Date.now();
+      for (const player of state.players) {
+        const cooldownEnds = (player as any).cursedForestCooldownEnds as number | undefined;
+        if (!cooldownEnds) continue;
+        const castAt = cooldownEnds - 60_000;
+        const elapsed = (nowF - castAt) / 1000;
+        if (elapsed > 5) continue; // Animation de 5 secondes après le cast
+        const alpha = Math.max(0, 1 - elapsed / 5) * 0.6;
+        const pulse = 0.5 + 0.5 * Math.sin(elapsed * 8);
+        for (let i = 0; i < state.tiles.owners.length; i++) {
+          if (state.tiles.owners[i] !== player.id) continue;
+          if ((state.tiles.types[i] as TileType) !== TileType.Forest) continue;
+          const col = i % state.width; const row = Math.floor(i / state.width);
+          if (col < x0 || col > x1 || row < y0 || row > y1) continue;
+          const { x: cx, y: cy } = hexCenter(col, row, tileSize);
+          hexPathAt(ctx, cx, cy, R);
+          ctx.fillStyle = `rgba(34,197,94,${alpha * pulse})`;
+          ctx.fill();
+          ctx.save();
+          ctx.shadowColor = "#22c55e"; ctx.shadowBlur = R * 2;
+          hexPathAt(ctx, cx, cy, R * 0.9);
+          ctx.strokeStyle = `rgba(134,239,172,${alpha})`;
+          ctx.lineWidth = 2 / scale; ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }
+
+    // ── Pass 6b: attack warnings (pulsing) ────────────────────────────────
     for (const w of game.attackWarnings) {
       if (w.expiresAt <= now) continue;
       if (w.x < x0 || w.x > x1 || w.y < y0 || w.y > y1) continue;
@@ -654,7 +685,180 @@ export function useGameRenderer() {
       }
     }
 
-    // ── Pass 9: maritime animations (one boat per active landing) ────────────
+    // ── Pass 9: unités terrestres ─────────────────────────────────────────────
+    {
+      const nowL = Date.now();
+      for (const unit of (game.landUnits ?? [])) {
+        if (unit.x < x0 - 1 || unit.x > x1 + 1 || unit.y < y0 - 1 || unit.y > y1 + 1) continue;
+        const { x: cx, y: cy } = hexCenter(unit.x, unit.y, tileSize);
+        const ownerColor = colorByPlayer.get(unit.playerId) ?? "#f2ca50";
+        const bob = Math.sin(nowL / 600 + unit.x * 1.1 + unit.y * 0.9) * R * 0.06;
+        const lw = Math.max(1, 1.5 / scale);
+
+        ctx.save();
+        ctx.translate(cx, cy + bob);
+
+        if (unit.civilization === "steppe_horde") {
+          // ── Cavalier (Horde des Steppes) ──
+          // Ombre
+          ctx.globalAlpha = 0.3;
+          ctx.fillStyle = "#060f28";
+          ctx.beginPath();
+          ctx.ellipse(0, R * 0.55, R * 0.65, R * 0.18, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          // Corps du cheval (ellipse inclinée)
+          ctx.beginPath();
+          ctx.ellipse(R*0.05, R*0.15, R*0.52, R*0.22, Math.PI/10, 0, Math.PI*2);
+          ctx.fillStyle = rgba(ownerColor, 0.85);
+          ctx.fill();
+          ctx.strokeStyle = rgba(ownerColor, 1);
+          ctx.lineWidth = lw;
+          ctx.stroke();
+
+          // Tête du cheval
+          ctx.beginPath();
+          ctx.ellipse(R*0.52, -R*0.05, R*0.18, R*0.14, Math.PI/6, 0, Math.PI*2);
+          ctx.fillStyle = rgba(ownerColor, 0.85);
+          ctx.fill();
+          ctx.stroke();
+
+          // Crinière
+          ctx.beginPath();
+          ctx.moveTo(R*0.05, -R*0.05);
+          ctx.quadraticCurveTo(R*0.25, -R*0.35, R*0.48, -R*0.16);
+          ctx.strokeStyle = rgba(ownerColor, 1);
+          ctx.lineWidth = lw * 2;
+          ctx.stroke();
+
+          // Jambes (4 traits)
+          ctx.lineWidth = lw * 1.3;
+          for (const [lx, ly, ex, ey] of [[-R*.3,R*.3,-R*.28,R*.58],[- R*.1,R*.35,-R*.06,R*.6],[R*.15,R*.33,R*.19,R*.58],[R*.35,R*.28,R*.42,R*.52]] as number[][]) {
+            ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(ex,ey); ctx.stroke();
+          }
+
+          // Cavalier (corps)
+          ctx.fillStyle = rgba(ownerColor, 0.9);
+          ctx.strokeStyle = rgba(ownerColor, 1);
+          ctx.lineWidth = lw;
+          ctx.beginPath();
+          ctx.rect(-R*0.16, -R*0.55, R*0.3, R*0.38);
+          ctx.fill(); ctx.stroke();
+
+          // Tête du cavalier
+          ctx.beginPath();
+          ctx.arc(-R*0.01, -R*0.68, R*0.14, 0, Math.PI*2);
+          ctx.fill(); ctx.stroke();
+
+          // Lance
+          ctx.beginPath();
+          ctx.moveTo(R*0.12, -R*0.6);
+          ctx.lineTo(R*0.55, -R*1.0);
+          ctx.lineWidth = lw * 1.5;
+          ctx.strokeStyle = rgba(ownerColor, 1);
+          ctx.stroke();
+          // Pointe
+          ctx.beginPath();
+          ctx.moveTo(R*0.55, -R*1.0);
+          ctx.lineTo(R*0.45, -R*0.88);
+          ctx.lineTo(R*0.62, -R*0.88);
+          ctx.closePath();
+          ctx.fillStyle = "#fde047";
+          ctx.fill();
+
+        } else {
+          // ── Golem (Nains de Fer) ──
+          const gc = "rgba(160,170,180,0.92)"; // gris métallique
+
+          // Ombre
+          ctx.globalAlpha = 0.3;
+          ctx.fillStyle = "#060f28";
+          ctx.beginPath();
+          ctx.ellipse(0, R*0.75, R*0.55, R*0.16, 0, 0, Math.PI*2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          // Jambes
+          ctx.fillStyle = gc;
+          ctx.strokeStyle = rgba(ownerColor, 0.7);
+          ctx.lineWidth = lw;
+          ctx.fillRect(-R*0.35, R*0.32, R*0.28, R*0.42); ctx.strokeRect(-R*0.35,R*0.32,R*0.28,R*0.42);
+          ctx.fillRect( R*0.07, R*0.32, R*0.28, R*0.42); ctx.strokeRect( R*0.07,R*0.32,R*0.28,R*0.42);
+
+          // Corps
+          ctx.fillStyle = gc;
+          ctx.fillRect(-R*0.42, -R*0.2, R*0.84, R*0.54);
+          ctx.strokeRect(-R*0.42,-R*0.2,R*0.84,R*0.54);
+
+          // Détail corps (owner color stripe)
+          ctx.fillStyle = rgba(ownerColor, 0.6);
+          ctx.fillRect(-R*0.28, -R*0.08, R*0.56, R*0.1);
+
+          // Bras
+          ctx.fillStyle = gc;
+          ctx.fillRect(-R*0.68, -R*0.18, R*0.24, R*0.4); ctx.strokeRect(-R*0.68,-R*0.18,R*0.24,R*0.4);
+          ctx.fillRect( R*0.44, -R*0.18, R*0.24, R*0.4); ctx.strokeRect( R*0.44,-R*0.18,R*0.24,R*0.4);
+
+          // Tête
+          ctx.fillStyle = gc;
+          ctx.fillRect(-R*0.32, -R*0.68, R*0.64, R*0.46);
+          ctx.strokeRect(-R*0.32,-R*0.68,R*0.64,R*0.46);
+
+          // Yeux rouges lumineux
+          ctx.fillStyle = "#ef4444";
+          ctx.fillRect(-R*0.24, -R*0.56, R*0.16, R*0.12);
+          ctx.fillRect( R*0.08, -R*0.56, R*0.16, R*0.12);
+          ctx.save();
+          ctx.shadowColor = "#ef4444"; ctx.shadowBlur = R * 0.8;
+          ctx.fillRect(-R*0.24,-R*0.56,R*0.16,R*0.12);
+          ctx.fillRect( R*0.08,-R*0.56,R*0.16,R*0.12);
+          ctx.restore();
+
+          // Glow owner
+          ctx.save();
+          ctx.shadowColor = ownerColor; ctx.shadowBlur = R * 1.2;
+          ctx.strokeStyle = rgba(ownerColor, 0.6); ctx.lineWidth = lw;
+          ctx.strokeRect(-R*0.42,-R*0.2,R*0.84,R*0.54);
+          ctx.restore();
+        }
+
+        // HP bar
+        if ((unit.civilization === "iron_dwarves" && unit.hp < 5) || (unit.civilization === "steppe_horde" && unit.hp < 3)) {
+          const maxHp = unit.civilization === "iron_dwarves" ? 5 : 3;
+          const barW = R * 1.1; const barH = R * 0.16;
+          const barX = -barW/2; const barY = -R * 0.95;
+          ctx.fillStyle = rgba("#111", 0.7); ctx.fillRect(barX, barY, barW, barH);
+          ctx.fillStyle = unit.hp / maxHp > 0.5 ? "#22c55e" : "#ef4444";
+          ctx.fillRect(barX, barY, barW * (unit.hp / maxHp), barH);
+        }
+
+        ctx.restore();
+      }
+
+      // Flash catapulte sur les cases bombardées
+      for (const flash of (game.catapultFlashes ?? [])) {
+        const elapsed = (nowL - flash.startedAt) / 2500;
+        if (elapsed >= 1) continue;
+        const alpha = (1 - elapsed) * 0.55;
+        const { x: cx2, y: cy2 } = hexCenter(flash.center.x, flash.center.y, tileSize);
+        // Cercle de souffle
+        ctx.beginPath();
+        ctx.arc(cx2, cy2, R * 3.5 * elapsed, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,165,0,${alpha * 0.4})`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(255,220,50,${alpha})`;
+        ctx.lineWidth = 2 / scale;
+        ctx.stroke();
+        // Centre
+        ctx.beginPath();
+        ctx.arc(cx2, cy2, R * 0.6 * (1 - elapsed * 0.5), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,100,0,${alpha})`;
+        ctx.fill();
+      }
+    }
+
+    // ── Pass 10: maritime animations ─────────────────────────────────────────
     for (const anim of game.maritimeAnimations) {
       const step = Math.min(anim.step, anim.path.length - 1);
       const pos  = anim.path[step];

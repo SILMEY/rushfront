@@ -25,7 +25,8 @@ export enum BuildingType {
   University = 6,
   City = 7,
   Wonder = 8,
-  Bridge = 9
+  Bridge = 9,
+  Catapult = 10
 }
 
 export type Vec2 = { x: number; y: number };
@@ -62,6 +63,7 @@ export type GamePlayerState = {
   portFishingBoats?: Record<string, number>; // key: "${x}_${y}"
   portTransports?: Record<string, number>;   // key: "${x}_${y}"
   maritimeCharges?: number;
+  cursedForestCooldownEnds?: number; // timestamp
   isBot?: boolean;
 };
 
@@ -69,6 +71,16 @@ export type GalleonState = {
   id: string;
   playerId: string;
   portKey: string; // "${x}_${y}" of the port it belongs to
+  x: number;
+  y: number;
+  hp: number;
+};
+
+export type LandUnitState = {
+  id: string;
+  playerId: string;
+  civilization: string; // 'iron_dwarves' | 'steppe_horde'
+  barracksKey: string;  // "${x}_${y}" of the barracks
   x: number;
   y: number;
   hp: number;
@@ -112,4 +124,5 @@ export type GameStateSnapshot = {
   };
   brouillage: Array<{ casterPlayerId: string; x: number; y: number; expiresAt: number }>;
   galleons: GalleonState[];
+  landUnits: LandUnitState[];
 };
