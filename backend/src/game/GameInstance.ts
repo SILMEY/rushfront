@@ -572,11 +572,12 @@ export class GameInstance {
     if (capturedBuilding != null) {
       this._removeBuilding(defender.id, capturedBuilding);
 
-      if (capturedBuilding === BuildingType.Mine || capturedBuilding === BuildingType.Sawmill || capturedBuilding === BuildingType.Catapult) {
+      if (capturedBuilding === BuildingType.Catapult || capturedBuilding === BuildingType.Wonder) {
+        // Catapulte et Merveille : détruites à la capture
         this.tileBuildings[index] = null;
         if (capturedBuilding === BuildingType.Catapult) this.catapultCooldownEnds.delete(index);
       } else {
-        // Tous les autres bâtiments (caserne, université, port…) passent à l'attaquant
+        // Tous les autres bâtiments (mine, scierie, caserne, port…) passent à l'attaquant
         this._addBuilding(player.id, capturedBuilding);
 
         if (capturedBuilding === BuildingType.FishingHut) {
@@ -1119,14 +1120,13 @@ export class GameInstance {
 
   // ── Forêt maudite (Elfes Sylvains) ────────────────────────────────────────
 
-  cursedForest(userId: string, forestPos: Vec2): TileChange[] {
+  cursedForest(userId: string, forestPos: Vec2): { changes: TileChange[]; forestTiles: Vec2[] } {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
     if (player.civilization !== "sylvan_elves") throw new Error("wrong_civilization");
     const fi = idx(forestPos, this.width);
     if ((this.tileTypes[fi] as TileType) !== TileType.Forest) throw new Error("not_forest");
-    // L'elfe n'a pas besoin de posséder la forêt — juste d'y être adjacent
     const adjacentToPlayer = orthogonalNeighbors(forestPos)
       .filter(n => inBounds(n, this.width, this.height))
       .some(n => this.tileOwners[idx(n, this.width)] === player.id);
@@ -1134,21 +1134,45 @@ export class GameInstance {
     const cooldownEnds = (player as any).cursedForestCooldownEnds ?? 0;
     if (Date.now() < cooldownEnds) throw new Error("cooldown_active");
 
-    const changes: TileChange[] = [];
-    for (const n of orthogonalNeighbors(forestPos)) {
-      if (!inBounds(n, this.width, this.height)) continue;
-      const ni = idx(n, this.width);
-      if ((this.tileTypes[ni] as TileType) === TileType.Water) continue;
-      const prev = this.tileOwners[ni];
-      if (!prev || prev === player.id) continue;
-      this._removeTile(prev, ni);
-      const b = this.tileBuildings[ni];
-      if (b !== null) { this._removeBuilding(prev, b); this.tileBuildings[ni] = null; }
-      this.tileOwners[ni] = null; // devient neutre
-      changes.push({ x: n.x, y: n.y, owner: null, building: null });
+    // BFS : trouver toutes les cases de forêt connectées (même bloc forestier)
+    const forestTiles: Vec2[] = [];
+    const visited = new Set<number>();
+    visited.add(fi);
+    const queue: Vec2[] = [forestPos];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      forestTiles.push(cur);
+      for (const n of orthogonalNeighbors(cur)) {
+        if (!inBounds(n, this.width, this.height)) continue;
+        const ni = idx(n, this.width);
+        if (visited.has(ni)) continue;
+        visited.add(ni);
+        if ((this.tileTypes[ni] as TileType) === TileType.Forest) queue.push(n);
+      }
     }
+
+    // Neutraliser toutes les cases ennemies adjacentes à n'importe quelle case de la forêt
+    const changedIdx = new Set<number>();
+    const changes: TileChange[] = [];
+    for (const ft of forestTiles) {
+      for (const n of orthogonalNeighbors(ft)) {
+        if (!inBounds(n, this.width, this.height)) continue;
+        const ni = idx(n, this.width);
+        if (changedIdx.has(ni)) continue;
+        if ((this.tileTypes[ni] as TileType) === TileType.Water) continue;
+        const prev = this.tileOwners[ni];
+        if (!prev || prev === player.id) continue;
+        changedIdx.add(ni);
+        this._removeTile(prev, ni);
+        const b = this.tileBuildings[ni];
+        if (b !== null) { this._removeBuilding(prev, b); this.tileBuildings[ni] = null; }
+        this.tileOwners[ni] = null;
+        changes.push({ x: n.x, y: n.y, owner: null, building: null });
+      }
+    }
+
     (player as any).cursedForestCooldownEnds = Date.now() + CURSE_FOREST_COOLDOWN_MS;
-    return changes;
+    return { changes, forestTiles };
   }
 
   // Débarquement maritime : case côtière neutre (settler) ou ennemie (assaut)
@@ -1206,12 +1230,13 @@ export class GameInstance {
       defender.resources.villagers = Math.max(0, defender.resources.villagers - defVillagerLoss);
       player.resources.soldiers    = Math.max(0, player.resources.soldiers    - atkSoldierLoss);
 
-      // Bâtiment capturé (mines/scieries détruites, autres transférés)
+      // Bâtiment capturé (catapulte/merveille détruites, tous les autres transférés)
       const capturedBuilding = this.tileBuildings[index];
       if (capturedBuilding != null) {
         this._removeBuilding(defender.id, capturedBuilding);
-        if (capturedBuilding === BuildingType.Mine || capturedBuilding === BuildingType.Sawmill) {
+        if (capturedBuilding === BuildingType.Catapult || capturedBuilding === BuildingType.Wonder) {
           this.tileBuildings[index] = null;
+          if (capturedBuilding === BuildingType.Catapult) this.catapultCooldownEnds.delete(index);
         } else {
           this._addBuilding(player.id, capturedBuilding);
         }

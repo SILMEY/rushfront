@@ -141,10 +141,12 @@ export const useGameStore = defineStore("game", {
         this._startBoatAnimation(event.animId, event.path, this.currentGameId, false, targetPos);
       });
 
-      socket.on("game:curse_applied", (event: { forestX: number; forestY: number; playerId: string; cooldownEnds: number }) => {
+      socket.on("game:curse_applied", (event: { forestTiles: Array<{x:number;y:number}>; playerId: string; cooldownEnds: number }) => {
         const now = Date.now();
         this.cursedForestTiles = this.cursedForestTiles.filter(t => t.endsAt > now);
-        this.cursedForestTiles.push({ x: event.forestX, y: event.forestY, endsAt: event.cooldownEnds, playerId: event.playerId });
+        for (const ft of event.forestTiles) {
+          this.cursedForestTiles.push({ x: ft.x, y: ft.y, endsAt: event.cooldownEnds, playerId: event.playerId });
+        }
         this.stateRevision++;
       });
 

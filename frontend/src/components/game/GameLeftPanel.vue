@@ -18,11 +18,22 @@ const myColor = computed(() => me.value?.color ?? "#ffffff");
 
 // ── Classement ────────────────────────────────────────────────────────────────
 
+function tileCount(playerId: string): number {
+  const state = props.state;
+  if (!state) return 0;
+  let n = 0;
+  for (const o of state.tiles.owners) if (o === playerId) n++;
+  return n;
+}
+
 const rankedPlayers = computed(() => {
   const state = props.state;
   if (!state) return [];
   return [...state.players]
+    .map(p => ({ ...p, _tiles: tileCount(p.id) }))
     .sort((a, b) => {
+      // Cases en priorité, population en secondaire
+      if (b._tiles !== a._tiles) return b._tiles - a._tiles;
       const pa = a.resources.villagers + a.resources.soldiers;
       const pb = b.resources.villagers + b.resources.soldiers;
       return pb - pa;
@@ -110,9 +121,11 @@ function fmt(s: number) {
             :class="p.eliminated ? 'line-through opacity-30' : ''"
             :style="{ color: p.color }"
           >{{ p.name }}</span>
-          <span class="text-[10px] text-white/35 shrink-0 font-mono">
+          <span class="text-[10px] shrink-0 font-mono flex items-center gap-1.5">
+            <span class="text-[#d4af37]/60" title="Cases possédées">{{ p._tiles }}🗺</span>
+            <span class="text-white/20">|</span>
             <span class="text-[#a8c090]/80">{{ p.resources.villagers }}</span>
-            <span class="text-white/20 mx-0.5">/</span>
+            <span class="text-white/20">+</span>
             <span class="text-[#ef4444]/70">{{ p.resources.soldiers }}</span>
           </span>
         </div>

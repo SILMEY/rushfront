@@ -254,7 +254,7 @@ const tooltipStyle = computed(() => {
       class="fixed z-[600] pointer-events-none"
       :style="tooltipStyle"
     >
-      <div class="rounded border border-[#4d4635] bg-[#1a1508]/97 shadow-2xl px-4 py-3 min-w-[220px] text-[11px] space-y-2">
+      <div class="rounded border border-[#8b7e66] bg-[#130f08] shadow-[0_8px_32px_rgba(0,0,0,0.85)] px-4 py-3 min-w-[220px] text-[11px] space-y-2" style="background:#130f08;border:1px solid #6b5e44;box-shadow:0 8px 32px rgba(0,0,0,0.9),0 0 0 1px rgba(242,202,80,0.08)">
 
         <!-- BOIS -->
         <template v-if="hovered === 'wood' && detail.wood">

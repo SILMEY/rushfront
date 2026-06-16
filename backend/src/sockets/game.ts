@@ -281,16 +281,16 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     try {
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
-      const changes = instance.cursedForest(userId, { x: payload.x, y: payload.y });
+      const { changes, forestTiles } = instance.cursedForest(userId, { x: payload.x, y: payload.y });
       const player = instance.getPlayerByUserId(userId)!;
-      io.to(`game:${payload.gameId}`).emit("game:tile_update", {
-        changes,
-        players: [{ id: player.id, resources: player.resources, cursedForestCooldownEnds: (player as any).cursedForestCooldownEnds }]
-      });
-      // Broadcast avec position de la forêt pour l'animation côté client
+      if (changes.length > 0) {
+        io.to(`game:${payload.gameId}`).emit("game:tile_update", {
+          changes,
+          players: [{ id: player.id, resources: player.resources, cursedForestCooldownEnds: (player as any).cursedForestCooldownEnds }]
+        });
+      }
       io.to(`game:${payload.gameId}`).emit("game:curse_applied", {
-        forestX: payload.x,
-        forestY: payload.y,
+        forestTiles,
         playerId: player.id,
         cooldownEnds: (player as any).cursedForestCooldownEnds
       });
