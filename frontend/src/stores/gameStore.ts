@@ -61,6 +61,9 @@ export const useGameStore = defineStore("game", {
     catapultFlashes: [] as Array<{ center: Vec2; startedAt: number }>,
     barracksMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
     forestMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
+    catapultTargetingMode: false,
+    catapultTile: null as Vec2 | null,
+    catapultCooldownEnds: 0,
     stateRevision: 0   // incremented on every mutation — watched instead of deep state
   }),
   getters: {
@@ -143,11 +146,12 @@ export const useGameStore = defineStore("game", {
         this.stateRevision++;
       });
 
-      socket.on("game:catapult_fire", (event: CatapultFireEvent) => {
+      socket.on("game:catapult_fire", (event: CatapultFireEvent & { cooldownEnds?: number; isMe?: boolean }) => {
         if (!this.state) return;
         this.catapultFlashes.push({ center: event.center, startedAt: Date.now() });
         const now = Date.now();
         this.catapultFlashes = this.catapultFlashes.filter(f => now - f.startedAt < 3000);
+        if (event.cooldownEnds) this.catapultCooldownEnds = event.cooldownEnds;
         for (const ch of event.changes) {
           const i = tileIndex(ch.x, ch.y, this.state.width);
           this.state.tiles.owners[i] = ch.owner;
@@ -333,6 +337,11 @@ export const useGameStore = defineStore("game", {
       socket.emit("game:curse_forest", { gameId, x: forestPos.x, y: forestPos.y });
     },
 
+    async fireCatapult(gameId: string, targetPos: Vec2) {
+      const socket = await getSocket();
+      socket.emit("game:fire_catapult", { gameId, targetX: targetPos.x, targetY: targetPos.y });
+    },
+
     async maritimeLand(gameId: string, pos: Vec2) {
       this.maritimeLandingMode = false;
 
@@ -410,6 +419,13 @@ export const useGameStore = defineStore("game", {
       if (this.state.status === "PLACING") return this.chooseStart(this.state.gameId, pos);
       if (this.state.status !== "ACTIVE") return;
 
+      // Mode ciblage catapulte
+      if (this.catapultTargetingMode) {
+        this.catapultTargetingMode = false;
+        await this.fireCatapult(this.state.gameId, pos);
+        return;
+      }
+
       const meId = this.mePlayer?.id;
       if (!meId) return;
       const i = tileIndex(pos.x, pos.y, this.state.width);
@@ -453,10 +469,11 @@ export const useGameStore = defineStore("game", {
             return;
           }
         }
-        // Forêt → menu malédiction (Elfes seulement)
-        if ((this.state.tiles.types[i] as TileType) === TileType.Forest) {
-          if (this.mePlayer?.civilization === "sylvan_elves") {
-            this.forestMenu = { tile: pos, clientX, clientY };
+        // Catapulte → mode ciblage (Aurélien seulement)
+        if (this.state.tiles.buildings[i] === BuildingType.Catapult) {
+          if (this.mePlayer?.civilization === "aurelian_empire") {
+            this.catapultTargetingMode = true;
+            this.catapultTile = pos;
             return;
           }
         }
@@ -465,6 +482,17 @@ export const useGameStore = defineStore("game", {
           this.radialMenu = { tile: pos, clientX, clientY };
         }
         return;
+      }
+
+      // Forêt maudite : forêt adjacente au territoire de l'elfe (pas besoin de la posséder)
+      if (this.mePlayer?.civilization === "sylvan_elves" &&
+          (this.state.tiles.types[i] as TileType) === TileType.Forest) {
+        const adjacent = hexNeighborOffsets(pos.y).some(([dc, dr]) => {
+          const nx = pos.x + dc, ny = pos.y + dr;
+          if (nx < 0 || ny < 0 || nx >= this.state!.width || ny >= this.state!.height) return false;
+          return this.state!.tiles.owners[ny * this.state!.width + nx] === meId;
+        });
+        if (adjacent) { this.forestMenu = { tile: pos, clientX, clientY }; return; }
       }
 
       // Case neutre OU ennemie, plain + adjacent à l'eau + charges dispo → menu débarquement

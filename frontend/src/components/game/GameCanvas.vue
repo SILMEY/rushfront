@@ -341,7 +341,7 @@ onBeforeUnmount(() => {
 <template>
   <canvas
     ref="canvasRef"
-    class="block h-full w-full touch-none rounded-xl"
+    :class="['block h-full w-full touch-none rounded-xl', game.catapultTargetingMode ? 'cursor-crosshair' : '']"
     role="application"
     aria-label="Carte du jeu — appui long pour ouvrir le menu"
     @pointerdown="onPointerDown"

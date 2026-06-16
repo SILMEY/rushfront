@@ -258,6 +258,22 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     } catch (e: any) { socket.emit("game:error", { error: e?.message ?? "unknown_error" }); }
   });
 
+  socket.on("game:fire_catapult", (payload: { gameId: string; targetX: number; targetY: number }) => {
+    try {
+      const userId = userIdOf(socket);
+      const instance = getInstance(gameManager, payload.gameId);
+      const result = instance.fireCatapultAt(userId, { x: payload.targetX, y: payload.targetY });
+      if (result.changes.length > 0) {
+        io.to(`game:${payload.gameId}`).emit("game:catapult_fire", {
+          center: result.center,
+          changes: result.changes,
+          cooldownEnds: result.cooldownEnds
+        });
+        io.to(`game:${payload.gameId}`).emit("game:tile_update", { changes: result.changes, players: [] });
+      }
+    } catch (e: any) { socket.emit("game:error", { error: e?.message ?? "unknown_error" }); }
+  });
+
   socket.on("game:curse_forest", (payload: { gameId: string; x: number; y: number }) => {
     try {
       const userId = userIdOf(socket);

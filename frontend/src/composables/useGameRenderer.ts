@@ -326,8 +326,8 @@ export function useGameRenderer() {
             }
           }
 
-          // 1g. Buildings
-          if (building != null && building !== BuildingType.Wonder) {
+          // 1g. Buildings (sauf Wonder et Catapult dessinés séparément)
+          if (building != null && building !== BuildingType.Wonder && building !== BuildingType.Catapult) {
             const isBase = building === BuildingType.Base;
             const iconPx = R * (isBase ? 1.15 : 0.95);
             const bgR2   = R * (isBase ? 0.80 : 0.68);
@@ -363,6 +363,107 @@ export function useGameRenderer() {
             ctx.fillText(bIcon, cx, cy);
           }
         }
+      }
+    }
+
+    // ── Pass 2b: trébuchets (catapultes Aurélien) ────────────────────────────
+    {
+      const nowT = Date.now();
+      for (let i = 0; i < state.tiles.buildings.length; i++) {
+        if (state.tiles.buildings[i] !== BuildingType.Catapult) continue;
+        const col = i % state.width; const row = Math.floor(i / state.width);
+        if (col < x0 || col > x1 || row < y0 || row > y1) continue;
+        const ownerId = state.tiles.owners[i];
+        const ownerColor = ownerId ? (colorByPlayer.get(ownerId) ?? "#f2ca50") : "#f2ca50";
+        const { x: cx, y: cy } = hexCenter(col, row, tileSize);
+
+        // Flash animation si tir récent
+        const flash = (game.catapultFlashes ?? []).find(f =>
+          f.center.x === col && f.center.y === row && nowT - f.startedAt < 800
+        );
+        const isOnCooldown = game.catapultCooldownEnds > nowT;
+        const armAngle = flash
+          ? -Math.PI/3 + (Math.PI * ((nowT - flash.startedAt) / 700))
+          : -Math.PI / 3;
+
+        const lw = Math.max(1, 1.5 / scale);
+        const brown = "#8B5E3C";
+
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        // Fond hexagonal
+        hexPathAt(ctx, cx - cx, cy - cy, R);
+        ctx.fillStyle = rgba(ownerColor, 0.15);
+        ctx.fill();
+
+        // Base (barre horizontale)
+        ctx.strokeStyle = brown; ctx.lineWidth = lw * 2.5;
+        ctx.beginPath(); ctx.moveTo(-R*0.42, R*0.52); ctx.lineTo(R*0.42, R*0.52); ctx.stroke();
+
+        // Jambe gauche
+        ctx.beginPath(); ctx.moveTo(-R*0.35, R*0.5); ctx.lineTo(-R*0.06, -R*0.18); ctx.stroke();
+        // Jambe droite
+        ctx.beginPath(); ctx.moveTo(R*0.35, R*0.5); ctx.lineTo(R*0.06, -R*0.18); ctx.stroke();
+        // Traverse
+        ctx.beginPath(); ctx.moveTo(-R*0.25, R*0.22); ctx.lineTo(R*0.25, R*0.22); ctx.lineWidth = lw*1.5; ctx.stroke();
+
+        // Pivot
+        const pX = 0, pY = -R*0.18;
+        ctx.beginPath(); ctx.arc(pX, pY, R*0.07, 0, Math.PI*2);
+        ctx.fillStyle = "#5a3a1a"; ctx.fill();
+
+        // Bras rotatif
+        ctx.save();
+        ctx.translate(pX, pY);
+        ctx.rotate(armAngle);
+
+        // Bras long
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -R*0.88);
+        ctx.strokeStyle = brown; ctx.lineWidth = lw*2; ctx.stroke();
+
+        // Bras court (contrepoids)
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, R*0.38);
+        ctx.lineWidth = lw*1.8; ctx.stroke();
+
+        // Contrepoids (bloc)
+        ctx.fillStyle = "#666"; ctx.strokeStyle = "#444"; ctx.lineWidth = lw;
+        ctx.fillRect(-R*0.13, R*0.32, R*0.26, R*0.2); ctx.strokeRect(-R*0.13, R*0.32, R*0.26, R*0.2);
+
+        // Corde + boulet
+        ctx.beginPath(); ctx.moveTo(0, -R*0.88); ctx.lineTo(R*0.09, -R*1.08);
+        ctx.strokeStyle = brown; ctx.lineWidth = lw*0.8; ctx.stroke();
+        ctx.beginPath(); ctx.arc(R*0.09, -R*1.14, R*0.09, 0, Math.PI*2);
+        ctx.fillStyle = "#7a7a8a"; ctx.fill();
+        ctx.strokeStyle = "#555"; ctx.lineWidth = lw*0.7; ctx.stroke();
+
+        ctx.restore();
+
+        // Indicateur cooldown (anneau — visible uniquement pour le propriétaire)
+        if (isOnCooldown && ownerId === game.mePlayer?.id) {
+          const remaining = Math.max(0, game.catapultCooldownEnds - nowT) / 60000;
+          ctx.beginPath();
+          ctx.arc(0, 0, R*0.92, -Math.PI/2, -Math.PI/2 + (1 - remaining) * Math.PI*2);
+          ctx.strokeStyle = rgba(ownerColor, 0.5); ctx.lineWidth = 2/scale; ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      // Preview de ciblage
+      if (game.catapultTargetingMode && params.hovered) {
+        const hx = params.hovered.x; const hy = params.hovered.y;
+        const { x: hcx, y: hcy } = hexCenter(hx, hy, tileSize);
+        // Cercle de zone
+        ctx.beginPath(); ctx.arc(hcx, hcy, R*2.5, 0, Math.PI*2);
+        ctx.fillStyle = "rgba(251,146,60,0.12)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(251,146,60,0.7)"; ctx.lineWidth = 2/scale;
+        ctx.setLineDash([4/scale, 3/scale]); ctx.stroke(); ctx.setLineDash([]);
+        // Croix centrale
+        ctx.strokeStyle = "rgba(251,146,60,0.9)"; ctx.lineWidth = 1.5/scale;
+        ctx.beginPath(); ctx.moveTo(hcx - R*0.4, hcy); ctx.lineTo(hcx + R*0.4, hcy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(hcx, hcy - R*0.4); ctx.lineTo(hcx, hcy + R*0.4); ctx.stroke();
       }
     }
 

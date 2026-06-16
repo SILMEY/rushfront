@@ -73,7 +73,7 @@ export class GameInstance {
   private galleonTickCounter = 0;
 
   landUnits: LandUnitState[] = [];
-  private catapultLastFired = new Map<number, number>(); // tileIdx → last fire timestamp
+  private catapultCooldownEnds = new Map<number, number>(); // tileIdx → last fire timestamp
 
   // O(1) building presence cache — avoids O(n) tileBuildings.some() scans
   private _buildingCounts = new Map<string, Map<number, number>>();
@@ -206,17 +206,7 @@ export class GameInstance {
             this.onLandUnitsUpdate?.(this.landUnits);
           }
         }
-        // Tick catapultes toutes les secondes
-        if (this.catapultLastFired.size > 0) {
-          const now2 = Date.now();
-          for (const [tileIdx, lastFired] of this.catapultLastFired) {
-            if (now2 - lastFired >= CATAPULT_FIRE_INTERVAL_MS) {
-              const result = this.fireCatapult(tileIdx);
-              this.catapultLastFired.set(tileIdx, now2);
-              if (result.length > 0) this.onCatapultFire?.({ x: tileIdx % this.width, y: Math.floor(tileIdx / this.width) }, result);
-            }
-          }
-        }
+        // (pas de tick auto pour catapulte — tir manuel via fireCatapultAt)
       } catch (err) {
         console.error("[production tick]", err);
       }
@@ -279,8 +269,8 @@ export class GameInstance {
     }
     this._tilesByPlayer.delete(playerId);
     this.landUnits = this.landUnits.filter(u => u.playerId !== playerId);
-    for (const [ti] of this.catapultLastFired) {
-      if (this.tileOwners[ti] === null) this.catapultLastFired.delete(ti);
+    for (const [ti] of this.catapultCooldownEnds) {
+      if (this.tileOwners[ti] === null) this.catapultCooldownEnds.delete(ti);
     }
 
     this.onPlayerEliminated?.(playerId, changes);
@@ -584,7 +574,7 @@ export class GameInstance {
 
       if (capturedBuilding === BuildingType.Mine || capturedBuilding === BuildingType.Sawmill || capturedBuilding === BuildingType.Catapult) {
         this.tileBuildings[index] = null;
-        if (capturedBuilding === BuildingType.Catapult) this.catapultLastFired.delete(index);
+        if (capturedBuilding === BuildingType.Catapult) this.catapultCooldownEnds.delete(index);
       } else {
         // Tous les autres bâtiments (caserne, université, port…) passent à l'attaquant
         this._addBuilding(player.id, capturedBuilding);
@@ -687,7 +677,7 @@ export class GameInstance {
 
     // Catapulte : démarrer le timer de tir
     if (intent.building === BuildingType.Catapult) {
-      this.catapultLastFired.set(tileIndex, Date.now());
+      this.catapultCooldownEnds.set(tileIndex, Date.now());
     }
 
     return { x: intent.x, y: intent.y, owner: player.id, building: intent.building };
@@ -1087,6 +1077,49 @@ export class GameInstance {
     return changes;
   }
 
+  fireCatapultAt(userId: string, targetPos: Vec2): { center: Vec2; changes: TileChange[]; cooldownEnds: number } {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    if (player.civilization !== "aurelian_empire") throw new Error("wrong_civilization");
+
+    // Trouver la catapulte du joueur
+    let catapultTileIdx = -1;
+    for (let i = 0; i < this.tileBuildings.length; i++) {
+      if (this.tileBuildings[i] === BuildingType.Catapult && this.tileOwners[i] === player.id) {
+        catapultTileIdx = i; break;
+      }
+    }
+    if (catapultTileIdx === -1) throw new Error("no_catapult");
+
+    const now = Date.now();
+    const cooldown = this.catapultCooldownEnds.get(catapultTileIdx) ?? 0;
+    if (now < cooldown) throw new Error("cooldown_active");
+
+    if (!inBounds(targetPos, this.width, this.height)) throw new Error("out_of_bounds");
+    const catPos = { x: catapultTileIdx % this.width, y: Math.floor(catapultTileIdx / this.width) };
+    if (Math.hypot(targetPos.x - catPos.x, targetPos.y - catPos.y) > CATAPULT_RANGE)
+      throw new Error("out_of_range");
+
+    // Neutraliser les 7 cases autour de la cible
+    const group = [targetPos, ...orthogonalNeighbors(targetPos).filter(n => inBounds(n, this.width, this.height))];
+    const changes: TileChange[] = [];
+    for (const tile of group) {
+      const ti = idx(tile, this.width);
+      const prev = this.tileOwners[ti];
+      if (!prev || prev === player.id) continue;
+      if ((this.tileTypes[ti] as TileType) === TileType.Water) continue;
+      this._removeTile(prev, ti);
+      const b = this.tileBuildings[ti];
+      if (b !== null) { this._removeBuilding(prev, b); this.tileBuildings[ti] = null; }
+      this.tileOwners[ti] = null;
+      changes.push({ x: tile.x, y: tile.y, owner: null, building: null });
+    }
+    const cooldownEnds = now + CATAPULT_FIRE_INTERVAL_MS;
+    this.catapultCooldownEnds.set(catapultTileIdx, cooldownEnds);
+    return { center: targetPos, changes, cooldownEnds };
+  }
+
   // ── Forêt maudite (Elfes Sylvains) ────────────────────────────────────────
 
   cursedForest(userId: string, forestPos: Vec2): TileChange[] {
@@ -1096,7 +1129,11 @@ export class GameInstance {
     if (player.civilization !== "sylvan_elves") throw new Error("wrong_civilization");
     const fi = idx(forestPos, this.width);
     if ((this.tileTypes[fi] as TileType) !== TileType.Forest) throw new Error("not_forest");
-    if (this.tileOwners[fi] !== player.id) throw new Error("must_own_tile");
+    // L'elfe n'a pas besoin de posséder la forêt — juste d'y être adjacent
+    const adjacentToPlayer = orthogonalNeighbors(forestPos)
+      .filter(n => inBounds(n, this.width, this.height))
+      .some(n => this.tileOwners[idx(n, this.width)] === player.id);
+    if (!adjacentToPlayer) throw new Error("not_adjacent_to_territory");
     const cooldownEnds = (player as any).cursedForestCooldownEnds ?? 0;
     if (Date.now() < cooldownEnds) throw new Error("cooldown_active");
 
