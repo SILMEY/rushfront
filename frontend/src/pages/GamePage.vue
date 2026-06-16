@@ -11,7 +11,6 @@ import TopResourceBar from "../components/game/TopResourceBar.vue";
 import TechPanel from "../components/game/TechPanel.vue";
 import CompositionPanel from "../components/game/CompositionPanel.vue";
 import GameLeftPanel from "../components/game/GameLeftPanel.vue";
-import PortPanel from "../components/game/PortPanel.vue";
 import SectionTitle from "../components/game/SectionTitle.vue";
 import RadialMenu    from "../components/game/RadialMenu.vue";
 import PortMenu      from "../components/game/PortMenu.vue";
@@ -286,7 +285,6 @@ watch(
         </div>
 
         <!-- Port (conditionnel) -->
-        <PortPanel :state="game.state" />
 
         <!-- Technologies -->
         <TechPanel :state="game.state" />

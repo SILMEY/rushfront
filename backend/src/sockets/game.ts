@@ -66,8 +66,11 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
         instance.onGalleonUpdate = (galleons, fires) => {
           io.to(room).emit("game:galleons_update", { galleons, fires });
         };
-        instance.onLandUnitsUpdate = (units) => {
+        instance.onLandUnitsUpdate = (units, tileChanges) => {
           io.to(room).emit("game:land_units_update", { units });
+          if (tileChanges.length > 0) {
+            io.to(room).emit("game:tile_update", { changes: tileChanges, players: [] });
+          }
         };
         instance.onCatapultFire = (center, changes) => {
           io.to(room).emit("game:catapult_fire", { center, changes });
@@ -284,7 +287,13 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
         changes,
         players: [{ id: player.id, resources: player.resources, cursedForestCooldownEnds: (player as any).cursedForestCooldownEnds }]
       });
-      instance.onCurseApplied?.(changes, player.id);
+      // Broadcast avec position de la forêt pour l'animation côté client
+      io.to(`game:${payload.gameId}`).emit("game:curse_applied", {
+        forestX: payload.x,
+        forestY: payload.y,
+        playerId: player.id,
+        cooldownEnds: (player as any).cursedForestCooldownEnds
+      });
     } catch (e: any) { socket.emit("game:error", { error: e?.message ?? "unknown_error" }); }
   });
 

@@ -64,6 +64,7 @@ export const useGameStore = defineStore("game", {
     catapultTargetingMode: false,
     catapultTile: null as Vec2 | null,
     catapultCooldownEnds: 0,
+    cursedForestTiles: [] as Array<{ x: number; y: number; endsAt: number; playerId: string }>,
     stateRevision: 0   // incremented on every mutation — watched instead of deep state
   }),
   getters: {
@@ -138,6 +139,13 @@ export const useGameStore = defineStore("game", {
         if (!this.currentGameId) return;
         const targetPos = event.path[event.path.length - 1] ?? { x: 0, y: 0 };
         this._startBoatAnimation(event.animId, event.path, this.currentGameId, false, targetPos);
+      });
+
+      socket.on("game:curse_applied", (event: { forestX: number; forestY: number; playerId: string; cooldownEnds: number }) => {
+        const now = Date.now();
+        this.cursedForestTiles = this.cursedForestTiles.filter(t => t.endsAt > now);
+        this.cursedForestTiles.push({ x: event.forestX, y: event.forestY, endsAt: event.cooldownEnds, playerId: event.playerId });
+        this.stateRevision++;
       });
 
       socket.on("game:land_units_update", (event: LandUnitsUpdateEvent) => {

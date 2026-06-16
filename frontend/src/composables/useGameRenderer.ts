@@ -534,33 +534,58 @@ export function useGameRenderer() {
       ctx.stroke();
     }
 
-    // ── Pass 5: forêt maudite (Elfes — glow vert sur forêts possédées) ──────
+    // ── Pass 5: forêts maudites (Elfes — effet violet poison) ────────────────
     {
       const nowF = Date.now();
-      for (const player of state.players) {
-        const cooldownEnds = (player as any).cursedForestCooldownEnds as number | undefined;
-        if (!cooldownEnds) continue;
-        const castAt = cooldownEnds - 60_000;
-        const elapsed = (nowF - castAt) / 1000;
-        if (elapsed > 5) continue; // Animation de 5 secondes après le cast
-        const alpha = Math.max(0, 1 - elapsed / 5) * 0.6;
-        const pulse = 0.5 + 0.5 * Math.sin(elapsed * 8);
-        for (let i = 0; i < state.tiles.owners.length; i++) {
-          if (state.tiles.owners[i] !== player.id) continue;
-          if ((state.tiles.types[i] as TileType) !== TileType.Forest) continue;
-          const col = i % state.width; const row = Math.floor(i / state.width);
-          if (col < x0 || col > x1 || row < y0 || row > y1) continue;
-          const { x: cx, y: cy } = hexCenter(col, row, tileSize);
-          hexPathAt(ctx, cx, cy, R);
-          ctx.fillStyle = `rgba(34,197,94,${alpha * pulse})`;
+      for (const cursed of (game.cursedForestTiles ?? [])) {
+        if (nowF > cursed.endsAt) continue;
+        if (cursed.x < x0 || cursed.x > x1 || cursed.y < y0 || cursed.y > y1) continue;
+        const { x: cx, y: cy } = hexCenter(cursed.x, cursed.y, tileSize);
+        const elapsed = (nowF - (cursed.endsAt - 60_000)) / 1000; // secondes depuis le cast
+        const lifeRatio = 1 - (nowF - (cursed.endsAt - 60_000)) / 60_000; // 1 → 0 sur 60s
+        const pulse = 0.6 + 0.4 * Math.sin(elapsed * 4.5);
+
+        // Fond violet sombre
+        hexPathAt(ctx, cx, cy, R);
+        ctx.fillStyle = `rgba(88,28,135,${0.55 * lifeRatio})`;
+        ctx.fill();
+
+        // Brume toxique (overlay gradient)
+        hexPathAt(ctx, cx, cy, R);
+        ctx.fillStyle = `rgba(168,85,247,${0.25 * pulse * lifeRatio})`;
+        ctx.fill();
+
+        // Bordure lumineuse violette
+        ctx.save();
+        ctx.shadowColor = "#a855f7";
+        ctx.shadowBlur = R * 2.5;
+        hexPathAt(ctx, cx, cy, R * 0.88);
+        ctx.strokeStyle = `rgba(216,180,254,${0.85 * pulse * lifeRatio})`;
+        ctx.lineWidth = 2.5 / scale;
+        ctx.stroke();
+        ctx.restore();
+
+        // Particules / wisps toxiques
+        const seed = cursed.x * 31 + cursed.y * 17;
+        for (let p = 0; p < 5; p++) {
+          const angle = ((seed + p * 72) % 360) * Math.PI / 180 + elapsed * (0.5 + p * 0.15);
+          const dist  = R * (0.3 + (p % 3) * 0.18);
+          const px2 = cx + Math.cos(angle) * dist;
+          const py2 = cy + Math.sin(angle) * dist + Math.sin(elapsed * 2 + p) * R * 0.12;
+          const pSize = Math.max(1.5 / scale, R * (0.06 + (p % 2) * 0.04));
+          ctx.beginPath();
+          ctx.arc(px2, py2, pSize, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(216,180,254,${(0.5 + 0.5 * Math.sin(elapsed * 3 + p)) * lifeRatio})`;
           ctx.fill();
-          ctx.save();
-          ctx.shadowColor = "#22c55e"; ctx.shadowBlur = R * 2;
-          hexPathAt(ctx, cx, cy, R * 0.9);
-          ctx.strokeStyle = `rgba(134,239,172,${alpha})`;
-          ctx.lineWidth = 2 / scale; ctx.stroke();
-          ctx.restore();
         }
+
+        // Icône crâne / malédiction au centre
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `${Math.max(R * 0.7, 8 / scale)}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`;
+        ctx.globalAlpha = 0.7 * pulse * lifeRatio;
+        ctx.fillText("☠", cx, cy);
+        ctx.globalAlpha = 1;
       }
     }
 
