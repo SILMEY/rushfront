@@ -16,6 +16,19 @@ const me = computed(() => props.state?.players.find((p) => p.userId === auth.use
 const myName = computed(() => me.value?.name ?? auth.user?.name ?? "?");
 const myColor = computed(() => me.value?.color ?? "#ffffff");
 
+// ── Pouvoir spécial ───────────────────────────────────────────────────────────
+const CIV_ICONS: Record<string, string> = {
+  iron_dwarves:    "🗿",
+  sylvan_elves:    "🌿",
+  steppe_horde:    "🏇",
+  aurelian_empire: "⚙️",
+};
+const civKey         = computed(() => me.value?.civilization ?? "");
+const civIcon        = computed(() => CIV_ICONS[civKey.value] ?? "⚔️");
+const civPowerName   = computed(() => civKey.value ? t(`civ_power.${civKey.value}.power`  as any) : "");
+const civPowerHow    = computed(() => civKey.value ? t(`civ_power.${civKey.value}.how`    as any) : "");
+const civPowerEffect = computed(() => civKey.value ? t(`civ_power.${civKey.value}.effect` as any) : "");
+
 // ── Classement ────────────────────────────────────────────────────────────────
 
 function tileCount(playerId: string): number {
@@ -129,6 +142,20 @@ function fmt(s: number) {
             <span class="text-[#ef4444]/70">{{ p.resources.soldiers }}</span>
           </span>
         </div>
+      </div>
+    </div>
+
+    <!-- Pouvoir spécial -->
+    <div v-if="civKey" class="border-b-2 border-outline-variant px-5 pt-4 pb-3 shrink-0">
+      <SectionTitle>{{ t('civ_power.title') }}</SectionTitle>
+      <div class="rounded border border-[#4d4635]/60 bg-[#1a1508]/60 px-3 py-2.5 space-y-1.5">
+        <div class="flex items-center gap-2">
+          <span class="text-base leading-none">{{ civIcon }}</span>
+          <span class="text-[11px] font-bold text-[#f2ca50] uppercase tracking-wide">{{ civPowerName }}</span>
+        </div>
+        <div class="text-[9px] font-bold uppercase tracking-widest text-white/25">{{ t('civ_power.how_label') }}</div>
+        <div class="text-[10px] font-semibold text-[#d4c59f] leading-snug">{{ civPowerHow }}</div>
+        <div class="text-[9px] leading-relaxed text-white/40">{{ civPowerEffect }}</div>
       </div>
     </div>
 
