@@ -30,6 +30,19 @@ const mePlayer   = computed(() => game.mePlayer);
 const isWinner   = computed(() => game.gameOver?.winnerId === mePlayer.value?.id);
 const isEliminated = computed(() => mePlayer.value?.eliminated === true);
 
+// Pouvoir spécial — icône et textes i18n selon la civilisation
+const CIV_ICONS: Record<string, string> = {
+  iron_dwarves:    "🗿",
+  sylvan_elves:    "🌿",
+  steppe_horde:    "🏇",
+  aurelian_empire: "⚙️",
+};
+const civKey      = computed(() => mePlayer.value?.civilization ?? "");
+const civIcon     = computed(() => CIV_ICONS[civKey.value] ?? "⚔️");
+const civPowerName   = computed(() => civKey.value ? t(`civ_power.${civKey.value}.power`   as any) : "");
+const civPowerHow    = computed(() => civKey.value ? t(`civ_power.${civKey.value}.how`     as any) : "");
+const civPowerEffect = computed(() => civKey.value ? t(`civ_power.${civKey.value}.effect`  as any) : "");
+
 // Mobile panel toggles
 const showLeft  = ref(false);
 const showRight = ref(false);
@@ -272,6 +285,23 @@ watch(
       </div>
 
       <div class="flex-1 overflow-y-auto bg-black/10">
+
+        <!-- Pouvoir spécial de civilisation -->
+        <div v-if="mePlayer" class="px-4 md:px-6 py-4 border-b-2 border-outline-variant">
+          <SectionTitle>{{ t('civ_power.title') }}</SectionTitle>
+          <div class="rounded-lg border border-[#4d4635]/70 bg-[#1a1508]/70 p-3 space-y-2">
+            <!-- Nom du pouvoir -->
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xl">{{ civIcon }}</span>
+              <span class="text-[12px] font-bold text-[#f2ca50] uppercase tracking-wider leading-tight">{{ civPowerName }}</span>
+            </div>
+            <!-- Comment activer -->
+            <div class="text-[9px] font-bold uppercase tracking-widest text-white/30">{{ t('civ_power.how_label') }}</div>
+            <div class="text-[11px] font-semibold text-[#d4c59f] leading-snug">{{ civPowerHow }}</div>
+            <!-- Effet -->
+            <div class="mt-1 text-[10px] leading-relaxed text-white/45">{{ civPowerEffect }}</div>
+          </div>
+        </div>
 
         <!-- Répartition -->
         <div class="px-4 md:px-6 py-5 border-b-2 border-outline-variant">

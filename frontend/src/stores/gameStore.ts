@@ -59,6 +59,7 @@ export const useGameStore = defineStore("game", {
     cannonballs: [] as Array<{ id: string; from: Vec2; to: Vec2; startedAt: number }>,
     landUnits: [] as LandUnitState[],
     catapultFlashes: [] as Array<{ center: Vec2; startedAt: number }>,
+    cavalryCharges: [] as Array<{ id: string; paths: Vec2[][]; barracksPos: Vec2; playerId: string; startedAt: number }>,
     barracksMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
     forestMenu: null as { tile: Vec2; clientX: number; clientY: number } | null,
     catapultTargetingMode: false,
@@ -167,6 +168,14 @@ export const useGameStore = defineStore("game", {
           this.state.tiles.owners[i] = ch.owner;
           this.state.tiles.buildings[i] = ch.building;
         }
+        this.stateRevision++;
+      });
+
+      socket.on("game:cavalry_charge", (event: { paths: Vec2[][]; barracksPos: Vec2; playerId: string }) => {
+        const id = `cc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const now = Date.now();
+        this.cavalryCharges.push({ id, paths: event.paths, barracksPos: event.barracksPos, playerId: event.playerId, startedAt: now });
+        this.cavalryCharges = this.cavalryCharges.filter(c => now - c.startedAt < 1500);
         this.stateRevision++;
       });
 

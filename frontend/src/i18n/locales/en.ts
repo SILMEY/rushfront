@@ -131,6 +131,30 @@ export default {
     steppe_horde:    { name: "Steppe Horde",     role: "Offense",   bonus: "Fast expansion · Attack ↑ · Defense ↓" },
     aurelian_empire: { name: "Aurelian Empire",  role: "Economy",   bonus: "Roads · Compact territory · +eco/tile" },
   },
+  civ_power: {
+    title: "Special power",
+    how_label: "How to activate:",
+    iron_dwarves: {
+      power:  "War Golem",
+      how:    "Right-click Barracks → Buy a Golem · 15🪵 10🪨",
+      effect: "Autonomous unit (5 HP) that marches toward enemies and neutralises their tiles. Max 2 per barracks.",
+    },
+    sylvan_elves: {
+      power:  "Cursed Forest",
+      how:    "Right-click a forest adjacent to your territory",
+      effect: "Curses the forest: creates a war fog that hides your movements from enemies. Cooldown: 60 s.",
+    },
+    steppe_horde: {
+      power:  "Cavalry Charge",
+      how:    "Right-click Barracks → Launch charge · 15🪵 10🪨",
+      effect: "3 riders charge 5 tiles in a straight line, neutralising all enemy land they cross. 1 active charge at a time.",
+    },
+    aurelian_empire: {
+      power:  "Catapult",
+      how:    "Build a Catapult → Right-click to target",
+      effect: "Bombards up to 7 grouped enemy tiles (range: 15 tiles). Cooldown: 60 s.",
+    },
+  },
   support: {
     header_label: "Frontrush Empire",
     title: "Support",
@@ -356,5 +380,8 @@ export default {
 
     victory_title: "Victory conditions",
     victory_text: "Victory is achieved by building a Wonder and holding it for 10 minutes. The enemy can destroy your wonder by capturing the tile it sits on — defend it! Alternatively, you can eliminate all opponents by conquering their base.",
+
+    civs_title: "Civilisations & Special Powers",
+    civs_intro: "Each civilisation has a unique power activated via a building or a map action. Master it to gain the upper hand.",
   },
 };

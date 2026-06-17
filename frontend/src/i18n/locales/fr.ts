@@ -131,6 +131,30 @@ export default {
     steppe_horde:    { name: "Horde des Steppes",   role: "Attaque",    bonus: "Expansion rapide · Attaque ↑ · Défense ↓" },
     aurelian_empire: { name: "Empire d'Aurélien",   role: "Économie",   bonus: "Routes · Territoire compact · +éco/case" },
   },
+  civ_power: {
+    title: "Pouvoir spécial",
+    how_label: "Activation :",
+    iron_dwarves: {
+      power:  "Golem de guerre",
+      how:    "Clic droit Caserne → Acheter un Golem · 15🪵 10🪨",
+      effect: "Unité autonome (5 PV) qui avance vers les ennemis et neutralise leurs cases. Max 2 par caserne.",
+    },
+    sylvan_elves: {
+      power:  "Forêt maudite",
+      how:    "Clic droit sur une forêt adjacente à votre territoire",
+      effect: "Ensorcelle la forêt : crée un brouillard de guerre masquant vos mouvements aux ennemis. Recharge : 60 s.",
+    },
+    steppe_horde: {
+      power:  "Charge de cavalerie",
+      how:    "Clic droit Caserne → Lancer la charge · 15🪵 10🪨",
+      effect: "3 cavaliers foncent 5 cases en ligne droite et neutralisent les terres ennemies traversées. 1 charge active à la fois.",
+    },
+    aurelian_empire: {
+      power:  "Catapulte",
+      how:    "Construire une Catapulte → Clic droit pour cibler",
+      effect: "Bombarde jusqu'à 7 cases ennemies groupées (rayon 15 cases). Recharge : 60 s.",
+    },
+  },
   support: {
     header_label: "Frontrush Empire",
     title: "Support",
@@ -356,5 +380,8 @@ export default {
 
     victory_title: "Conditions de victoire",
     victory_text: "La victoire s'obtient en construisant une Merveille et en la maintenant pendant 10 minutes. L'ennemi peut détruire ta merveille en capturant la case sur laquelle elle est posée — défends-la ! Alternativement, tu peux éliminer tous tes adversaires en conquérant leur base.",
+
+    civs_title: "Civilisations & Pouvoirs spéciaux",
+    civs_intro: "Chaque civilisation possède un pouvoir unique activé via un bâtiment ou une action sur la carte. Maîtrisez-le pour prendre l'avantage.",
   },
 };

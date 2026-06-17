@@ -254,9 +254,25 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     try {
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
-      instance.buyLandUnit(userId, { x: payload.barracksX, y: payload.barracksY });
+      const pos = { x: payload.barracksX, y: payload.barracksY };
       const player = instance.getPlayerByUserId(userId)!;
-      io.to(`game:${payload.gameId}`).emit("game:land_units_update", { units: instance.landUnits });
+      const room = `game:${payload.gameId}`;
+
+      if (player.civilization === "steppe_horde") {
+        const result = instance.cavalryCharge(userId, pos);
+        io.to(room).emit("game:cavalry_charge", {
+          paths: result.paths,
+          barracksPos: result.barracksPos,
+          playerId: result.playerId,
+        });
+        if (result.tileChanges.length > 0) {
+          io.to(room).emit("game:tile_update", { changes: result.tileChanges, players: [] });
+        }
+        io.to(room).emit("game:land_units_update", { units: instance.landUnits });
+      } else {
+        instance.buyLandUnit(userId, pos);
+        io.to(room).emit("game:land_units_update", { units: instance.landUnits });
+      }
       socket.emit("game:player_update", { player: { id: player.id, resources: player.resources } });
     } catch (e: any) { socket.emit("game:error", { error: e?.message ?? "unknown_error" }); }
   });

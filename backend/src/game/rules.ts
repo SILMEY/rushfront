@@ -65,6 +65,8 @@ export const GALLEON_ATTACK_RANGE = 3.5;
 
 export const LAND_UNIT_COST = { wood: 15, stone: 10 };
 export const LAND_UNIT_MAX_PER_BARRACKS = 2;
+export const CAVALRY_CHARGE_COST = { wood: 15, stone: 10 };
+export const CAVALRY_CHARGE_STEPS = 5;
 export const CATAPULT_FIRE_INTERVAL_MS = 60_000;
 export const CATAPULT_RANGE = 15;
 export const CURSE_FOREST_COOLDOWN_MS = 60_000;

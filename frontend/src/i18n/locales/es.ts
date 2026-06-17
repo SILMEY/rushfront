@@ -131,6 +131,30 @@ export default {
     steppe_horde:    { name: "Horda de la Estepa", role: "Ataque",    bonus: "Expansión rápida · Ataque ↑ · Defensa ↓" },
     aurelian_empire: { name: "Imperio Aureliano", role: "Economía",   bonus: "Rutas · Territorio compacto · +eco/casilla" },
   },
+  civ_power: {
+    title: "Poder especial",
+    how_label: "Cómo activarlo:",
+    iron_dwarves: {
+      power:  "Gólem de guerra",
+      how:    "Clic derecho Cuartel → Comprar Gólem · 15🪵 10🪨",
+      effect: "Unidad autónoma (5 PV) que avanza hacia los enemigos y neutraliza sus casillas. Máx. 2 por cuartel.",
+    },
+    sylvan_elves: {
+      power:  "Bosque maldito",
+      how:    "Clic derecho en un bosque adyacente a tu territorio",
+      effect: "Maldice el bosque: crea una niebla de guerra que oculta tus movimientos a los enemigos. Recarga: 60 s.",
+    },
+    steppe_horde: {
+      power:  "Carga de caballería",
+      how:    "Clic derecho Cuartel → Lanzar carga · 15🪵 10🪨",
+      effect: "3 jinetes cargan 5 casillas en línea recta, neutralizando todo territorio enemigo que cruzan. 1 carga activa a la vez.",
+    },
+    aurelian_empire: {
+      power:  "Catapulta",
+      how:    "Construir una Catapulta → Clic derecho para apuntar",
+      effect: "Bombardea hasta 7 casillas enemigas agrupadas (radio: 15 casillas). Recarga: 60 s.",
+    },
+  },
   support: {
     header_label: "Frontrush Empire",
     title: "Soporte",
@@ -354,5 +378,8 @@ export default {
 
     victory_title: "Condiciones de victoria",
     victory_text: "La victoria se logra construyendo una Maravilla y manteniéndola durante 10 minutos. El enemigo puede destruir tu maravilla capturando la casilla donde está — ¡defiéndela! Alternativamente, puedes eliminar a todos los adversarios conquistando su base.",
+
+    civs_title: "Civilizaciones & Poderes especiales",
+    civs_intro: "Cada civilización tiene un poder único activado mediante un edificio o una acción en el mapa. Domínalo para llevar la delantera.",
   },
 };

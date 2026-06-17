@@ -209,6 +209,75 @@ const router = useRouter();
         </div>
       </section>
 
+      <!-- 7. Civilisations & Pouvoirs spéciaux -->
+      <section>
+        <h2 class="mb-4 flex items-center gap-2 text-lg font-bold uppercase tracking-widest text-[#f2ca50]">
+          <span class="material-symbols-outlined text-[22px] text-[#d4af37]">diversity_3</span>
+          {{ t('tutorial.civs_title') }}
+        </h2>
+        <p class="mb-5 text-sm leading-relaxed text-white/50">{{ t('tutorial.civs_intro') }}</p>
+
+        <div class="space-y-3">
+
+          <!-- Nains de Fer -->
+          <div class="rounded-lg border border-[#4d4635]/60 bg-[#1a1508]/60 p-4">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-2xl">🗿</span>
+              <div>
+                <div class="text-[13px] font-bold text-[#d4c59f]">{{ t('civ.iron_dwarves.name') }}</div>
+                <div class="text-[11px] font-bold text-[#f2ca50]">{{ t('civ_power.iron_dwarves.power') }}</div>
+              </div>
+            </div>
+            <div class="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-0.5">{{ t('civ_power.how_label') }}</div>
+            <div class="text-[12px] font-semibold text-[#d4c59f] mb-1">{{ t('civ_power.iron_dwarves.how') }}</div>
+            <div class="text-[11px] leading-relaxed text-white/50">{{ t('civ_power.iron_dwarves.effect') }}</div>
+          </div>
+
+          <!-- Elfes Sylvains -->
+          <div class="rounded-lg border border-[#4d4635]/60 bg-[#1a1508]/60 p-4">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-2xl">🌿</span>
+              <div>
+                <div class="text-[13px] font-bold text-[#d4c59f]">{{ t('civ.sylvan_elves.name') }}</div>
+                <div class="text-[11px] font-bold text-[#f2ca50]">{{ t('civ_power.sylvan_elves.power') }}</div>
+              </div>
+            </div>
+            <div class="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-0.5">{{ t('civ_power.how_label') }}</div>
+            <div class="text-[12px] font-semibold text-[#d4c59f] mb-1">{{ t('civ_power.sylvan_elves.how') }}</div>
+            <div class="text-[11px] leading-relaxed text-white/50">{{ t('civ_power.sylvan_elves.effect') }}</div>
+          </div>
+
+          <!-- Horde des Steppes -->
+          <div class="rounded-lg border border-[#4d4635]/60 bg-[#1a1508]/60 p-4">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-2xl">🏇</span>
+              <div>
+                <div class="text-[13px] font-bold text-[#d4c59f]">{{ t('civ.steppe_horde.name') }}</div>
+                <div class="text-[11px] font-bold text-[#f2ca50]">{{ t('civ_power.steppe_horde.power') }}</div>
+              </div>
+            </div>
+            <div class="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-0.5">{{ t('civ_power.how_label') }}</div>
+            <div class="text-[12px] font-semibold text-[#d4c59f] mb-1">{{ t('civ_power.steppe_horde.how') }}</div>
+            <div class="text-[11px] leading-relaxed text-white/50">{{ t('civ_power.steppe_horde.effect') }}</div>
+          </div>
+
+          <!-- Empire d'Aurélien -->
+          <div class="rounded-lg border border-[#f2ca50]/20 bg-[#f2ca50]/5 p-4">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-2xl">⚙️</span>
+              <div>
+                <div class="text-[13px] font-bold text-[#d4c59f]">{{ t('civ.aurelian_empire.name') }}</div>
+                <div class="text-[11px] font-bold text-[#f2ca50]">{{ t('civ_power.aurelian_empire.power') }}</div>
+              </div>
+            </div>
+            <div class="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-0.5">{{ t('civ_power.how_label') }}</div>
+            <div class="text-[12px] font-semibold text-[#d4c59f] mb-1">{{ t('civ_power.aurelian_empire.how') }}</div>
+            <div class="text-[11px] leading-relaxed text-white/50">{{ t('civ_power.aurelian_empire.effect') }}</div>
+          </div>
+
+        </div>
+      </section>
+
       <!-- CTA -->
       <div class="pt-4 text-center">
         <button

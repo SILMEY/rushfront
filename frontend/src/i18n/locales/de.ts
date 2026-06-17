@@ -131,6 +131,30 @@ export default {
     steppe_horde:    { name: "Steppenhorde",          role: "Angriff",      bonus: "Schnelle Expansion · Angriff ↑ · Verteidigung ↓" },
     aurelian_empire: { name: "Aurelianisches Reich",  role: "Wirtschaft",   bonus: "Straßen · Kompaktes Gebiet · +Öko/Feld" },
   },
+  civ_power: {
+    title: "Sonderfähigkeit",
+    how_label: "Aktivierung:",
+    iron_dwarves: {
+      power:  "Kriegsgolem",
+      how:    "Rechtsklick Kaserne → Golem kaufen · 15🪵 10🪨",
+      effect: "Autonome Einheit (5 TP), die auf Feinde zumarschiert und deren Felder neutralisiert. Max. 2 pro Kaserne.",
+    },
+    sylvan_elves: {
+      power:  "Verfluchter Wald",
+      how:    "Rechtsklick auf einen Wald neben deinem Gebiet",
+      effect: "Verflucht den Wald: erzeugt Kriegsnebel, der deine Bewegungen vor Feinden verbirgt. Abklingzeit: 60 s.",
+    },
+    steppe_horde: {
+      power:  "Kavallerie-Angriff",
+      how:    "Rechtsklick Kaserne → Angriff starten · 15🪵 10🪨",
+      effect: "3 Reiter stürmen 5 Felder geradeaus und neutralisieren überquerte Feindgebiete. 1 aktiver Angriff gleichzeitig.",
+    },
+    aurelian_empire: {
+      power:  "Katapult",
+      how:    "Katapult bauen → Rechtsklick zum Zielen",
+      effect: "Bombardiert bis zu 7 gruppierte Feindfelder (Reichweite: 15 Felder). Abklingzeit: 60 s.",
+    },
+  },
   support: {
     header_label: "Frontrush Empire",
     title: "Support",
@@ -354,5 +378,8 @@ export default {
 
     victory_title: "Siegbedingungen",
     victory_text: "Der Sieg wird durch den Bau eines Weltwunders und dessen Erhalt für 10 Minuten erzielt. Der Feind kann dein Weltwunder zerstören, indem er das Feld einnimmt, auf dem es steht — verteidige es! Alternativ kannst du alle Gegner eliminieren, indem du ihre Basis eroberst.",
+
+    civs_title: "Zivilisationen & Sonderfähigkeiten",
+    civs_intro: "Jede Zivilisation hat eine einzigartige Fähigkeit, die über ein Gebäude oder eine Kartenaktion aktiviert wird. Beherrsche sie, um die Oberhand zu gewinnen.",
   },
 };

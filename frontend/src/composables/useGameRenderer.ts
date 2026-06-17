@@ -984,7 +984,135 @@ export function useGameRenderer() {
       }
     }
 
-    // ── Pass 10: maritime animations ─────────────────────────────────────────
+    // ── Pass 10: charges de cavalerie ────────────────────────────────────────
+    {
+      const CHARGE_DURATION = 700; // ms pour 5 cases
+      const nowC = Date.now();
+      for (const charge of (game.cavalryCharges ?? [])) {
+        const elapsed = nowC - charge.startedAt;
+        if (elapsed >= CHARGE_DURATION) continue;
+        const progress = elapsed / CHARGE_DURATION; // 0..1
+        const ownerColor = colorByPlayer.get(charge.playerId) ?? "#f2ca50";
+
+        for (const path of charge.paths) {
+          if (path.length === 0) continue;
+          const tileF  = progress * path.length;
+          const tileI  = Math.min(Math.floor(tileF), path.length - 2);
+          const tileJ  = Math.min(tileI + 1, path.length - 1);
+          const frac   = tileF - Math.floor(tileF);
+
+          const { x: px1, y: py1 } = hexCenter(path[tileI].x, path[tileI].y, tileSize);
+          const { x: px2, y: py2 } = hexCenter(path[tileJ].x, path[tileJ].y, tileSize);
+          const cx = px1 + (px2 - px1) * frac;
+          const cy = py1 + (py2 - py1) * frac;
+
+          // Traîne de poussière (sillage de vitesse)
+          const trailCount = 4;
+          for (let t = 1; t <= trailCount; t++) {
+            const tf   = Math.max(0, tileF - t * 0.35);
+            const ti2  = Math.min(Math.floor(tf), path.length - 2);
+            const tj2  = Math.min(ti2 + 1, path.length - 1);
+            const fr2  = tf - Math.floor(tf);
+            const { x: tx1, y: ty1 } = hexCenter(path[ti2].x, path[ti2].y, tileSize);
+            const { x: tx2, y: ty2 } = hexCenter(path[tj2].x, path[tj2].y, tileSize);
+            const trx  = tx1 + (tx2 - tx1) * fr2;
+            const try_ = ty1 + (ty2 - ty1) * fr2;
+            const alpha = (1 - t / (trailCount + 1)) * 0.4 * (1 - progress);
+            ctx.beginPath();
+            ctx.arc(trx, try_, R * (0.25 - t * 0.04), 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(210,170,100,${alpha})`;
+            ctx.fill();
+          }
+
+          // Dessin du cavalier animé (version rapide / légère)
+          ctx.save();
+          ctx.translate(cx, cy);
+          const lw = Math.max(1, 1.5 / scale);
+
+          // Ombre
+          ctx.globalAlpha = 0.25;
+          ctx.fillStyle = "#060f28";
+          ctx.beginPath();
+          ctx.ellipse(0, R * 0.55, R * 0.65, R * 0.18, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          // Corps du cheval (incliné vers l'avant pour effet vitesse)
+          ctx.beginPath();
+          ctx.ellipse(R * 0.05, R * 0.15, R * 0.55, R * 0.22, Math.PI / 7, 0, Math.PI * 2);
+          ctx.fillStyle = rgba(ownerColor, 0.9);
+          ctx.fill();
+          ctx.strokeStyle = rgba(ownerColor, 1);
+          ctx.lineWidth = lw;
+          ctx.stroke();
+
+          // Tête du cheval
+          ctx.beginPath();
+          ctx.ellipse(R * 0.55, -R * 0.06, R * 0.18, R * 0.14, Math.PI / 5, 0, Math.PI * 2);
+          ctx.fillStyle = rgba(ownerColor, 0.9);
+          ctx.fill();
+          ctx.stroke();
+
+          // Jambes étendues (effet galop)
+          ctx.lineWidth = lw * 1.3;
+          ctx.strokeStyle = rgba(ownerColor, 1);
+          const legPhase = (elapsed % 180) / 180 * Math.PI * 2;
+          for (const [lx, ly, ex, ey] of [
+            [-R * .32, R * .28, -R * .48 + Math.sin(legPhase) * R * .12, R * .58],
+            [-R * .10, R * .32, -R * .14 + Math.sin(legPhase + 1) * R * .12, R * .60],
+            [ R * .14, R * .30,  R * .18 + Math.cos(legPhase) * R * .12, R * .58],
+            [ R * .36, R * .26,  R * .44 + Math.cos(legPhase + 1) * R * .12, R * .52],
+          ] as number[][]) {
+            ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(ex, ey); ctx.stroke();
+          }
+
+          // Cavalier (corps)
+          ctx.fillStyle = rgba(ownerColor, 0.95);
+          ctx.strokeStyle = rgba(ownerColor, 1);
+          ctx.lineWidth = lw;
+          ctx.beginPath();
+          ctx.rect(-R * 0.16, -R * 0.58, R * 0.3, R * 0.38);
+          ctx.fill(); ctx.stroke();
+
+          // Tête
+          ctx.beginPath();
+          ctx.arc(-R * 0.01, -R * 0.72, R * 0.14, 0, Math.PI * 2);
+          ctx.fill(); ctx.stroke();
+
+          // Lance pointée vers l'avant
+          ctx.beginPath();
+          ctx.moveTo(R * 0.10, -R * 0.62);
+          ctx.lineTo(R * 0.72, -R * 0.95);
+          ctx.lineWidth = lw * 1.5;
+          ctx.strokeStyle = rgba(ownerColor, 1);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(R * 0.72, -R * 0.95);
+          ctx.lineTo(R * 0.60, -R * 0.83);
+          ctx.lineTo(R * 0.80, -R * 0.83);
+          ctx.closePath();
+          ctx.fillStyle = "#fde047";
+          ctx.fill();
+
+          // Lignes de vitesse
+          ctx.globalAlpha = 0.35 * (1 - progress);
+          ctx.strokeStyle = rgba(ownerColor, 1);
+          ctx.lineWidth = lw * 0.8;
+          for (const [sx, sy, ex2, ey2] of [
+            [-R * .55, -R * .10, -R * .90, -R * .08],
+            [-R * .50, R * .05,  -R * .85, R * .07],
+            [-R * .45, R * .20,  -R * .80, R * .22],
+          ] as number[][]) {
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex2, ey2); ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+
+          ctx.restore();
+        }
+      }
+    }
+
+    // ── Pass 11: maritime animations ─────────────────────────────────────────
     for (const anim of game.maritimeAnimations) {
       const step = Math.min(anim.step, anim.path.length - 1);
       const pos  = anim.path[step];

@@ -26,9 +26,29 @@ import {
 import {
   buildCost, idx, inBounds, orthogonalNeighbors,
   GALLEON_COST, GALLEON_HP, GALLEON_MAX_PER_PORT, GALLEON_ATTACK_RANGE,
-  LAND_UNIT_COST, LAND_UNIT_MAX_PER_BARRACKS, CATAPULT_FIRE_INTERVAL_MS, CATAPULT_RANGE,
+  LAND_UNIT_COST, LAND_UNIT_MAX_PER_BARRACKS, CAVALRY_CHARGE_COST, CAVALRY_CHARGE_STEPS,
+  CATAPULT_FIRE_INTERVAL_MS, CATAPULT_RANGE,
   CURSE_FOREST_COOLDOWN_MS, landUnitHP, landUnitDamage
 } from "./rules.js";
+
+// ── Cube coordinate helpers (even-r offset ↔ cube) ──────────────────────────
+function toCube(col: number, row: number): [number, number, number] {
+  const q = col - (row - (row & 1)) / 2;
+  const r = row;
+  return [q, r, -q - r];
+}
+function fromCube(q: number, r: number): Vec2 {
+  return { x: q + (r - (r & 1)) / 2, y: r };
+}
+// 6 hex directions in cube coordinates (E, SE, SW, W, NW, NE)
+const CUBE_DIRS: [number, number, number][] = [
+  [ 1,  0, -1], // 0: E
+  [ 0,  1, -1], // 1: SE
+  [-1,  1,  0], // 2: SW
+  [-1,  0,  1], // 3: W
+  [ 0, -1,  1], // 4: NW
+  [ 1, -1,  0], // 5: NE
+];
 import { applyProduction } from "./turnResolver.js";
 import { TECHS, isTechId } from "./tech.js";
 
@@ -1257,6 +1277,98 @@ export class GameInstance {
     player.maritimeCharges = charges - 1;
     this.tileOwners[index] = player.id;
     return { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null };
+  }
+
+  // ── Charge de cavalerie (Horde des Steppes) ──────────────────────────────
+
+  cavalryCharge(userId: string, barracksPos: Vec2): { paths: Vec2[][]; tileChanges: TileChange[]; barracksPos: Vec2; playerId: string } {
+    if (this.status !== "ACTIVE") throw new Error("not_active");
+    const player = this.getPlayerByUserId(userId);
+    if (!player) throw new Error("not_in_game");
+    if (player.civilization !== "steppe_horde") throw new Error("wrong_civilization");
+
+    const barracksIdx = idx(barracksPos, this.width);
+    if (this.tileBuildings[barracksIdx] !== BuildingType.Barracks || this.tileOwners[barracksIdx] !== player.id)
+      throw new Error("invalid_barracks");
+
+    const barracksKey = `${barracksPos.x}_${barracksPos.y}`;
+    if (this.landUnits.some(u => u.playerId === player.id && u.barracksKey === barracksKey))
+      throw new Error("max_units_reached");
+
+    if (player.resources.wood < CAVALRY_CHARGE_COST.wood || player.resources.stone < CAVALRY_CHARGE_COST.stone)
+      throw new Error("not_enough_resources");
+
+    // Find nearest enemy tile to determine charge direction
+    const dummy: LandUnitState = { id: "", playerId: player.id, civilization: "steppe_horde", barracksKey, x: barracksPos.x, y: barracksPos.y, hp: 1 };
+    const target = this.findLandUnitTarget(dummy);
+    if (!target) throw new Error("no_target");
+
+    // Find best cube direction toward target
+    const [bq, br] = toCube(barracksPos.x, barracksPos.y);
+    const [tq, tr] = toCube(target.x, target.y);
+    const delta: [number, number, number] = [tq - bq, tr - br, -(tq - bq) - (tr - br)];
+    let bestDir = 0;
+    let bestDot = -Infinity;
+    for (let d = 0; d < 6; d++) {
+      const [dq, dr] = CUBE_DIRS[d];
+      const dot = dq * delta[0] + dr * delta[1];
+      if (dot > bestDot) { bestDot = dot; bestDir = d; }
+    }
+
+    player.resources.wood  -= CAVALRY_CHARGE_COST.wood;
+    player.resources.stone -= CAVALRY_CHARGE_COST.stone;
+
+    const [cdq, cdr] = CUBE_DIRS[bestDir];
+    // Left and right riders start one perpendicular hex from the barracks (±60° from charge)
+    const [ldq, ldr] = CUBE_DIRS[(bestDir + 5) % 6];
+    const [rdq, rdr] = CUBE_DIRS[(bestDir + 1) % 6];
+
+    const startCubes: [number, number][] = [
+      [bq + ldq, br + ldr], // left rider
+      [bq,       br      ], // center rider (starts at barracks)
+      [bq + rdq, br + rdr], // right rider
+    ];
+
+    const paths: Vec2[][] = [[], [], []];
+    const tileChanges: TileChange[] = [];
+
+    for (let r = 0; r < 3; r++) {
+      let [cq, cr] = startCubes[r];
+      for (let step = 0; step < CAVALRY_CHARGE_STEPS; step++) {
+        cq += cdq;
+        cr += cdr;
+        const pos = fromCube(cq, cr);
+        if (!inBounds(pos, this.width, this.height)) break;
+        const ti = idx(pos, this.width);
+        if ((this.tileTypes[ti] as TileType) === TileType.Water) break;
+        paths[r].push(pos);
+
+        // Neutralize enemy tiles in the path
+        const curOwner = this.tileOwners[ti];
+        if (curOwner && curOwner !== player.id) {
+          this._removeTile(curOwner, ti);
+          const b = this.tileBuildings[ti];
+          if (b !== null) { this._removeBuilding(curOwner, b); this.tileBuildings[ti] = null; }
+          this.tileOwners[ti] = null;
+          tileChanges.push({ x: pos.x, y: pos.y, owner: null, building: null });
+        }
+      }
+
+      // Spawn a cavalry unit at the end of the path
+      const finalPos = paths[r][paths[r].length - 1] ?? barracksPos;
+      const unit: LandUnitState = {
+        id: `${player.id}-cv-${Date.now()}-${r}-${Math.random().toString(36).slice(2, 5)}`,
+        playerId: player.id,
+        civilization: "steppe_horde",
+        barracksKey,
+        x: finalPos.x,
+        y: finalPos.y,
+        hp: 2,
+      };
+      this.landUnits.push(unit);
+    }
+
+    return { paths, tileChanges, barracksPos, playerId: player.id };
   }
 
   // ── Brouillage ────────────────────────────────────────────────────────────

@@ -18,14 +18,19 @@ const me   = computed(() => props.state.players.find(p => p.userId === auth.user
 
 const civ         = computed(() => me.value?.civilization ?? "");
 const barracksKey = computed(() => `${props.tile.x}_${props.tile.y}`);
-const myUnits     = computed(() => game.landUnits.filter(u => u.playerId === me.value?.id && u.barracksKey === barracksKey.value).length);
-const maxUnits    = 2;
-const unitsFull   = computed(() => myUnits.value >= maxUnits);
-const canAfford   = computed(() => (me.value?.resources.wood ?? 0) >= 15 && (me.value?.resources.stone ?? 0) >= 10);
-const canBuy      = computed(() => !unitsFull.value && canAfford.value);
+const isHorde     = computed(() => civ.value === "steppe_horde");
 
-const unitLabel  = computed(() => civ.value === "iron_dwarves" ? "Golem" : "Cavalier");
-const unitIcon   = computed(() => civ.value === "iron_dwarves" ? "🗿" : "🏇");
+// Pour la Horde : 1 slot charge (actif = ≥1 unité depuis cette caserne)
+// Pour les Nains : 2 slots golem
+const myUnits    = computed(() => game.landUnits.filter(u => u.playerId === me.value?.id && u.barracksKey === barracksKey.value).length);
+const slotUsed   = computed(() => isHorde.value ? (myUnits.value > 0 ? 1 : 0) : myUnits.value);
+const slotMax    = computed(() => isHorde.value ? 1 : 2);
+const unitsFull  = computed(() => slotUsed.value >= slotMax.value);
+const canAfford  = computed(() => (me.value?.resources.wood ?? 0) >= 15 && (me.value?.resources.stone ?? 0) >= 10);
+const canBuy     = computed(() => !unitsFull.value && canAfford.value);
+const unitLabel  = computed(() => isHorde.value ? "Charge de cavalerie" : "Golem");
+const unitDesc   = computed(() => isHorde.value ? "3 cavaliers · 5 cases" : "");
+const unitIcon   = computed(() => isHorde.value ? "🏇" : "🗿");
 
 function buy() {
   if (!canBuy.value) return;
@@ -46,7 +51,7 @@ const cy = computed(() => Math.min(Math.max(props.clientY, MARGIN), window.inner
 
       <!-- En-tête -->
       <div class="text-[9px] uppercase tracking-widest text-white/35 mb-3 text-center font-bold">
-        Caserne · {{ myUnits }}/{{ maxUnits }}
+        Caserne · {{ slotUsed }}/{{ slotMax }}
       </div>
 
       <!-- Bouton d'achat -->
@@ -61,8 +66,9 @@ const cy = computed(() => Math.min(Math.max(props.clientY, MARGIN), window.inner
         <span class="text-2xl">{{ unitIcon }}</span>
         <div class="flex flex-col items-start">
           <span class="text-[12px] font-bold text-[#d4c59f]">{{ unitLabel }}</span>
+          <span v-if="unitDesc" class="text-[10px] text-[#f2ca50]/70">{{ unitDesc }}</span>
           <span class="text-[10px] text-white/40">
-            {{ unitsFull ? 'Maximum atteint' : '15🪵 10🪨' }}
+            {{ unitsFull ? (isHorde ? 'En charge — attendez' : 'Maximum atteint') : '15🪵 10🪨' }}
           </span>
         </div>
       </button>
