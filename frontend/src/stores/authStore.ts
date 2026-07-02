@@ -48,6 +48,15 @@ export const useAuthStore = defineStore("auth", {
     loginWithDiscord() {
       window.location.href = `${apiOrigin()}/auth/discord/start`;
     },
+    async loginAsGuest(pseudo: string) {
+      const res = await apiFetch<{ token: string; user: User }>("/auth/guest", {
+        method: "POST",
+        body: JSON.stringify({ pseudo })
+      });
+      this.setAccessToken(res.token);
+      this.user = res.user;
+      this.ready = true;
+    },
     async logout() {
       try {
         await apiFetch("/auth/logout", { method: "POST" });

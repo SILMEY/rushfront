@@ -1,9 +1,44 @@
 <script setup lang="ts">
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/authStore";
 import { useI18n } from "vue-i18n";
 
 const auth = useAuthStore();
 const { t } = useI18n();
+const router = useRouter();
+
+const showGuestForm = ref(false);
+const guestPseudo = ref("");
+const guestError = ref("");
+const guestLoading = ref(false);
+
+const ERROR_KEYS: Record<string, string> = {
+  pseudo_too_short: "login.guest_error_too_short",
+  pseudo_too_long:  "login.guest_error_too_long",
+  pseudo_invalid:   "login.guest_error_invalid",
+};
+
+async function submitGuest() {
+  guestError.value = "";
+  guestLoading.value = true;
+  try {
+    await auth.loginAsGuest(guestPseudo.value.trim());
+    router.push("/");
+  } catch (e: any) {
+    let raw = "";
+    try { raw = JSON.parse(e.message)?.error ?? e.message; } catch { raw = e.message; }
+    guestError.value = t(ERROR_KEYS[raw] ?? "login.guest_error_invalid");
+  } finally {
+    guestLoading.value = false;
+  }
+}
+
+function cancelGuest() {
+  showGuestForm.value = false;
+  guestPseudo.value = "";
+  guestError.value = "";
+}
 </script>
 
 <template>
@@ -33,6 +68,57 @@ const { t } = useI18n();
           </div>
           <span class="text-[12px] font-bold uppercase tracking-[0.2em] text-slate-200/80">{{ t('login.discord_text') }}</span>
         </button>
+      </div>
+
+      <!-- Séparateur invité -->
+      <div class="my-8 flex items-center gap-4">
+        <div class="h-px flex-1 bg-white/10"></div>
+        <span class="text-xs uppercase tracking-[0.2em] text-slate-400/70">{{ t('login.guest_divider') }}</span>
+        <div class="h-px flex-1 bg-white/10"></div>
+      </div>
+
+      <!-- Bouton invité ou formulaire pseudo -->
+      <div v-if="!showGuestForm" class="text-center">
+        <button
+          class="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold uppercase tracking-[0.15em] text-slate-300/80 transition hover:border-white/20 hover:bg-white/10 hover:text-slate-200 active:scale-95"
+          :aria-label="t('login.guest_label')"
+          @click="showGuestForm = true"
+        >
+          <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 0">person</span>
+          {{ t('login.guest_text') }}
+        </button>
+      </div>
+
+      <div v-else class="rounded-xl border border-white/10 bg-white/5 p-6">
+        <p class="mb-4 text-center text-sm font-bold uppercase tracking-[0.15em] text-slate-300/80">
+          {{ t('login.guest_title') }}
+        </p>
+        <input
+          v-model="guestPseudo"
+          type="text"
+          maxlength="20"
+          autocomplete="off"
+          :placeholder="t('login.guest_pseudo_placeholder')"
+          class="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-amber-300/40 focus:outline-none"
+          @keydown.enter="submitGuest"
+          @keydown.esc="cancelGuest"
+        />
+        <p v-if="guestError" class="mt-2 text-xs text-red-400">{{ guestError }}</p>
+        <div class="mt-4 flex gap-3">
+          <button
+            class="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-bold uppercase tracking-widest text-slate-400 transition hover:bg-white/10 active:scale-95"
+            @click="cancelGuest"
+          >
+            {{ t('login.guest_cancel_btn') }}
+          </button>
+          <button
+            class="flex-1 rounded-lg border border-amber-300/30 bg-amber-300/10 py-2 text-xs font-bold uppercase tracking-widest text-amber-300 transition hover:bg-amber-300/20 active:scale-95 disabled:opacity-40"
+            :disabled="guestLoading || guestPseudo.trim().length < 3"
+            @click="submitGuest"
+          >
+            {{ guestLoading ? '…' : t('login.guest_play_btn') }}
+          </button>
+        </div>
       </div>
 
       <div class="mt-12 text-center">

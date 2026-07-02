@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import type { FastifyInstance } from "fastify";
 import { createGoogleClient, upsertUserFromGoogle } from "./google.js";
 import { discordAuthUrl, exchangeDiscordCode, upsertUserFromDiscord } from "./discord.js";
@@ -98,6 +99,7 @@ export async function authRoutes(app: FastifyInstance) {
       preferredColor: user.preferredColor ?? null,
       preferredCivilization: user.preferredCivilization ?? null,
       isAdmin: user.email === ADMIN_EMAIL,
+      isGuest: (user.email as string)?.endsWith("@guest.local") ?? false,
       elo: user.elo ?? 1000,
       quickGamesPlayed: user.quickGamesPlayed ?? 0
     };
@@ -134,6 +136,31 @@ export async function authRoutes(app: FastifyInstance) {
         : `${webOrigin}/`;
 
     reply.setCookie("tr_session", jwt, cookieOpts).redirect(redirectUrl);
+  });
+
+  // ── /auth/guest ──────────────────────────────────────────────────────────
+
+  const GuestPseudoSchema = z
+    .string()
+    .trim()
+    .min(3, "pseudo_too_short")
+    .max(20, "pseudo_too_long")
+    .regex(/^[a-zA-Z0-9][a-zA-Z0-9 _-]*[a-zA-Z0-9]$/, "pseudo_invalid");
+
+  app.post("/auth/guest", async (req, reply) => {
+    const body = (req.body ?? {}) as any;
+    const parsed = GuestPseudoSchema.safeParse(body.pseudo);
+    if (!parsed.success) {
+      const msg = parsed.error.issues[0]?.message ?? "invalid_pseudo";
+      return reply.code(400).send({ error: msg });
+    }
+    const pseudo = parsed.data;
+    const email = `guest_${randomUUID()}@guest.local`;
+    const user = await app.prisma.user.create({
+      data: { email, name: pseudo }
+    });
+    const jwt = await reply.jwtSign({ userId: user.id });
+    return reply.send({ token: jwt, user: serializeUser(user) });
   });
 
   // ── /auth/me ─────────────────────────────────────────────────────────────
