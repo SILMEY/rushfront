@@ -58,6 +58,7 @@ export default {
     guest_error_too_short: "Username too short (min. 3 characters)",
     guest_error_too_long: "Username too long (max. 20 characters)",
     guest_error_invalid: "Letters, numbers, spaces, _ and - only",
+    guest_error_unknown: "Unable to connect, please try again.",
   },
   lobby: {
     subtitle: "War Room",

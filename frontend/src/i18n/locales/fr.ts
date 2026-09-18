@@ -58,6 +58,7 @@ export default {
     guest_error_too_short: "Pseudo trop court (3 caractères min.)",
     guest_error_too_long: "Pseudo trop long (20 caractères max.)",
     guest_error_invalid: "Lettres, chiffres, espaces, _ et - uniquement",
+    guest_error_unknown: "Impossible de se connecter, réessayez.",
   },
   lobby: {
     subtitle: "War Room",

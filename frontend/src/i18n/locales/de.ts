@@ -58,6 +58,7 @@ export default {
     guest_error_too_short: "Benutzername zu kurz (mind. 3 Zeichen)",
     guest_error_too_long: "Benutzername zu lang (max. 20 Zeichen)",
     guest_error_invalid: "Nur Buchstaben, Zahlen, Leerzeichen, _ und -",
+    guest_error_unknown: "Verbindung fehlgeschlagen, bitte erneut versuchen.",
   },
   lobby: {
     subtitle: "Kriegsraum",

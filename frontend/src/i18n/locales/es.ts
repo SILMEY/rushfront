@@ -58,6 +58,7 @@ export default {
     guest_error_too_short: "Nombre demasiado corto (mín. 3 caracteres)",
     guest_error_too_long: "Nombre demasiado largo (máx. 20 caracteres)",
     guest_error_invalid: "Solo letras, números, espacios, _ y -",
+    guest_error_unknown: "No se pudo conectar, inténtalo de nuevo.",
   },
   lobby: {
     subtitle: "Sala de Guerra",

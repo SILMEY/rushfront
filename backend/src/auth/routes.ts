@@ -145,7 +145,7 @@ export async function authRoutes(app: FastifyInstance) {
     .trim()
     .min(3, "pseudo_too_short")
     .max(20, "pseudo_too_long")
-    .regex(/^[a-zA-Z0-9][a-zA-Z0-9 _-]*[a-zA-Z0-9]$/, "pseudo_invalid");
+    .regex(/^[\p{L}\p{N}][\p{L}\p{N} _-]*[\p{L}\p{N}]$/u, "pseudo_invalid");
 
   app.post("/auth/guest", async (req, reply) => {
     const body = (req.body ?? {}) as any;

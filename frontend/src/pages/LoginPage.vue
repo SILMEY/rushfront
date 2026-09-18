@@ -27,8 +27,10 @@ async function submitGuest() {
     router.push("/");
   } catch (e: any) {
     let raw = "";
-    try { raw = JSON.parse(e.message)?.error ?? e.message; } catch { raw = e.message; }
-    guestError.value = t(ERROR_KEYS[raw] ?? "login.guest_error_invalid");
+    try { raw = JSON.parse(e.message)?.error ?? ""; } catch { raw = ""; }
+    guestError.value = raw && ERROR_KEYS[raw]
+      ? t(ERROR_KEYS[raw])
+      : t("login.guest_error_unknown");
   } finally {
     guestLoading.value = false;
   }
