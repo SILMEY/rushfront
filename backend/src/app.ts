@@ -35,6 +35,17 @@ export function buildApp() {
 
   app.get("/healthz", async () => ({ ok: true }));
 
+  // Force CORS headers on error responses so the browser can read the status code.
+  app.setErrorHandler((error, request, reply) => {
+    const origin = request.headers.origin;
+    if (origin && allowedOrigins.has(origin)) {
+      reply.header("Access-Control-Allow-Origin", origin);
+      reply.header("Access-Control-Allow-Credentials", "true");
+    }
+    app.log.error(error);
+    reply.status(error.statusCode ?? 500).send({ error: error.message ?? "internal_error" });
+  });
+
   // Socket.IO handshake uses a short-lived JWT obtained via HTTP (cookie-authenticated).
   app.get("/socket/token", async (req, reply) => {
     try {
