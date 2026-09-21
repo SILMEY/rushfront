@@ -154,7 +154,7 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
     try {
       const userId = userIdOf(socket);
       const instance = getInstance(gameManager, payload.gameId);
-      const { change, defenderId, wonders } = instance.attackTile(userId, { x: payload.x, y: payload.y });
+      const { changes, defenderId, wonders } = instance.attackTile(userId, { x: payload.x, y: payload.y });
       const attacker = instance.getPlayerByUserId(userId)!;
       const defender = instance.players.find((p) => p.id === defenderId);
       const playerPatches: object[] = [{ id: attacker.id, resources: attacker.resources }];
@@ -166,7 +166,7 @@ export function registerGameHandlers(_app: FastifyInstance, io: Server, socket: 
           maritimeCharges: (defender as any).maritimeCharges ?? 0,
         });
       }
-      io.to(`game:${payload.gameId}`).emit("game:tile_update", { changes: [change], players: playerPatches, wonders });
+      io.to(`game:${payload.gameId}`).emit("game:tile_update", { changes, players: playerPatches, wonders });
     } catch (e: any) {
       socket.emit("game:error", { error: e?.message ?? "unknown_error" });
     }

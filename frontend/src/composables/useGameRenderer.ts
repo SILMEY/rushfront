@@ -1134,6 +1134,49 @@ export function useGameRenderer() {
       ctx.fillText("🛶", cx, cy);
     }
 
+    // ── Pass 12: troop count labels ──────────────────────────────────────────
+    {
+      // Compute centroid for each player's territory
+      const sum = new Map<string, { sx: number; sy: number; n: number }>();
+      for (let row = 0; row < state.height; row++) {
+        for (let col = 0; col < state.width; col++) {
+          const owner = state.tiles.owners[row * state.width + col];
+          if (!owner) continue;
+          const { x: cx, y: cy } = hexCenter(col, row, tileSize);
+          const e = sum.get(owner);
+          if (e) { e.sx += cx; e.sy += cy; e.n++; }
+          else sum.set(owner, { sx: cx, sy: cy, n: 1 });
+        }
+      }
+
+      const labelSize = R * 1.5;
+      ctx.save();
+      ctx.font = `900 ${labelSize}px "Literata","Georgia",serif`;
+      ctx.textAlign    = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineJoin     = "round";
+
+      for (const player of state.players) {
+        if ((player as any).eliminated) continue;
+        const e = sum.get(player.id);
+        if (!e || e.n < 2) continue; // skip tiny empires (1 tile)
+        const cx  = e.sx / e.n;
+        const cy  = e.sy / e.n;
+        const total = (player.resources?.villagers ?? 0) + (player.resources?.soldiers ?? 0);
+        if (total <= 0) continue;
+        const label = String(total);
+
+        // Thick dark outline
+        ctx.lineWidth    = labelSize * 0.35;
+        ctx.strokeStyle  = "rgba(0,0,0,0.88)";
+        ctx.strokeText(label, cx, cy);
+        // Coloured fill
+        ctx.fillStyle = player.color;
+        ctx.fillText(label, cx, cy);
+      }
+      ctx.restore();
+    }
+
     ctx.restore();
 
 

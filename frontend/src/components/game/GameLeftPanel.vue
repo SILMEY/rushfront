@@ -53,6 +53,8 @@ const rankedPlayers = computed(() => {
     });
 });
 
+const maxTiles = computed(() => Math.max(1, ...rankedPlayers.value.map(p => p._tiles)));
+
 // ── Merveille ─────────────────────────────────────────────────────────────────
 
 const nowMs = ref(Date.now());
@@ -118,29 +120,48 @@ function fmt(s: number) {
     </div>
 
     <!-- Classement -->
-    <div class="border-b-2 border-outline-variant px-5 pt-4 pb-3 shrink-0">
+    <div class="border-b-2 border-outline-variant px-4 pt-4 pb-3 shrink-0">
       <SectionTitle>{{ t('left_panel.ranking_title') }}</SectionTitle>
-      <div class="space-y-1">
+      <div class="space-y-1.5">
         <div
           v-for="(p, i) in rankedPlayers"
           :key="p.id"
-          class="flex items-center gap-2 rounded px-2 py-1"
-          :class="p.id === me?.id ? 'bg-white/5' : ''"
+          class="rounded-lg px-3 py-2 transition-colors"
+          :class="[
+            p.id === me?.id ? 'bg-white/8 ring-1 ring-inset ring-white/10' : 'bg-black/20',
+            p.eliminated ? 'opacity-35' : ''
+          ]"
         >
-          <span class="text-[10px] text-white/25 w-4 shrink-0 font-mono">{{ i + 1 }}</span>
-          <div class="h-2.5 w-2.5 shrink-0 rounded-full border border-black/30" :style="{ backgroundColor: p.color }"></div>
-          <span
-            class="flex-1 truncate text-[11px] font-bold"
-            :class="p.eliminated ? 'line-through opacity-30' : ''"
-            :style="{ color: p.color }"
-          >{{ p.name }}</span>
-          <span class="text-[10px] shrink-0 font-mono flex items-center gap-1.5">
-            <span class="text-[#d4af37]/60" title="Cases possédées">{{ p._tiles }}🗺</span>
-            <span class="text-white/20">|</span>
-            <span class="text-[#a8c090]/80">{{ p.resources.villagers }}</span>
-            <span class="text-white/20">+</span>
-            <span class="text-[#ef4444]/70">{{ p.resources.soldiers }}</span>
-          </span>
+          <!-- Top row: rank + name + tiles -->
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-bold text-white/30 w-4 shrink-0 font-mono leading-none">{{ i + 1 }}</span>
+            <div class="h-3 w-3 shrink-0 rounded-full border border-black/40 shadow-sm" :style="{ backgroundColor: p.color }"></div>
+            <span
+              class="flex-1 truncate text-[13px] font-bold leading-tight"
+              :class="p.eliminated ? 'line-through' : ''"
+              :style="{ color: p.color }"
+            >{{ p.name }}</span>
+            <span class="text-[12px] font-bold text-[#d4af37] shrink-0 font-mono">{{ p._tiles }}</span>
+            <span class="text-[10px] text-white/30 shrink-0">🗺</span>
+          </div>
+          <!-- Bottom row: troops bar -->
+          <div v-if="!p.eliminated" class="flex items-center gap-2 pl-6">
+            <div class="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                :style="{
+                  width: maxTiles > 0 ? `${Math.round((p._tiles / maxTiles) * 100)}%` : '0%',
+                  backgroundColor: p.color,
+                  opacity: 0.6
+                }"
+              ></div>
+            </div>
+            <span class="text-[11px] font-mono shrink-0 text-white/60">
+              <span class="text-[#a8c090]">{{ p.resources.villagers }}</span>
+              <span class="text-white/25 mx-0.5">+</span>
+              <span class="text-[#ef4444]/80">{{ p.resources.soldiers }}</span>
+            </span>
+          </div>
         </div>
       </div>
     </div>

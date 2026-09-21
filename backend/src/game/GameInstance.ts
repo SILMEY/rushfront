@@ -520,7 +520,7 @@ export class GameInstance {
 
   // ── Attack (immediate) ────────────────────────────────────────────────────
 
-  attackTile(userId: string, pos: Vec2): { change: TileChange; defenderId: string; wonders: Array<{ playerId: string; endsAt: number }> } {
+  attackTile(userId: string, pos: Vec2): { changes: TileChange[]; defenderId: string; wonders: Array<{ playerId: string; endsAt: number }> } {
     if (this.status !== "ACTIVE") throw new Error("not_active");
     const player = this.getPlayerByUserId(userId);
     if (!player) throw new Error("not_in_game");
@@ -574,14 +574,16 @@ export class GameInstance {
     const defSoldierLoss = Math.min(defSoldiers, defTotalLoss);
     const defVillagerLoss = Math.max(0, defTotalLoss - defSoldierLoss);
 
-    // Avantage numérique : l'attaquant 20× plus fort perd ~3× moins que le défenseur
-    const numericalAdvantage = Math.min(10, Math.max(1, player.resources.soldiers / Math.max(1, defSoldiers)));
-    const atkRawLoss = Math.max(1, Math.ceil(defTotalLoss / Math.sqrt(numericalAdvantage)));
+    // Avantage numérique : au-delà de 4× l'attaquant peut capturer sans perte de soldats.
+    // Exemple : 2× → perd ~70% du défenseur ; 4× → ~50% ; 10× → ~30% ; 20× → peut être 0.
+    const numericalAdvantage = Math.min(20, Math.max(1, player.resources.soldiers / Math.max(1, defSoldiers)));
+    const atkRawLoss = defTotalLoss / Math.pow(numericalAdvantage, 0.75);
     const atkSoldierLoss = atkTechs.has("epee_longue")
-      ? Math.max(1, Math.floor(atkRawLoss / 2))
-      : atkRawLoss;
+      ? Math.max(0, Math.floor(atkRawLoss / 2))
+      : Math.max(0, Math.floor(atkRawLoss));
 
-    if (player.resources.soldiers < atkSoldierLoss) throw new Error("not_enough_soldiers");
+    // Toujours besoin d'au moins 1 soldat pour attaquer, mais les pertes peuvent être 0
+    if (player.resources.soldiers < Math.max(1, atkSoldierLoss)) throw new Error("not_enough_soldiers");
 
     defender.resources.soldiers  = Math.max(0, defender.resources.soldiers  - defSoldierLoss);
     defender.resources.villagers = Math.max(0, defender.resources.villagers - defVillagerLoss);
@@ -627,13 +629,79 @@ export class GameInstance {
       this.wonders.splice(wi, 1);
     }
 
+    // Capturer les tuiles isolées du défenseur (encerclées, plus reliées à la base)
+    const isolatedChanges = this._captureIsolated(player.id, defender.id);
+
     this.checkEliminationOf(defender.id);
 
     return {
-      change: { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null },
+      changes: [
+        { x: pos.x, y: pos.y, owner: player.id, building: this.tileBuildings[index] ?? null },
+        ...isolatedChanges
+      ],
       defenderId: defender.id,
       wonders: this.wonders.map(w => ({ playerId: w.playerId, endsAt: w.endsAt }))
     };
+  }
+
+  private _captureIsolated(attackerId: string, defenderId: string): TileChange[] {
+    const defender = this.players.find(p => p.id === defenderId);
+    const attacker = this.players.find(p => p.id === attackerId);
+    if (!defender?.basePosition) return [];
+
+    const baseIdx = idx(defender.basePosition, this.width);
+    // Si la base elle-même est déjà perdue, l'élimination est gérée ailleurs
+    if (this.tileOwners[baseIdx] !== defenderId) return [];
+
+    // BFS depuis la base à travers les tuiles du défenseur
+    const visited = new Set<number>();
+    const queue: number[] = [baseIdx];
+    visited.add(baseIdx);
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      for (const nb of orthogonalNeighbors({ x: cur % this.width, y: Math.floor(cur / this.width) })) {
+        if (!inBounds(nb, this.width, this.height)) continue;
+        const ni = idx(nb, this.width);
+        if (!visited.has(ni) && this.tileOwners[ni] === defenderId) {
+          visited.add(ni);
+          queue.push(ni);
+        }
+      }
+    }
+
+    // Collecter les tuiles isolées (non reliées à la base)
+    const isolated: number[] = [];
+    for (const i of this.getTilesOf(defenderId)) {
+      if (!visited.has(i)) isolated.push(i);
+    }
+    if (isolated.length === 0) return [];
+
+    const changes: TileChange[] = [];
+    for (const i of isolated) {
+      const building = this.tileBuildings[i];
+      if (building !== null) {
+        this._removeBuilding(defenderId, building);
+        if (building !== BuildingType.Catapult && building !== BuildingType.Wonder) {
+          if (attacker) this._addBuilding(attackerId, building);
+        } else {
+          this.tileBuildings[i] = null;
+        }
+      }
+      this._removeTile(defenderId, i);
+      if (attacker) {
+        this._addTile(attackerId, i);
+        this.tileOwners[i] = attackerId;
+      } else {
+        this.tileOwners[i] = null;
+      }
+      changes.push({
+        x: i % this.width,
+        y: Math.floor(i / this.width),
+        owner: attackerId,
+        building: this.tileBuildings[i] ?? null
+      });
+    }
+    return changes;
   }
 
   // ── Build (immediate) ─────────────────────────────────────────────────────
